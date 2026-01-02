@@ -1,0 +1,9 @@
+requests>=2.31.0
+python-dotenv>=1.0.0
+supabase>=2.0.0
+schedule>=1.2.0
+hwp-extract>=0.1.0
+pyhwp>=0.1b15
+aiohttp>=3.9.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
