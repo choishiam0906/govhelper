@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { readyKakaoPay } from '@/lib/payments/kakao'
-import { reserveNaverPay } from '@/lib/payments/naver'
 import { PAYMENT_PRICES } from '@/lib/payments'
 import { z } from 'zod'
 import { v4 as uuidv4 } from 'uuid'
 
-// 결제 요청 스키마
+// 결제 요청 스키마 (무통장 입금)
 const paymentRequestSchema = z.object({
   plan: z.enum(['proMonthly', 'proYearly']),
-  paymentMethod: z.enum(['toss', 'kakao', 'naver']),
+  depositorName: z.string().min(2, '입금자명을 입력해주세요'),
 })
+
+// 계좌 정보
+export const BANK_ACCOUNT = {
+  bankName: '신한은행',
+  accountNumber: '110-377-265-992',
+  accountHolder: '최기헌',
+}
 
 // GET: 결제 내역 조회
 export async function GET(request: NextRequest) {
@@ -54,7 +59,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: 결제 요청 생성
+// POST: 무통장 입금 결제 요청 생성
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -77,20 +82,20 @@ export async function POST(request: NextRequest) {
       ? 'GovHelper Pro 월간 구독'
       : 'GovHelper Pro 연간 구독'
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-
-    // 결제 준비 레코드 생성
+    // 결제 레코드 생성 (입금 대기 상태)
     const { data: payment, error: insertError } = await (supabase
       .from('payments') as any)
       .insert({
         user_id: user.id,
         amount,
-        payment_method: validatedData.paymentMethod,
+        payment_method: 'bank_transfer',
         order_id: orderId,
-        status: 'pending',
+        status: 'pending', // 입금 대기
         metadata: {
           plan: validatedData.plan,
           orderName,
+          depositorName: validatedData.depositorName,
+          bankAccount: BANK_ACCOUNT,
         },
       })
       .select()
@@ -104,84 +109,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 결제 수단별 처리
-    let redirectUrl: string | null = null
-    let paymentData: any = {}
-
-    switch (validatedData.paymentMethod) {
-      case 'toss':
-        // 토스는 클라이언트에서 SDK로 처리
-        paymentData = {
-          clientKey: process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
-          orderId,
-          amount,
-          orderName,
-          customerEmail: user.email,
-          successUrl: `${baseUrl}/dashboard/billing/success?method=toss`,
-          failUrl: `${baseUrl}/dashboard/billing/fail?method=toss`,
-        }
-        break
-
-      case 'kakao':
-        const kakaoResult = await readyKakaoPay(
-          orderId,
-          user.id,
-          orderName,
-          1,
-          amount,
-          `${baseUrl}/api/payments/confirm?method=kakao&orderId=${orderId}`,
-          `${baseUrl}/dashboard/billing/fail?method=kakao`,
-          `${baseUrl}/dashboard/billing/fail?method=kakao`
-        )
-        redirectUrl = kakaoResult.next_redirect_pc_url
-
-        // TID 저장
-        await (supabase
-          .from('payments') as any)
-          .update({
-            metadata: {
-              ...payment.metadata,
-              tid: kakaoResult.tid,
-            },
-          })
-          .eq('id', payment.id)
-
-        paymentData = { tid: kakaoResult.tid }
-        break
-
-      case 'naver':
-        const naverResult = await reserveNaverPay(
-          orderId,
-          orderName,
-          amount,
-          `${baseUrl}/api/payments/confirm?method=naver&orderId=${orderId}`
-        )
-        redirectUrl = `https://dev.pay.naver.com/o/payment?reserveId=${naverResult.body.reserveId}`
-
-        // reserveId 저장
-        await (supabase
-          .from('payments') as any)
-          .update({
-            metadata: {
-              ...payment.metadata,
-              reserveId: naverResult.body.reserveId,
-            },
-          })
-          .eq('id', payment.id)
-
-        paymentData = { reserveId: naverResult.body.reserveId }
-        break
-    }
-
     return NextResponse.json({
       success: true,
       data: {
         paymentId: payment.id,
         orderId,
         amount,
-        paymentMethod: validatedData.paymentMethod,
-        redirectUrl,
-        ...paymentData,
+        orderName,
+        depositorName: validatedData.depositorName,
+        bankAccount: BANK_ACCOUNT,
+        message: '입금 확인 후 24시간 내에 구독이 활성화됩니다.',
       },
     })
   } catch (error) {
@@ -194,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     console.error('Payment POST error:', error)
     return NextResponse.json(
-      { success: false, error: '결제 준비 중 오류가 발생했습니다' },
+      { success: false, error: '결제 요청 중 오류가 발생했습니다' },
       { status: 500 }
     )
   }

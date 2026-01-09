@@ -61,9 +61,9 @@ export default async function BillingPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default">완료</Badge>
+        return <Badge variant="default">결제완료</Badge>
       case 'pending':
-        return <Badge variant="secondary">대기</Badge>
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">입금대기</Badge>
       case 'failed':
         return <Badge variant="destructive">실패</Badge>
       case 'cancelled':
@@ -232,6 +232,11 @@ export default async function BillingPage() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formatDate(payment.created_at)}
+                      {payment.payment_method === 'bank_transfer' && payment.metadata?.depositorName && (
+                        <span className="ml-2">
+                          (입금자: {payment.metadata.depositorName})
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
