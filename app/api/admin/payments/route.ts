@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 // 관리자 이메일 목록
-const ADMIN_EMAILS = ['choishiam0906@gmail.com']
+const ADMIN_EMAILS = ['choishiam@gmail.com']
 
 // GET: 결제 목록 조회 (관리자용)
 export async function GET(request: NextRequest) {

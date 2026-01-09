@@ -8,7 +8,12 @@ export default function OnboardingPage() {
   const router = useRouter()
 
   const handleSuccess = () => {
-    router.push('/dashboard')
+    // 서버 컴포넌트 캐시를 새로고침한 후 대시보드로 이동
+    router.refresh()
+    // 약간의 딜레이 후 이동하여 캐시 갱신 보장
+    setTimeout(() => {
+      window.location.href = '/dashboard'
+    }, 100)
   }
 
   return (

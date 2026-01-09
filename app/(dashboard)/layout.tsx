@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server"
 import { DashboardNav } from "@/components/dashboard/nav"
 import { DashboardHeader } from "@/components/dashboard/header"
 
+// 관리자 이메일 목록
+const ADMIN_EMAILS = ['choishiam@gmail.com']
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -16,13 +19,17 @@ export default async function DashboardLayout({
     redirect("/login")
   }
 
+  const isAdmin = ADMIN_EMAILS.includes(user.email || '')
+
   // 현재 경로 확인
   const headersList = await headers()
   const pathname = headersList.get("x-pathname") || ""
   const isOnboarding = pathname.includes("/onboarding")
+  const isAdminPage = pathname.includes("/admin")
 
-  // 기업 정보가 없으면 온보딩으로 리다이렉트 (온보딩 페이지 제외)
-  if (!isOnboarding) {
+  // 관리자가 아닌 경우에만 기업 정보 체크
+  // 관리자는 온보딩 없이 관리자 페이지 접근 가능
+  if (!isOnboarding && !isAdmin && !isAdminPage) {
     const { data: company } = await supabase
       .from("companies")
       .select("id")
