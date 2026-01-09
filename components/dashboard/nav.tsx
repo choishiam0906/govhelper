@@ -11,6 +11,7 @@ import {
   Building2,
   CreditCard,
   Settings,
+  Shield,
 } from "lucide-react"
 
 const navItems = [
@@ -51,8 +52,16 @@ const navItems = [
   },
 ]
 
-export function DashboardNav() {
+interface DashboardNavProps {
+  userEmail?: string
+}
+
+// 관리자 이메일 목록
+const ADMIN_EMAILS = ['choishiam@gmail.com']
+
+export function DashboardNav({ userEmail }: DashboardNavProps) {
   const pathname = usePathname()
+  const isAdmin = userEmail && ADMIN_EMAILS.includes(userEmail)
 
   return (
     <nav className="hidden lg:flex flex-col w-64 border-r bg-card min-h-[calc(100vh-64px)] p-4">
@@ -72,6 +81,25 @@ export function DashboardNav() {
             {item.title}
           </Link>
         ))}
+
+        {/* 관리자 메뉴 */}
+        {isAdmin && (
+          <>
+            <div className="my-4 border-t" />
+            <Link
+              href="/admin/payments"
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/admin/payments"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Shield className="h-4 w-4" />
+              관리자 페이지
+            </Link>
+          </>
+        )}
       </div>
     </nav>
   )

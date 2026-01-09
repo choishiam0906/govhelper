@@ -3,9 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { CreditCard, Calendar, Crown, AlertTriangle } from 'lucide-react'
+import { CreditCard, Calendar, Crown, AlertTriangle, Building2, Mail } from 'lucide-react'
 import { PAYMENT_PRICES } from '@/lib/payments'
 import { PricingCard } from '@/components/billing/pricing-card'
+
+// 계좌 정보
+const BANK_ACCOUNT = {
+  bankName: '신한은행',
+  accountNumber: '110-377-265-992',
+  accountHolder: '최기헌',
+}
 
 export default async function BillingPage() {
   const supabase = await createClient()
@@ -204,6 +211,63 @@ export default async function BillingPage() {
           />
         </div>
       </div>
+
+      {/* 무통장 입금 안내 */}
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <CardTitle>무통장 입금 안내</CardTitle>
+          </div>
+          <CardDescription>계좌이체로 안전하게 결제하세요</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 계좌 정보 */}
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="grid gap-3">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">은행</span>
+                <span className="font-medium">{BANK_ACCOUNT.bankName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">계좌번호</span>
+                <span className="font-mono font-bold text-lg">{BANK_ACCOUNT.accountNumber}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">예금주</span>
+                <span className="font-medium">{BANK_ACCOUNT.accountHolder}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 입금 후 안내 */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <Mail className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-800">
+                <p className="font-semibold mb-1">입금 완료 후 메일을 보내주세요!</p>
+                <p className="mb-2">
+                  입금 확인을 빠르게 처리하기 위해 아래 이메일로 연락 부탁드립니다.
+                </p>
+                <p className="font-medium">
+                  📧 <a href="mailto:choishiam@gmail.com" className="underline">choishiam@gmail.com</a>
+                </p>
+                <ul className="mt-2 space-y-1 text-amber-700">
+                  <li>• 입금자명</li>
+                  <li>• 입금 금액</li>
+                  <li>• 선택하신 요금제 (월간/연간)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <Button asChild className="w-full">
+            <Link href="/dashboard/billing/checkout">
+              Pro 구독 신청하기
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* 결제 내역 */}
       <Card>
