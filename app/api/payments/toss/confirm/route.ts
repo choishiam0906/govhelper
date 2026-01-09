@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify order exists and belongs to user
-    const { data: existingPayment, error: paymentQueryError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingPayment, error: paymentQueryError } = await (supabase as any)
       .from('payments')
       .select('*')
       .eq('order_id', orderId)
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify amount matches
-    if (existingPayment.amount !== amount) {
+    if ((existingPayment as { amount: number }).amount !== amount) {
       return NextResponse.json(
         { success: false, error: 'Amount mismatch' },
         { status: 400 }
@@ -51,14 +52,15 @@ export async function POST(request: NextRequest) {
     const tossResponse = await confirmTossPayment(paymentKey, orderId, amount)
 
     // Update payment record
-    const { error: updateError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: updateError } = await (supabase as any)
       .from('payments')
       .update({
         payment_key: paymentKey,
         status: 'completed',
         metadata: tossResponse,
       })
-      .eq('id', existingPayment.id)
+      .eq('id', (existingPayment as { id: string }).id)
 
     if (updateError) {
       console.error('Payment update error:', updateError)

@@ -1,8 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk'
+// Gemini로 대체 (무료 사용)
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-})
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
 interface ApplicationSection {
   section: string
@@ -36,6 +35,8 @@ async function generateSection(
   companyProfile: string,
   businessPlan: string
 ): Promise<string> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+
   const sectionPrompts: Record<string, string> = {
     '사업 개요': `
 사업의 필요성과 목적을 기술해주세요.
@@ -95,24 +96,11 @@ ${sectionPrompts[section] || '해당 섹션의 내용을 작성해주세요.'}
 `
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    })
-
-    const content = message.content[0]
-    if (content.type === 'text') {
-      return content.text
-    }
-    return ''
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text()
   } catch (error) {
-    console.error('Claude generation error:', error)
+    console.error('Gemini generation error:', error)
     throw error
   }
 }
@@ -121,6 +109,8 @@ export async function improveApplicationSection(
   currentContent: string,
   feedback: string
 ): Promise<string> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+
   const prompt = `
 현재 지원서 내용:
 ${currentContent}
@@ -132,24 +122,11 @@ ${feedback}
 `
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    })
-
-    const content = message.content[0]
-    if (content.type === 'text') {
-      return content.text
-    }
-    return currentContent
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text()
   } catch (error) {
-    console.error('Claude improvement error:', error)
+    console.error('Gemini improvement error:', error)
     throw error
   }
 }

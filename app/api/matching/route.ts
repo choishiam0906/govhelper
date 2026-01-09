@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeMatchWithGemini } from '@/lib/ai/gemini'
+import { Tables, InsertTables, Json } from '@/types/database'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,35 +26,37 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch announcement
-    const { data: announcement, error: announcementError } = await supabase
+    const { data: announcementData, error: announcementError } = await supabase
       .from('announcements')
       .select('*')
       .eq('id', announcementId)
       .single()
 
-    if (announcementError || !announcement) {
+    if (announcementError || !announcementData) {
       return NextResponse.json(
         { success: false, error: 'Announcement not found' },
         { status: 404 }
       )
     }
+    const announcement = announcementData as Tables<'announcements'>
 
     // Fetch company profile
-    const { data: company, error: companyError } = await supabase
+    const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('*')
       .eq('id', companyId)
       .single()
 
-    if (companyError || !company) {
+    if (companyError || !companyData) {
       return NextResponse.json(
         { success: false, error: 'Company not found' },
         { status: 404 }
       )
     }
+    const company = companyData as Tables<'companies'>
 
     // Fetch business plan if provided
-    let businessPlan = null
+    let businessPlan: Tables<'business_plans'> | null = null
     if (businessPlanId) {
       const { data, error } = await supabase
         .from('business_plans')
@@ -61,8 +64,8 @@ export async function POST(request: NextRequest) {
         .eq('id', businessPlanId)
         .single()
 
-      if (!error) {
-        businessPlan = data
+      if (!error && data) {
+        businessPlan = data as Tables<'business_plans'>
       }
     }
 
@@ -102,15 +105,17 @@ export async function POST(request: NextRequest) {
     )
 
     // Save match result
-    const { data: matchResult, error: matchError } = await supabase
+    const matchInsert = {
+      company_id: companyId,
+      announcement_id: announcementId,
+      business_plan_id: businessPlanId || null,
+      match_score: analysis.overallScore,
+      analysis: analysis,
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: matchResult, error: matchError } = await (supabase as any)
       .from('matches')
-      .insert({
-        company_id: companyId,
-        announcement_id: announcementId,
-        business_plan_id: businessPlanId || null,
-        match_score: analysis.overallScore,
-        analysis: analysis,
-      })
+      .insert(matchInsert)
       .select()
       .single()
 
