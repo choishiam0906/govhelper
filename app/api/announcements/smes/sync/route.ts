@@ -42,9 +42,7 @@ function formatDate(date: Date): string {
 // YYYY-MM-DD 형식으로 변환
 function toDateFormat(dateStr: string): string | null {
   if (!dateStr || dateStr.length < 10) return null
-  // "2025-01-15" 형식이면 그대로 반환
   if (dateStr.includes('-')) return dateStr.substring(0, 10)
-  // "20250115" 형식이면 변환
   if (dateStr.length >= 8) {
     return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`
   }
@@ -58,33 +56,24 @@ function getTodayStr(): string {
 }
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
   try {
-    // API 키 검증 (선택적 - 관리자만 호출 가능하도록)
-    const authHeader = request.headers.get('authorization')
-    const apiKey = process.env.SYNC_API_KEY
+    const supabase = getSupabaseAdmin()
 
-    if (apiKey && authHeader !== `Bearer ${apiKey}`) {
-      // API 키가 설정되어 있으면 검증
-      // 설정 안 되어 있으면 누구나 호출 가능
-    }
-
-    // 기본값: 최근 6개월 ~ 3개월 후
+    // 조회 기간: 최근 3개월 ~ 2개월 후 (짧게 조정)
     const today = new Date()
     const startDate = new Date(today)
-    startDate.setMonth(startDate.getMonth() - 6)
+    startDate.setMonth(startDate.getMonth() - 3)
     const endDate = new Date(today)
-    endDate.setMonth(endDate.getMonth() + 3)
+    endDate.setMonth(endDate.getMonth() + 2)
 
     // SMES API 호출
     const apiUrl = `${SMES_API_URL}?token=${SMES_API_TOKEN}&strDt=${formatDate(startDate)}&endDt=${formatDate(endDate)}`
 
-    console.log(`📡 SMES API 동기화 시작: ${formatDate(startDate)} ~ ${formatDate(endDate)}`)
-
     const response = await fetch(apiUrl, {
       method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: { 'Accept': 'application/json' },
     })
 
     if (!response.ok) {
@@ -102,14 +91,14 @@ export async function POST(request: NextRequest) {
 
     let announcements: SMESAnnouncement[] = result.data || []
 
-    // 진행 중인 공고만 필터링 (마감일이 오늘 이후)
+    // 진행 중인 공고만 필터링
     const todayStr = getTodayStr()
     announcements = announcements.filter(item => {
       const endDt = item.pblancEndDt
       return endDt && endDt >= todayStr
     })
 
-    // 중복 제거 (pblancSeq 기준)
+    // 중복 제거
     const seen = new Set<number>()
     const uniqueAnnouncements = announcements.filter(item => {
       if (seen.has(item.pblancSeq)) return false
@@ -117,69 +106,61 @@ export async function POST(request: NextRequest) {
       return true
     })
 
-    console.log(`📊 ${uniqueAnnouncements.length}개 공고 동기화 중...`)
+    // 데이터 변환 (배치용)
+    const announcementsToUpsert = uniqueAnnouncements.map(item => ({
+      source: 'smes24',
+      source_id: String(item.pblancSeq),
+      title: item.pblancNm,
+      organization: item.sportInsttNm || '',
+      category: item.bizType || '',
+      support_type: item.sportType || '',
+      target_company: item.cmpScale || '',
+      support_amount: '',
+      application_start: toDateFormat(item.pblancBgnDt),
+      application_end: toDateFormat(item.pblancEndDt),
+      content: [
+        item.policyCnts || '',
+        item.sportCnts || '',
+        item.sportTrget || '',
+        item.areaNm ? `지역: ${item.areaNm}` : '',
+        item.pblancDtlUrl ? `상세보기: ${item.pblancDtlUrl}` : ''
+      ].filter(Boolean).join('\n\n'),
+      status: 'active',
+      updated_at: new Date().toISOString()
+    }))
 
-    // Supabase에 upsert
-    let successCount = 0
-    let errorCount = 0
+    // 배치 upsert (한 번에 처리)
+    const { error: upsertError, count } = await supabase
+      .from('announcements')
+      .upsert(announcementsToUpsert, {
+        onConflict: 'source,source_id',
+        count: 'exact'
+      })
 
-    for (const item of uniqueAnnouncements) {
-      const announcementData = {
-        source: 'smes24',
-        source_id: String(item.pblancSeq),
-        title: item.pblancNm,
-        organization: item.sportInsttNm || '',
-        category: item.bizType || '',
-        support_type: item.sportType || '',
-        target_company: item.cmpScale || '',
-        support_amount: '',
-        application_start: toDateFormat(item.pblancBgnDt),
-        application_end: toDateFormat(item.pblancEndDt),
-        content: [
-          item.policyCnts || '',
-          item.sportCnts || '',
-          item.sportTrget || '',
-          item.areaNm ? `지역: ${item.areaNm}` : '',
-          item.pblancDtlUrl ? `상세보기: ${item.pblancDtlUrl}` : ''
-        ].filter(Boolean).join('\n\n'),
-        status: 'active',
-        updated_at: new Date().toISOString()
-      }
-
-      const { error } = await getSupabaseAdmin()
-        .from('announcements')
-        .upsert(announcementData, {
-          onConflict: 'source,source_id'
-        })
-
-      if (error) {
-        console.error(`❌ 동기화 오류 (${item.pblancSeq}):`, error.message)
-        errorCount++
-      } else {
-        successCount++
-      }
+    if (upsertError) {
+      console.error('Batch upsert error:', upsertError.message)
+      return NextResponse.json(
+        { success: false, error: upsertError.message },
+        { status: 500 }
+      )
     }
 
-    // 마감된 SMES 공고는 비활성화
-    const { error: updateError } = await getSupabaseAdmin()
+    // 마감된 SMES 공고 비활성화
+    await supabase
       .from('announcements')
       .update({ status: 'expired' })
       .eq('source', 'smes24')
       .lt('application_end', todayStr)
 
-    if (updateError) {
-      console.error('마감 공고 비활성화 오류:', updateError.message)
-    }
-
-    console.log(`✅ 동기화 완료: 성공 ${successCount}개, 실패 ${errorCount}개`)
+    const duration = Date.now() - startTime
 
     return NextResponse.json({
       success: true,
       message: '동기화 완료',
       stats: {
         total: uniqueAnnouncements.length,
-        success: successCount,
-        error: errorCount,
+        upserted: count,
+        duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
       }
     })
@@ -193,7 +174,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET 요청으로도 동기화 가능 (편의상)
 export async function GET(request: NextRequest) {
   return POST(request)
 }
