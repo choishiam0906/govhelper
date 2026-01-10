@@ -6,5 +6,15 @@
     "app/api/announcements/smes/route.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/announcements/smes/sync",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/announcements/smes/sync",
+      "schedule": "0 12 * * *"
+    }
+  ]
 }
