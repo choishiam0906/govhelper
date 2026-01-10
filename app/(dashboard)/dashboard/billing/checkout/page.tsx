@@ -231,7 +231,7 @@ function CheckoutContent() {
                 <strong>안내사항</strong><br />
                 • 입금자명이 다를 경우 확인이 지연될 수 있습니다<br />
                 • 입금 확인은 평일 기준 24시간 내 처리됩니다<br />
-                • 문의: support@govhelpers.com
+                • 입금 후 choishiam@gmail.com으로 입금자명을 보내주시면 빠르게 처리됩니다
               </p>
             </div>
 
