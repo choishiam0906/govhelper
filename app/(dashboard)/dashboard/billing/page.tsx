@@ -194,7 +194,7 @@ export default async function BillingPage() {
             ]}
             popular
             current={currentPlan === 'pro'}
-            onSelect={() => {}}
+            
           />
           <PricingCard
             name="Pro 연간"
@@ -207,7 +207,7 @@ export default async function BillingPage() {
               '2개월 무료',
             ]}
             current={currentPlan === 'pro'}
-            onSelect={() => {}}
+            
           />
         </div>
       </div>
