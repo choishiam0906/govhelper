@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { AnnouncementFilters } from "@/components/announcements/announcement-filters"
 import { AnnouncementList } from "@/components/announcements/announcement-list"
 import { Pagination } from "@/components/announcements/pagination"
+import { AnnouncementsTabs } from "@/components/announcements/announcements-tabs"
 
 interface SearchParams {
   search?: string
@@ -76,22 +77,24 @@ export default async function AnnouncementsPage({
         </p>
       </div>
 
-      {/* 검색 및 필터 */}
-      <Card>
-        <CardContent className="pt-6">
-          <AnnouncementFilters />
-        </CardContent>
-      </Card>
+      <AnnouncementsTabs>
+        {/* 검색 및 필터 */}
+        <Card>
+          <CardContent className="pt-6">
+            <AnnouncementFilters />
+          </CardContent>
+        </Card>
 
-      {/* 결과 목록 */}
-      <AnnouncementList announcements={announcements || []} />
+        {/* 결과 목록 */}
+        <AnnouncementList announcements={announcements || []} />
 
-      {/* 페이지네이션 */}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        total={count || 0}
-      />
+        {/* 페이지네이션 */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          total={count || 0}
+        />
+      </AnnouncementsTabs>
     </div>
   )
 }
