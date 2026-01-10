@@ -21,6 +21,12 @@ interface SMESAnnouncement {
   sportCnts?: string
   sportTrget?: string
   refrnc?: string
+  // 추가 필드
+  pblancAttach?: string
+  pblancAttachNm?: string
+  ablbiz?: string
+  needCrtfn?: string
+  emplyCnt?: string
 }
 
 // 날짜 포맷 (YYYYMMDD)
@@ -115,7 +121,20 @@ export async function GET(request: NextRequest) {
       reference: item.refrnc || '',
       createdAt: item.creatDt,
       updatedAt: item.updDt,
-      source: 'smes24'
+      source: 'smes24',
+      // 지원자격 관련
+      eligibility: {
+        target: item.sportTrget || '',
+        companyScale: item.cmpScale || '',
+        businessType: item.ablbiz || '',
+        employeeCount: item.emplyCnt || '',
+        requiredCertification: item.needCrtfn || ''
+      },
+      // 첨부파일
+      attachments: item.pblancAttach ? [{
+        url: item.pblancAttach,
+        name: item.pblancAttachNm || '첨부파일'
+      }] : []
     }))
 
     // 마감일 기준 정렬 (가까운 순)

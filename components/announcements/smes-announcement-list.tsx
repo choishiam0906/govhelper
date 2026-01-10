@@ -5,7 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ExternalLink, Calendar, Building2, MapPin, RefreshCw, AlertCircle } from 'lucide-react'
+import { ExternalLink, Calendar, Building2, MapPin, RefreshCw, AlertCircle, FileText, Users } from 'lucide-react'
+
+interface Eligibility {
+  target: string
+  companyScale: string
+  businessType: string
+  employeeCount: string
+  requiredCertification: string
+}
+
+interface Attachment {
+  url: string
+  name: string
+}
 
 interface SMESAnnouncement {
   id: number
@@ -19,6 +32,8 @@ interface SMESAnnouncement {
   targetScale: string
   detailUrl: string
   source: string
+  eligibility?: Eligibility
+  attachments?: Attachment[]
 }
 
 interface SMESResponse {
@@ -62,7 +77,6 @@ export function SMESAnnouncementList() {
     fetchData()
   }, [])
 
-  // 마감일까지 남은 일수 계산
   const getDaysRemaining = (endDate: string) => {
     if (!endDate) return null
     const end = new Date(endDate)
@@ -71,7 +85,6 @@ export function SMESAnnouncementList() {
     return diff
   }
 
-  // 마감 임박 여부
   const getDeadlineBadge = (endDate: string) => {
     const days = getDaysRemaining(endDate)
     if (days === null) return null
@@ -84,6 +97,24 @@ export function SMESAnnouncementList() {
       return <Badge variant="secondary" className="bg-orange-100 text-orange-800">D-{days}</Badge>
     }
     return <Badge variant="outline">D-{days}</Badge>
+  }
+
+  // 지원자격 텍스트 생성
+  const getEligibilityText = (eligibility?: Eligibility) => {
+    if (!eligibility) return null
+
+    const parts = []
+    if (eligibility.target) parts.push(eligibility.target)
+    if (eligibility.businessType) parts.push(`업종: ${eligibility.businessType}`)
+    if (eligibility.employeeCount) parts.push(`고용인원: ${eligibility.employeeCount}`)
+    if (eligibility.requiredCertification) parts.push(`필요인증: ${eligibility.requiredCertification}`)
+
+    return parts.length > 0 ? parts : null
+  }
+
+  // HTML 태그 제거
+  const stripHtml = (html: string) => {
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
   }
 
   if (loading) {
@@ -151,59 +182,100 @@ export function SMESAnnouncementList() {
           </CardContent>
         </Card>
       ) : (
-        data.map((item) => (
-          <Card key={item.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-lg leading-tight">
-                    {item.title}
-                  </CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-1">
-                    <Building2 className="h-4 w-4" />
-                    {item.organization}
-                  </CardDescription>
-                </div>
-                {getDeadlineBadge(item.endDate)}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {item.bizType && (
-                  <Badge variant="outline">{item.bizType}</Badge>
-                )}
-                {item.sportType && (
-                  <Badge variant="secondary">{item.sportType}</Badge>
-                )}
-                {item.targetScale && (
-                  <Badge variant="outline">{item.targetScale}</Badge>
-                )}
-              </div>
+        data.map((item) => {
+          const eligibilityParts = getEligibilityText(item.eligibility)
 
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>{item.startDate} ~ {item.endDate}</span>
+          return (
+            <Card key={item.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg leading-tight">
+                      {item.title}
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-1">
+                      <Building2 className="h-4 w-4" />
+                      {item.organization}
+                    </CardDescription>
+                  </div>
+                  {getDeadlineBadge(item.endDate)}
                 </div>
-                {item.area && (
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {item.bizType && (
+                    <Badge variant="outline">{item.bizType}</Badge>
+                  )}
+                  {item.sportType && (
+                    <Badge variant="secondary">{item.sportType}</Badge>
+                  )}
+                  {item.targetScale && (
+                    <Badge variant="outline">{item.targetScale}</Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                   <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{item.area}</span>
+                    <Calendar className="h-4 w-4" />
+                    <span>{item.startDate} ~ {item.endDate}</span>
+                  </div>
+                  {item.area && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>{item.area}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 지원자격 */}
+                {eligibilityParts && eligibilityParts.length > 0 && (
+                  <div className="bg-muted/50 rounded-md p-3 mb-3">
+                    <div className="flex items-start gap-2">
+                      <Users className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div className="text-sm">
+                        <p className="font-medium mb-1">지원자격</p>
+                        <ul className="text-muted-foreground space-y-1">
+                          {eligibilityParts.map((part, idx) => (
+                            <li key={idx}>{stripHtml(part)}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
 
-              {item.detailUrl && (
-                <Button asChild variant="outline" size="sm">
-                  <a href={item.detailUrl} target="_blank" rel="noopener noreferrer">
-                    상세보기
-                    <ExternalLink className="h-4 w-4 ml-2" />
-                  </a>
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))
+                {/* 첨부파일 */}
+                {item.attachments && item.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {item.attachments.map((attachment, idx) => (
+                      <Button
+                        key={idx}
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="text-blue-600"
+                      >
+                        <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                          <FileText className="h-4 w-4 mr-1" />
+                          {attachment.name}
+                        </a>
+                      </Button>
+                    ))}
+                  </div>
+                )}
+
+                {item.detailUrl && (
+                  <Button asChild variant="outline" size="sm">
+                    <a href={item.detailUrl} target="_blank" rel="noopener noreferrer">
+                      상세보기
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </a>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })
       )}
     </div>
   )
