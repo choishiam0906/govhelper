@@ -191,7 +191,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-4">요금제</h2>
           <p className="text-muted-foreground">무료로 시작하고, 필요할 때 업그레이드하세요</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Free</CardTitle>
@@ -239,33 +239,6 @@ export default function Home() {
                 <li className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   우선 고객 지원
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Enterprise</CardTitle>
-              <CardDescription>대규모 조직을 위한</CardDescription>
-              <div className="text-3xl font-bold mt-4">₩299,000<span className="text-sm font-normal text-muted-foreground">/월</span></div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  모든 Pro 기능 포함
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  AI 지원서 작성 무제한
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  팀 멤버 무제한
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  전담 매니저 배정
                 </li>
               </ul>
             </CardContent>
