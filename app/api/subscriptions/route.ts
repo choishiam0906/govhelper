@@ -107,14 +107,6 @@ function getFeaturesByPlan(plan: string) {
         applicationEnabled: true,
         priority: true,
       }
-    case 'enterprise':
-      return {
-        matchingLimit: -1,
-        applicationEnabled: true,
-        priority: true,
-        teamMembers: true,
-        apiAccess: true,
-      }
     default: // free
       return {
         matchingLimit: 3,

@@ -220,7 +220,7 @@ export default function Home() {
               <Badge className="w-fit mb-2">인기</Badge>
               <CardTitle>Pro</CardTitle>
               <CardDescription>성장하는 기업을 위한</CardDescription>
-              <div className="text-3xl font-bold mt-4">₩99,000<span className="text-sm font-normal text-muted-foreground">/월</span></div>
+              <div className="text-3xl font-bold mt-4">₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span></div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">

@@ -79,7 +79,7 @@ export interface Payment {
 }
 
 // Subscription types
-export type SubscriptionPlan = 'free' | 'pro' | 'enterprise'
+export type SubscriptionPlan = 'free' | 'pro'
 export type SubscriptionStatus = 'active' | 'cancelled' | 'expired'
 
 export interface Subscription {

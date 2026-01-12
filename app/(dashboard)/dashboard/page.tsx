@@ -62,7 +62,6 @@ export default async function DashboardPage() {
   const planLabels: Record<string, string> = {
     free: 'Free',
     pro: 'Pro',
-    enterprise: 'Enterprise',
   }
 
   return (
