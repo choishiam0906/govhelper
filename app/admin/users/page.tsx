@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   const [grantMonths, setGrantMonths] = useState("1")
   const [processing, setProcessing] = useState(false)
+  const [activeTab, setActiveTab] = useState("all")
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -148,6 +150,20 @@ export default function AdminUsersPage() {
   const proUsers = users.filter(u => u.subscription?.plan === "pro" && u.subscription?.status === "active")
   const freeUsers = users.filter(u => !u.subscription || u.subscription?.plan === "free" || u.subscription?.status === "cancelled")
 
+  // 탭에 따라 표시할 사용자 필터링
+  const getFilteredUsers = () => {
+    switch (activeTab) {
+      case "pro":
+        return proUsers
+      case "free":
+        return freeUsers
+      default:
+        return users
+    }
+  }
+
+  const filteredUsers = getFilteredUsers()
+
   return (
     <div className="space-y-6">
       <div>
@@ -206,18 +222,37 @@ export default function AdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>등록된 사용자가 없습니다</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {users.map((userData) => (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">
+                전체 ({users.length})
+              </TabsTrigger>
+              <TabsTrigger value="pro">
+                <Crown className="w-3 h-3 mr-1" />
+                Pro ({proUsers.length})
+              </TabsTrigger>
+              <TabsTrigger value="free">
+                Free ({freeUsers.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={activeTab}>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>
+                    {activeTab === "pro" ? "Pro 구독자가 없습니다" :
+                     activeTab === "free" ? "Free 사용자가 없습니다" :
+                     "등록된 사용자가 없습니다"}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredUsers.map((userData) => (
                 <div
                   key={userData.user_id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -273,9 +308,11 @@ export default function AdminUsersPage() {
                     )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
