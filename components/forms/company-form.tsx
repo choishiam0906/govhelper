@@ -15,8 +15,20 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Search } from 'lucide-react'
+
+// 사업자 검증 결과 타입
+interface BusinessVerifyResult {
+  businessNumber: string
+  isValid: boolean
+  status?: string
+  statusCode?: string
+  taxType?: string
+  taxTypeCode?: string
+  closedDate?: string | null
+}
 
 // 유효성 검사 스키마
 const companyFormSchema = z.object({
@@ -97,6 +109,8 @@ interface CompanyFormProps {
 
 export function CompanyForm({ initialData, onSuccess, mode = 'create' }: CompanyFormProps) {
   const [loading, setLoading] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<BusinessVerifyResult | null>(null)
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>(
     initialData?.certifications || []
   )
@@ -128,6 +142,48 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
       : [...selectedCertifications, value]
     setSelectedCertifications(updated)
     setValue('certifications', updated)
+  }
+
+  // 사업자번호 검증
+  const verifyBusinessNumber = async () => {
+    const businessNumber = watch('businessNumber')
+    if (!businessNumber || businessNumber.replace(/[^0-9]/g, '').length < 10) {
+      toast.error('사업자번호 10자리를 입력해 주세요')
+      return
+    }
+
+    setVerifying(true)
+    setVerifyResult(null)
+
+    try {
+      const response = await fetch('/api/business/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessNumber }),
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        setVerifyResult(result.data)
+        if (result.data.isValid) {
+          if (result.data.statusCode === '03') {
+            toast.warning('폐업한 사업자예요')
+          } else if (result.data.statusCode === '02') {
+            toast.warning('휴업 중인 사업자예요')
+          } else {
+            toast.success('유효한 사업자번호예요')
+          }
+        }
+      } else {
+        setVerifyResult({ businessNumber, isValid: false })
+        toast.error(result.error || '사업자번호를 확인할 수 없어요')
+      }
+    } catch (error) {
+      toast.error('검증 중 오류가 발생했어요')
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const onSubmit = async (data: CompanyFormData) => {
@@ -198,11 +254,51 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
           {/* 사업자등록번호 */}
           <div className="space-y-2">
             <Label htmlFor="businessNumber">사업자등록번호</Label>
-            <Input
-              id="businessNumber"
-              placeholder="000-00-00000"
-              {...register('businessNumber')}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="businessNumber"
+                placeholder="000-00-00000"
+                {...register('businessNumber')}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={verifyBusinessNumber}
+                disabled={verifying}
+              >
+                {verifying ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
+                <span className="ml-1">조회</span>
+              </Button>
+            </div>
+            {verifyResult && (
+              <div className="flex items-center gap-2 mt-2">
+                {verifyResult.isValid ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-green-600">
+                      {verifyResult.status}
+                    </span>
+                    {verifyResult.taxType && (
+                      <Badge variant="outline" className="text-xs">
+                        {verifyResult.taxType}
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-red-500" />
+                    <span className="text-sm text-red-500">
+                      등록되지 않은 사업자번호
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 업종 */}
