@@ -100,15 +100,26 @@ export async function POST(request: NextRequest) {
       }
     )
 
+    const responseText = await response.text()
+
     if (!response.ok) {
-      console.error('NTS API error:', response.status, await response.text())
+      console.error('NTS API error:', response.status, responseText)
       return NextResponse.json(
-        { success: false, error: '국세청 API 호출에 실패했어요' },
+        { success: false, error: `국세청 API 호출에 실패했어요 (${response.status})`, debug: responseText },
         { status: 500 }
       )
     }
 
-    const result: NTSResponse = await response.json()
+    let result: NTSResponse
+    try {
+      result = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('NTS API parse error:', parseError, responseText)
+      return NextResponse.json(
+        { success: false, error: '국세청 API 응답 파싱에 실패했어요', debug: responseText },
+        { status: 500 }
+      )
+    }
 
     if (result.status_code !== 'OK' || !result.data || result.data.length === 0) {
       return NextResponse.json(
