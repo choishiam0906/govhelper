@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Building2, Mail, Calendar, Pencil } from 'lucide-react'
+import { NotificationSettings } from '@/components/notifications/notification-settings'
 
 interface Company {
   id: string
@@ -85,7 +86,7 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
 
   if (!company) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -100,6 +101,9 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
             <CompanyForm onSuccess={() => router.refresh()} mode="create" />
           </CardContent>
         </Card>
+
+        {/* 알림 설정 */}
+        <NotificationSettings userEmail={user.email || ''} />
       </div>
     )
   }
@@ -237,6 +241,9 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* 알림 설정 */}
+      <NotificationSettings userEmail={user.email || ''} />
     </div>
   )
 }
