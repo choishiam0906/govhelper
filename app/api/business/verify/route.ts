@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       console.error('NTS API error:', response.status, responseText)
       return NextResponse.json(
-        { success: false, error: `국세청 API 호출에 실패했어요 (${response.status})`, debug: responseText },
+        { success: false, error: '국세청 API 호출에 실패했어요' },
         { status: 500 }
       )
     }
@@ -114,9 +114,9 @@ export async function POST(request: NextRequest) {
     try {
       result = JSON.parse(responseText)
     } catch (parseError) {
-      console.error('NTS API parse error:', parseError, responseText)
+      console.error('NTS API parse error:', parseError)
       return NextResponse.json(
-        { success: false, error: '국세청 API 응답 파싱에 실패했어요', debug: responseText },
+        { success: false, error: '국세청 API 응답 파싱에 실패했어요' },
         { status: 500 }
       )
     }
