@@ -50,10 +50,10 @@ export default function AdminPaymentsPage() {
       if (result.success) {
         setPayments(result.data || [])
       } else {
-        toast.error(result.error || "결제 목록을 불러오는데 실패했습니다")
+        toast.error(result.error || "결제 목록을 불러오지 못했어요")
       }
     } catch (error) {
-      toast.error("서버 오류가 발생했습니다")
+      toast.error("서버 오류가 발생했어요")
     } finally {
       setLoading(false)
     }
@@ -72,13 +72,13 @@ export default function AdminPaymentsPage() {
       const result = await response.json()
 
       if (result.success) {
-        toast.success("입금 확인 완료! 구독이 활성화되었습니다.")
+        toast.success("입금 확인 완료! 구독이 활성화됐어요")
         fetchPayments(activeTab)
       } else {
-        toast.error(result.error || "처리에 실패했습니다")
+        toast.error(result.error || "처리하지 못했어요")
       }
     } catch (error) {
-      toast.error("서버 오류가 발생했습니다")
+      toast.error("서버 오류가 발생했어요")
     } finally {
       setConfirming(null)
     }

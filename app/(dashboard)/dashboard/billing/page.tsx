@@ -148,7 +148,7 @@ export default async function BillingPage() {
                 <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg">
                   <AlertTriangle className="h-5 w-5" />
                   <p className="text-sm">
-                    구독이 취소되었습니다. {periodEnd ? formatDate(periodEnd.toISOString()) : ''}까지 Pro 기능을 이용할 수 있습니다.
+                    구독이 취소됐어요. {periodEnd ? formatDate(periodEnd.toISOString()) : ''}까지 Pro 기능을 이용할 수 있어요.
                   </p>
                 </div>
               )}

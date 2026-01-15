@@ -55,13 +55,13 @@ export function MatchingForm({
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || '분석에 실패했습니다')
+        throw new Error(result.error || '분석하지 못했어요')
       }
 
-      toast.success('분석이 완료되었습니다')
+      toast.success('분석이 완료됐어요')
       router.push(`/dashboard/matching/${result.data.match.id}`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '오류가 발생했습니다')
+      toast.error(error instanceof Error ? error.message : '오류가 발생했어요')
     } finally {
       setLoading(false)
     }

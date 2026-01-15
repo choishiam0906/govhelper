@@ -63,10 +63,10 @@ export default function AdminUsersPage() {
       if (result.success) {
         setUsers(result.data || [])
       } else {
-        toast.error(result.error || "사용자 목록을 불러오는데 실패했습니다")
+        toast.error(result.error || "사용자 목록을 불러오지 못했어요")
       }
     } catch (error) {
-      toast.error("서버 오류가 발생했습니다")
+      toast.error("서버 오류가 발생했어요")
     } finally {
       setLoading(false)
     }
@@ -93,21 +93,21 @@ export default function AdminUsersPage() {
       const result = await response.json()
 
       if (result.success) {
-        toast.success(`Pro 권한이 ${grantMonths}개월간 부여되었습니다!`)
+        toast.success(`Pro 권한을 ${grantMonths}개월간 부여했어요!`)
         setGrantDialogOpen(false)
         fetchUsers()
       } else {
-        toast.error(result.error || "처리에 실패했습니다")
+        toast.error(result.error || "처리하지 못했어요")
       }
     } catch (error) {
-      toast.error("서버 오류가 발생했습니다")
+      toast.error("서버 오류가 발생했어요")
     } finally {
       setProcessing(false)
     }
   }
 
   const handleCancelSubscription = async (userId: string) => {
-    if (!confirm("정말 이 사용자의 구독을 취소하시겠습니까?")) return
+    if (!confirm("정말 이 사용자의 구독을 취소할까요?")) return
 
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
@@ -116,13 +116,13 @@ export default function AdminUsersPage() {
       const result = await response.json()
 
       if (result.success) {
-        toast.success("구독이 취소되었습니다")
+        toast.success("구독을 취소했어요")
         fetchUsers()
       } else {
-        toast.error(result.error || "처리에 실패했습니다")
+        toast.error(result.error || "처리하지 못했어요")
       }
     } catch (error) {
-      toast.error("서버 오류가 발생했습니다")
+      toast.error("서버 오류가 발생했어요")
     }
   }
 

@@ -35,14 +35,14 @@ export function DeleteMatchButton({ matchId }: DeleteMatchButtonProps) {
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || '삭제에 실패했습니다')
+        throw new Error(result.error || '삭제하지 못했어요')
       }
 
-      toast.success('매칭 결과가 삭제되었습니다')
+      toast.success('매칭 결과를 삭제했어요')
       router.push('/dashboard/matching')
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '오류가 발생했습니다')
+      toast.error(error instanceof Error ? error.message : '오류가 발생했어요')
     } finally {
       setLoading(false)
     }
@@ -60,7 +60,7 @@ export function DeleteMatchButton({ matchId }: DeleteMatchButtonProps) {
         <AlertDialogHeader>
           <AlertDialogTitle>매칭 결과 삭제</AlertDialogTitle>
           <AlertDialogDescription>
-            이 매칭 분석 결과를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            이 매칭 분석 결과를 삭제할까요? 이 작업은 되돌릴 수 없어요.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

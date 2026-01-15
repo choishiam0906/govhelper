@@ -93,9 +93,9 @@ export function AnnouncementDetail({ announcement, isSaved: initialSaved }: Anno
       }
 
       setIsSaved(!isSaved)
-      toast.success(isSaved ? '관심 공고가 해제되었습니다' : '관심 공고로 저장되었습니다')
+      toast.success(isSaved ? '관심 공고를 해제했어요' : '관심 공고로 저장했어요')
     } catch (error) {
-      toast.error('오류가 발생했습니다')
+      toast.error('오류가 발생했어요')
     } finally {
       setSaving(false)
     }

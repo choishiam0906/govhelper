@@ -38,13 +38,13 @@ export default function PaymentSuccessPage() {
           const result = await response.json()
 
           if (!result.success) {
-            throw new Error(result.error || '결제 승인에 실패했습니다')
+            throw new Error(result.error || '결제 승인에 실패했어요')
           }
 
           setSuccess(true)
-          toast.success('Pro 구독이 시작되었습니다!')
+          toast.success('Pro 구독이 시작됐어요!')
         } catch (error) {
-          toast.error(error instanceof Error ? error.message : '결제 처리에 실패했습니다')
+          toast.error(error instanceof Error ? error.message : '결제 처리에 실패했어요')
           router.push('/dashboard/billing/fail')
           return
         }
@@ -80,9 +80,9 @@ export default function PaymentSuccessPage() {
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
-          <CardTitle className="text-2xl">결제가 완료되었습니다!</CardTitle>
+          <CardTitle className="text-2xl">결제가 완료됐어요!</CardTitle>
           <CardDescription>
-            GovHelper Pro 구독이 시작되었습니다
+            GovHelper Pro 구독이 시작됐어요
           </CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-6">

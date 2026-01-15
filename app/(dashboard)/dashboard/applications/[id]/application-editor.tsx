@@ -138,15 +138,15 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || '저장에 실패했습니다')
+        throw new Error(result.error || '저장하지 못했어요')
       }
 
       if (newStatus) {
         setStatus(newStatus)
       }
-      toast.success('저장되었습니다')
+      toast.success('저장했어요')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '저장에 실패했습니다')
+      toast.error(error instanceof Error ? error.message : '저장하지 못했어요')
     } finally {
       setSaving(false)
     }
@@ -166,13 +166,13 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || '삭제에 실패했습니다')
+        throw new Error(result.error || '삭제하지 못했어요')
       }
 
-      toast.success('지원서가 삭제되었습니다')
+      toast.success('지원서를 삭제했어요')
       router.push('/dashboard/applications')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '삭제에 실패했습니다')
+      toast.error(error instanceof Error ? error.message : '삭제하지 못했어요')
     } finally {
       setDeleting(false)
     }
@@ -220,7 +220,7 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>지원서 삭제</AlertDialogTitle>
                 <AlertDialogDescription>
-                  이 지원서를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                  이 지원서를 삭제할까요? 이 작업은 되돌릴 수 없어요.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

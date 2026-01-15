@@ -120,7 +120,7 @@ function CheckoutContent() {
                 구독 취소
               </AlertDialogTitle>
               <AlertDialogDescription>
-                정말 구독을 취소하시겠습니까? 현재 구독 기간이 끝나면 무료 플랜으로 전환되며, 다음 기능을 사용할 수 없게 됩니다:
+                정말 구독을 취소할까요? 현재 구독 기간이 끝나면 무료 플랜으로 전환되고, 다음 기능을 사용할 수 없어요:
                 <ul className="list-disc list-inside mt-2 space-y-1">
                   <li>무제한 AI 매칭 분석</li>
                   <li>AI 지원서 작성</li>
