@@ -50,7 +50,7 @@ export default async function ApplicationsPage() {
         <div>
           <h1 className="text-3xl font-bold">AI 지원서</h1>
           <p className="text-muted-foreground mt-1">
-            AI가 작성한 지원서 초안을 관리합니다
+            AI가 작성한 지원서 초안을 확인해요
           </p>
         </div>
       </div>
@@ -78,12 +78,12 @@ export default async function ApplicationsPage() {
           {!applications || applications.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>작성된 지원서가 없습니다</p>
-              <p className="text-sm mt-1">AI 매칭 후 지원서를 작성해보세요</p>
+              <p>아직 작성한 지원서가 없어요</p>
+              <p className="text-sm mt-1">AI 매칭 후 지원서를 작성해 보세요</p>
               <Button asChild className="mt-4">
                 <Link href="/dashboard/matching">
                   <Plus className="h-4 w-4 mr-2" />
-                  매칭 분석 시작
+                  매칭 분석 시작하기
                 </Link>
               </Button>
             </div>

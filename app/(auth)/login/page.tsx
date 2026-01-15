@@ -32,11 +32,11 @@ export default function LoginPage() {
         return
       }
 
-      toast.success("로그인되었습니다.")
+      toast.success("로그인했어요")
       router.push("/dashboard")
       router.refresh()
     } catch (error) {
-      toast.error("로그인 중 오류가 발생했습니다.")
+      toast.error("로그인 중 문제가 생겼어요")
     } finally {
       setLoading(false)
     }
@@ -82,7 +82,7 @@ export default function LoginPage() {
           </Link>
           <CardTitle>로그인</CardTitle>
           <CardDescription>
-            계정에 로그인하여 서비스를 이용하세요
+            이메일로 로그인하고 서비스를 이용해요
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -163,13 +163,13 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <div className="text-center text-sm text-muted-foreground">
-            계정이 없으신가요?{" "}
+            아직 계정이 없나요?{" "}
             <Link href="/register" className="text-primary hover:underline">
               회원가입
             </Link>
           </div>
           <Link href="/forgot-password" className="text-center text-sm text-muted-foreground hover:text-primary">
-            비밀번호를 잊으셨나요?
+            비밀번호를 잊었나요?
           </Link>
         </CardFooter>
       </Card>

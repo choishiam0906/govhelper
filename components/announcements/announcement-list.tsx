@@ -58,9 +58,9 @@ export function AnnouncementList({ announcements }: AnnouncementListProps) {
   if (announcements.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">검색 결과가 없습니다</p>
+        <p className="text-muted-foreground">검색 결과가 없어요</p>
         <p className="text-sm text-muted-foreground mt-1">
-          다른 검색어나 필터를 사용해보세요
+          다른 검색어나 필터를 사용해 보세요
         </p>
       </div>
     )

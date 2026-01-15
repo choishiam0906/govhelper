@@ -21,12 +21,12 @@ export default function RegisterPage() {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      toast.error("비밀번호가 일치하지 않습니다.")
+      toast.error("비밀번호가 일치하지 않아요")
       return
     }
 
     if (password.length < 6) {
-      toast.error("비밀번호는 6자 이상이어야 합니다.")
+      toast.error("비밀번호는 6자 이상으로 입력해요")
       return
     }
 
@@ -47,10 +47,10 @@ export default function RegisterPage() {
         return
       }
 
-      toast.success("인증 이메일을 발송했습니다. 이메일을 확인해주세요.")
+      toast.success("인증 이메일을 보냈어요. 이메일을 확인해 주세요")
       router.push("/login")
     } catch (error) {
-      toast.error("회원가입 중 오류가 발생했습니다.")
+      toast.error("회원가입 중 문제가 생겼어요")
     } finally {
       setLoading(false)
     }
@@ -96,7 +96,7 @@ export default function RegisterPage() {
           </Link>
           <CardTitle>회원가입</CardTitle>
           <CardDescription>
-            무료로 계정을 만들고 서비스를 시작하세요
+            무료로 가입하고 서비스를 시작해요
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,7 +189,7 @@ export default function RegisterPage() {
         </CardContent>
         <CardFooter>
           <div className="text-center w-full text-sm text-muted-foreground">
-            이미 계정이 있으신가요?{" "}
+            이미 계정이 있나요?{" "}
             <Link href="/login" className="text-primary hover:underline">
               로그인
             </Link>

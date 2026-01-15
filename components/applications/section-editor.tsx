@@ -91,12 +91,12 @@ export function SectionEditor({
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             className="min-h-[200px] resize-y"
-            placeholder="내용을 입력하세요..."
+            placeholder="내용을 입력해 주세요"
           />
         ) : (
           <div className="prose prose-sm max-w-none">
             <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-              {content || '내용이 없습니다.'}
+              {content || '내용이 없어요'}
             </p>
           </div>
         )}

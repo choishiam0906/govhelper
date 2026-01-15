@@ -85,7 +85,7 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-3xl font-bold">결제 및 구독</h1>
         <p className="text-muted-foreground mt-1">
-          요금제 및 결제 정보를 관리합니다
+          요금제와 결제 정보를 확인하고 관리해요
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export default async function BillingPage() {
           {currentPlan === 'free' ? (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                무료 플랜을 사용 중입니다. Pro로 업그레이드하여 무제한 AI 매칭과 지원서 작성 기능을 이용하세요.
+                무료 플랜을 사용 중이에요. Pro로 업그레이드하면 무제한 AI 매칭과 지원서 작성 기능을 이용할 수 있어요.
               </p>
               <Button asChild>
                 <Link href="/dashboard/billing/checkout">
@@ -281,7 +281,7 @@ export default async function BillingPage() {
         <CardContent>
           {!payments || payments.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">
-              결제 내역이 없습니다
+              아직 결제 내역이 없어요
             </p>
           ) : (
             <div className="space-y-4">

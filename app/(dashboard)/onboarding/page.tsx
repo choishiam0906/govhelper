@@ -24,9 +24,9 @@ export default function OnboardingPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
             <Building2 className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">환영합니다!</h1>
+          <h1 className="text-3xl font-bold mb-2">환영해요!</h1>
           <p className="text-muted-foreground text-lg">
-            맞춤 정부지원사업을 찾기 위해 기업 정보를 등록해주세요
+            기업 정보를 등록하면 맞춤 정부지원사업을 찾아드려요
           </p>
         </div>
 
@@ -36,8 +36,8 @@ export default function OnboardingPage() {
           <div>
             <p className="font-medium text-primary">AI가 최적의 지원사업을 찾아드립니다</p>
             <p className="text-sm text-muted-foreground mt-1">
-              입력하신 기업 정보를 바탕으로 적합한 정부지원사업을 매칭해드립니다.
-              정보가 상세할수록 더 정확한 추천을 받으실 수 있습니다.
+              입력한 기업 정보를 바탕으로 적합한 정부지원사업을 매칭해 드려요.
+              정보가 상세할수록 더 정확한 추천을 받을 수 있어요.
             </p>
           </div>
         </div>

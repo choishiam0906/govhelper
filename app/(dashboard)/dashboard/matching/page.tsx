@@ -33,9 +33,9 @@ export default async function MatchingPage({
   if (!company) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">기업 정보를 먼저 등록해주세요</p>
+        <p className="text-muted-foreground">기업 정보를 먼저 등록해 주세요</p>
         <Button asChild className="mt-4">
-          <Link href="/onboarding">기업 정보 등록</Link>
+          <Link href="/onboarding">기업 정보 등록하기</Link>
         </Button>
       </div>
     )
@@ -79,7 +79,7 @@ export default async function MatchingPage({
       <div>
         <h1 className="text-3xl font-bold">AI 매칭 분석</h1>
         <p className="text-muted-foreground mt-1">
-          AI가 우리 기업에 맞는 지원사업인지 분석해드립니다
+          AI가 우리 기업에 맞는 지원사업인지 분석해요
         </p>
       </div>
 
@@ -130,8 +130,8 @@ export default async function MatchingPage({
           {!recentMatches || recentMatches.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>아직 분석 결과가 없습니다</p>
-              <p className="text-sm mt-1">공고를 선택하고 분석을 시작해보세요</p>
+              <p>아직 분석 결과가 없어요</p>
+              <p className="text-sm mt-1">공고를 선택하고 분석을 시작해 보세요</p>
             </div>
           ) : (
             <div className="space-y-4">

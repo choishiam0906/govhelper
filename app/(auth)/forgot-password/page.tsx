@@ -31,9 +31,9 @@ export default function ForgotPasswordPage() {
       }
 
       setEmailSent(true)
-      toast.success("비밀번호 재설정 링크가 이메일로 전송되었습니다.")
+      toast.success("비밀번호 재설정 링크를 이메일로 보냈어요")
     } catch (error) {
-      toast.error("오류가 발생했습니다. 다시 시도해주세요.")
+      toast.error("문제가 생겼어요. 다시 시도해 주세요")
     } finally {
       setLoading(false)
     }
@@ -47,17 +47,17 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <Mail className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle>이메일을 확인하세요</CardTitle>
+            <CardTitle>이메일을 확인해 주세요</CardTitle>
             <CardDescription>
-              <strong>{email}</strong>로 비밀번호 재설정 링크를 보냈습니다.
-              이메일의 링크를 클릭하여 새 비밀번호를 설정하세요.
+              <strong>{email}</strong>로 비밀번호 재설정 링크를 보냈어요.
+              이메일의 링크를 클릭해서 새 비밀번호를 설정해 주세요.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-sm text-muted-foreground text-center">
-              이메일이 도착하지 않았나요?
+              이메일이 안 왔나요?
               <br />
-              스팸 폴더를 확인하거나 잠시 후 다시 시도해주세요.
+              스팸 폴더를 확인하거나 잠시 후 다시 시도해 보세요.
             </div>
             <Button
               variant="outline"
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
           </Link>
           <CardTitle>비밀번호 재설정</CardTitle>
           <CardDescription>
-            가입한 이메일 주소를 입력하시면 비밀번호 재설정 링크를 보내드립니다.
+            가입한 이메일 주소를 입력하면 비밀번호 재설정 링크를 보내드려요.
           </CardDescription>
         </CardHeader>
         <CardContent>

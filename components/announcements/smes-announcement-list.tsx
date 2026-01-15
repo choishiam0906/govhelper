@@ -178,7 +178,7 @@ export function SMESAnnouncementList() {
       {data.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center text-muted-foreground">
-            현재 진행 중인 공고가 없습니다.
+            현재 진행 중인 공고가 없어요
           </CardContent>
         </Card>
       ) : (

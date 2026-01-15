@@ -160,13 +160,13 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || '저장에 실패했습니다')
+        throw new Error(result.error || '저장하지 못했어요')
       }
 
-      toast.success(mode === 'edit' ? '기업 정보가 수정되었습니다' : '기업 정보가 등록되었습니다')
+      toast.success(mode === 'edit' ? '기업 정보를 수정했어요' : '기업 정보를 등록했어요')
       onSuccess?.()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '오류가 발생했습니다')
+      toast.error(error instanceof Error ? error.message : '문제가 생겼어요')
     } finally {
       setLoading(false)
     }
@@ -177,7 +177,7 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
       <Card>
         <CardHeader>
           <CardTitle>기본 정보</CardTitle>
-          <CardDescription>기업의 기본 정보를 입력해주세요</CardDescription>
+          <CardDescription>기업의 기본 정보를 입력해 주세요</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 기업명 */}
@@ -187,7 +187,7 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
             </Label>
             <Input
               id="name"
-              placeholder="기업명을 입력하세요"
+              placeholder="기업명"
               {...register('name')}
             />
             {errors.name && (
@@ -213,7 +213,7 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
               onValueChange={(value) => setValue('industry', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="업종을 선택하세요" />
+                <SelectValue placeholder="업종 선택" />
               </SelectTrigger>
               <SelectContent>
                 {industries.map((industry) => (
@@ -254,7 +254,7 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
               onValueChange={(value) => setValue('location', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="지역을 선택하세요" />
+                <SelectValue placeholder="지역 선택" />
               </SelectTrigger>
               <SelectContent>
                 {locations.map((location) => (

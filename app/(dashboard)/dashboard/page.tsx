@@ -199,7 +199,7 @@ export default async function DashboardPage() {
         <CardContent>
           {recentAnnouncements.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <p>등록된 공고가 없습니다</p>
+              <p>아직 등록된 공고가 없어요</p>
               <Button variant="link" asChild className="mt-2">
                 <Link href="/dashboard/announcements">공고 검색하기</Link>
               </Button>

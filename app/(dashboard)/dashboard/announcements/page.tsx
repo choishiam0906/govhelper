@@ -73,7 +73,7 @@ export default async function AnnouncementsPage({
       <div>
         <h1 className="text-3xl font-bold">공고 검색</h1>
         <p className="text-muted-foreground mt-1">
-          정부지원사업 공고를 검색하고 필터링하세요
+          정부지원사업 공고를 검색해 보세요
         </p>
       </div>
 

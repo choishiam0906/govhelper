@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
 
       if (!session) {
         setIsValidSession(false)
-        toast.error("유효하지 않거나 만료된 링크입니다.")
+        toast.error("유효하지 않거나 만료된 링크예요")
       } else {
         setIsValidSession(true)
       }
@@ -41,12 +41,12 @@ export default function ResetPasswordPage() {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      toast.error("비밀번호가 일치하지 않습니다.")
+      toast.error("비밀번호가 일치하지 않아요")
       return
     }
 
     if (password.length < 6) {
-      toast.error("비밀번호는 최소 6자 이상이어야 합니다.")
+      toast.error("비밀번호는 6자 이상으로 입력해 주세요")
       return
     }
 
@@ -64,9 +64,9 @@ export default function ResetPasswordPage() {
       }
 
       setResetComplete(true)
-      toast.success("비밀번호가 성공적으로 변경되었습니다.")
+      toast.success("비밀번호를 변경했어요")
     } catch (error) {
-      toast.error("오류가 발생했습니다. 다시 시도해주세요.")
+      toast.error("문제가 생겼어요. 다시 시도해 주세요")
     } finally {
       setLoading(false)
     }
@@ -89,10 +89,10 @@ export default function ResetPasswordPage() {
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle>링크가 만료되었습니다</CardTitle>
+            <CardTitle>링크가 만료됐어요</CardTitle>
             <CardDescription>
-              비밀번호 재설정 링크가 만료되었거나 유효하지 않습니다.
-              새로운 링크를 요청해주세요.
+              비밀번호 재설정 링크가 만료되었거나 유효하지 않아요.
+              새로운 링크를 요청해 주세요.
             </CardDescription>
           </CardHeader>
           <CardFooter>
@@ -115,8 +115,8 @@ export default function ResetPasswordPage() {
             </div>
             <CardTitle>비밀번호 변경 완료</CardTitle>
             <CardDescription>
-              비밀번호가 성공적으로 변경되었습니다.
-              새 비밀번호로 로그인하세요.
+              비밀번호를 변경했어요.
+              새 비밀번호로 로그인해 주세요.
             </CardDescription>
           </CardHeader>
           <CardFooter>
@@ -141,7 +141,7 @@ export default function ResetPasswordPage() {
           </Link>
           <CardTitle>새 비밀번호 설정</CardTitle>
           <CardDescription>
-            새로 사용할 비밀번호를 입력하세요.
+            새로 사용할 비밀번호를 입력해 주세요.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,7 +187,7 @@ export default function ResetPasswordPage() {
                 </button>
               </div>
               {confirmPassword && password !== confirmPassword && (
-                <p className="text-sm text-destructive">비밀번호가 일치하지 않습니다.</p>
+                <p className="text-sm text-destructive">비밀번호가 일치하지 않아요</p>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={loading || password !== confirmPassword}>
