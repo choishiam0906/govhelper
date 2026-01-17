@@ -19,6 +19,7 @@ GovHelper는 여러 정부 공공 API를 통합하여 중소기업/스타트업�
 | 기업마당 (bizinfo) | bizinfo | 중기부 지원사업 | 매일 01:00, 13:00 |
 | K-Startup | kstartup | 창업 지원사업 | 매일 02:00, 14:00 |
 | 나라장터 (G2B) | g2b | 조달청 입찰공고 | 매일 03:00, 15:00 |
+| HRD Korea | hrd | 직업훈련 과정 | 매일 04:00, 16:00 |
 | 국세청 | nts | 사업자등록정보 검증 | 실시간 |
 
 ---
@@ -235,7 +236,9 @@ NTS_API_KEY=공공데이터포털에서_발급받은_서비스키
     { "path": "/api/announcements/kstartup/sync", "schedule": "0 2 * * *" },
     { "path": "/api/announcements/kstartup/sync", "schedule": "0 14 * * *" },
     { "path": "/api/announcements/g2b/sync", "schedule": "0 3 * * *" },
-    { "path": "/api/announcements/g2b/sync", "schedule": "0 15 * * *" }
+    { "path": "/api/announcements/g2b/sync", "schedule": "0 15 * * *" },
+    { "path": "/api/announcements/hrd/sync", "schedule": "0 4 * * *" },
+    { "path": "/api/announcements/hrd/sync", "schedule": "0 16 * * *" }
   ]
 }
 ```
@@ -247,6 +250,7 @@ NTS_API_KEY=공공데이터포털에서_발급받은_서비스키
 | bizinfo | 01:00, 13:00 | 10:00, 22:00 |
 | K-Startup | 02:00, 14:00 | 11:00, 23:00 |
 | G2B | 03:00, 15:00 | 12:00, 00:00 |
+| HRD | 04:00, 16:00 | 13:00, 01:00 |
 
 ---
 
@@ -264,6 +268,9 @@ curl -X POST https://govhelpers.com/api/announcements/kstartup/sync
 
 # 나라장터 (G2B)
 curl -X POST https://govhelpers.com/api/announcements/g2b/sync
+
+# HRD Korea (직업훈련)
+curl -X POST https://govhelpers.com/api/announcements/hrd/sync
 ```
 
 ---
@@ -318,11 +325,69 @@ UNIQUE (source, source_id)
 
 ---
 
+## 5. HRD Korea API (직업훈련)
+
+### 개요
+- **제공처**: 공공데이터포털 (한국고용정보원)
+- **데이터**: 국민내일배움카드 훈련과정
+- **형식**: JSON
+
+### 엔드포인트
+```
+GET  /api/announcements/hrd        # 훈련과정 조회
+POST /api/announcements/hrd/sync   # DB 동기화
+```
+
+### 쿼리 파라미터
+| 파라미터 | 설명 | 기본값 |
+|----------|------|--------|
+| page | 페이지 번호 | 1 |
+| limit | 페이지당 건수 | 50 |
+| keyword | 검색어 | - |
+| category | NCS 분야 필터 | - |
+| activeOnly | 진행중 과정만 | true |
+
+### 환경 변수
+```bash
+HRD_API_KEY=공공데이터포털에서_발급받은_서비스키
+```
+
+### API 발급
+1. [공공데이터포털](https://www.data.go.kr/data/15109032/openapi.do) 접속
+2. "한국고용정보원_직업훈련_국민내일배움카드 훈련과정" 검색
+3. 활용신청 후 서비스키 발급
+
+### 응답 예시
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "title": "[K-디지털] AI 웹개발 풀스택 과정",
+      "organization": "멀티캠퍼스",
+      "category": "정보통신",
+      "supportType": "국민내일배움카드",
+      "supportAmount": "정부지원 5,000,000원",
+      "startDate": "2026-02-01",
+      "endDate": "2026-07-31",
+      "source": "hrd"
+    }
+  ],
+  "meta": {
+    "total": 150,
+    "page": 1,
+    "limit": 50
+  }
+}
+```
+
+---
+
 ## 향후 연동 예정
 
 | API | 제공처 | 데이터 |
 |-----|--------|--------|
-| HRD Korea | 고용노동부 | 훈련과정 |
 
 ---
 

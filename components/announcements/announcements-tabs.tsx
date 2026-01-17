@@ -5,6 +5,7 @@ import { SMESAnnouncementList } from './smes-announcement-list'
 import { BizinfoAnnouncementList } from './bizinfo-announcement-list'
 import { KStartupAnnouncementList } from './kstartup-announcement-list'
 import { G2BAnnouncementList } from './g2b-announcement-list'
+import { HRDAnnouncementList } from './hrd-announcement-list'
 import { Badge } from '@/components/ui/badge'
 
 interface AnnouncementsTabsProps {
@@ -32,6 +33,10 @@ export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
           나라장터
           <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">입찰</Badge>
         </TabsTrigger>
+        <TabsTrigger value="hrd" className="flex items-center gap-2">
+          HRD-Net
+          <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">훈련</Badge>
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="all" className="space-y-6">
@@ -52,6 +57,10 @@ export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
 
       <TabsContent value="g2b">
         <G2BAnnouncementList />
+      </TabsContent>
+
+      <TabsContent value="hrd">
+        <HRDAnnouncementList />
       </TabsContent>
     </Tabs>
   )

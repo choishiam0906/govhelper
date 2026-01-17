@@ -24,6 +24,12 @@
     "app/api/announcements/g2b/route.ts": {
       "maxDuration": 30
     },
+    "app/api/announcements/hrd/sync/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/announcements/hrd/route.ts": {
+      "maxDuration": 30
+    },
     "app/api/notifications/send/route.ts": {
       "maxDuration": 60
     }
@@ -60,6 +66,14 @@
     {
       "path": "/api/announcements/g2b/sync",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/announcements/hrd/sync",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/announcements/hrd/sync",
+      "schedule": "0 16 * * *"
     },
     {
       "path": "/api/notifications/send",
