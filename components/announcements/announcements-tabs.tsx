@@ -2,6 +2,8 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SMESAnnouncementList } from './smes-announcement-list'
+import { BizinfoAnnouncementList } from './bizinfo-announcement-list'
+import { KStartupAnnouncementList } from './kstartup-announcement-list'
 import { Badge } from '@/components/ui/badge'
 
 interface AnnouncementsTabsProps {
@@ -11,11 +13,19 @@ interface AnnouncementsTabsProps {
 export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
   return (
     <Tabs defaultValue="all" className="space-y-4">
-      <TabsList>
+      <TabsList className="flex-wrap h-auto gap-1">
         <TabsTrigger value="all">전체 공고</TabsTrigger>
         <TabsTrigger value="smes" className="flex items-center gap-2">
           중소벤처24
           <Badge variant="secondary" className="text-xs">실시간</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="bizinfo" className="flex items-center gap-2">
+          기업마당
+          <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">실시간</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="kstartup" className="flex items-center gap-2">
+          K-Startup
+          <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">창업</Badge>
         </TabsTrigger>
       </TabsList>
 
@@ -25,6 +35,14 @@ export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
 
       <TabsContent value="smes">
         <SMESAnnouncementList />
+      </TabsContent>
+
+      <TabsContent value="bizinfo">
+        <BizinfoAnnouncementList />
+      </TabsContent>
+
+      <TabsContent value="kstartup">
+        <KStartupAnnouncementList />
       </TabsContent>
     </Tabs>
   )
