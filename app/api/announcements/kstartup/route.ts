@@ -4,19 +4,20 @@ import { NextRequest, NextResponse } from 'next/server'
 const KSTARTUP_API_URL = 'https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01'
 const KSTARTUP_API_KEY = process.env.KSTARTUP_API_KEY || ''
 
-// K-Startup API 응답 형식
+// K-Startup API 응답 형식 (실제 API 응답 기준)
 interface KStartupAnnouncement {
-  pbanc_nm: string           // 공고명
-  supt_biz_clsfc: string     // 지원사업 분류
-  biz_pbanc_no: string       // 사업 공고 번호
-  excl_instt_nm: string      // 수행기관명
-  jrsd_instt_nm: string      // 소관기관명
-  pbanc_rcpt_bgng_dt: string // 접수 시작일
-  pbanc_rcpt_end_dt: string  // 접수 종료일
-  pbanc_url: string          // 공고 URL
-  pbanc_ctnt: string         // 공고 내용
-  tot_pbanc_yn: string       // 통합공고 여부 (Y/N)
-  crtr_ymd: string           // 생성일자
+  biz_pbanc_nm: string        // 공고명
+  supt_biz_clsfc: string      // 지원사업 분류
+  pbanc_sn: number            // 공고 번호
+  pbanc_ntrp_nm: string       // 소관기관명
+  sprv_inst: string           // 수행기관명
+  pbanc_rcpt_bgng_dt: string  // 접수 시작일
+  pbanc_rcpt_end_dt: string   // 접수 종료일
+  detl_pg_url: string         // 상세 URL
+  pbanc_ctnt: string          // 공고 내용
+  intg_pbanc_yn: string       // 통합공고 여부 (Y/N)
+  aply_trgt: string           // 지원대상
+  supt_regin: string          // 지원지역
 }
 
 interface KStartupResponse {
@@ -107,33 +108,33 @@ export async function GET(request: NextRequest) {
 
     // 데이터 변환
     const formattedData = announcements.map(item => ({
-      id: item.biz_pbanc_no,
-      title: item.pbanc_nm,
-      organization: item.jrsd_instt_nm,
+      id: String(item.pbanc_sn),
+      title: item.biz_pbanc_nm,
+      organization: item.pbanc_ntrp_nm || '',
       bizType: item.supt_biz_clsfc || '',
       sportType: '',
       startDate: formatDate(item.pbanc_rcpt_bgng_dt),
       endDate: formatDate(item.pbanc_rcpt_end_dt),
-      area: '',
-      targetScale: '',
-      detailUrl: item.pbanc_url || `https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=${item.biz_pbanc_no}`,
+      area: item.supt_regin || '',
+      targetScale: item.aply_trgt || '',
+      detailUrl: item.detl_pg_url || `https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=${item.pbanc_sn}`,
       content: item.pbanc_ctnt || '',
       supportContent: '',
-      target: '',
+      target: item.aply_trgt || '',
       reference: '',
-      createdAt: formatDate(item.crtr_ymd),
-      updatedAt: formatDate(item.crtr_ymd),
+      createdAt: formatDate(item.pbanc_rcpt_bgng_dt),
+      updatedAt: formatDate(item.pbanc_rcpt_bgng_dt),
       source: 'kstartup',
       eligibility: {
-        target: '',
+        target: item.aply_trgt || '',
         companyScale: '',
         businessType: '',
         employeeCount: '',
         requiredCertification: ''
       },
       attachments: [],
-      isIntegrated: item.tot_pbanc_yn === 'Y', // 통합공고 여부
-      executor: item.excl_instt_nm || '', // 수행기관
+      isIntegrated: item.intg_pbanc_yn === 'Y', // 통합공고 여부
+      executor: item.sprv_inst || '', // 수행기관
     }))
 
     // 마감일 기준 정렬 (가까운 순)

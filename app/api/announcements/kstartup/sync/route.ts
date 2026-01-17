@@ -13,19 +13,20 @@ function getSupabaseAdmin() {
   )
 }
 
-// K-Startup API 응답 형식
+// K-Startup API 응답 형식 (실제 API 응답 기준)
 interface KStartupAnnouncement {
-  pbanc_nm: string           // 공고명
-  supt_biz_clsfc: string     // 지원사업 분류
-  biz_pbanc_no: string       // 사업 공고 번호
-  excl_instt_nm: string      // 수행기관명
-  jrsd_instt_nm: string      // 소관기관명
-  pbanc_rcpt_bgng_dt: string // 접수 시작일
-  pbanc_rcpt_end_dt: string  // 접수 종료일
-  pbanc_url: string          // 공고 URL
-  pbanc_ctnt: string         // 공고 내용
-  tot_pbanc_yn: string       // 통합공고 여부 (Y/N)
-  crtr_ymd: string           // 생성일자
+  biz_pbanc_nm: string        // 공고명
+  supt_biz_clsfc: string      // 지원사업 분류
+  pbanc_sn: number            // 공고 번호
+  pbanc_ntrp_nm: string       // 소관기관명
+  sprv_inst: string           // 수행기관명
+  pbanc_rcpt_bgng_dt: string  // 접수 시작일
+  pbanc_rcpt_end_dt: string   // 접수 종료일
+  detl_pg_url: string         // 상세 URL
+  pbanc_ctnt: string          // 공고 내용
+  intg_pbanc_yn: string       // 통합공고 여부 (Y/N)
+  aply_trgt: string           // 지원대상
+  supt_regin: string          // 지원지역
 }
 
 interface KStartupResponse {
@@ -115,31 +116,33 @@ export async function POST(request: NextRequest) {
       return endDate >= todayStr
     })
 
-    // 중복 제거 (biz_pbanc_no 기준)
+    // 중복 제거 (pbanc_sn 기준)
     const seen = new Set<string>()
     const uniqueAnnouncements = activeAnnouncements.filter(item => {
-      if (!item.biz_pbanc_no) return false
-      if (seen.has(item.biz_pbanc_no)) return false
-      seen.add(item.biz_pbanc_no)
+      if (!item.pbanc_sn) return false
+      const id = String(item.pbanc_sn)
+      if (seen.has(id)) return false
+      seen.add(id)
       return true
     })
 
     // 데이터 변환 (배치용)
     const announcementsToUpsert = uniqueAnnouncements.map(item => ({
       source: 'kstartup',
-      source_id: item.biz_pbanc_no,
-      title: item.pbanc_nm,
-      organization: item.jrsd_instt_nm || '',
+      source_id: String(item.pbanc_sn),
+      title: item.biz_pbanc_nm,
+      organization: item.pbanc_ntrp_nm || '',
       category: item.supt_biz_clsfc || '창업',
-      support_type: item.tot_pbanc_yn === 'Y' ? '통합공고' : '',
-      target_company: '창업기업',
+      support_type: item.intg_pbanc_yn === 'Y' ? '통합공고' : '',
+      target_company: item.aply_trgt || '창업기업',
       support_amount: '',
       application_start: formatDate(item.pbanc_rcpt_bgng_dt),
       application_end: formatDate(item.pbanc_rcpt_end_dt),
       content: [
         item.pbanc_ctnt || '',
-        item.excl_instt_nm ? `수행기관: ${item.excl_instt_nm}` : '',
-        item.pbanc_url || `상세보기: https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=${item.biz_pbanc_no}`
+        item.sprv_inst ? `수행기관: ${item.sprv_inst}` : '',
+        item.supt_regin ? `지원지역: ${item.supt_regin}` : '',
+        item.detl_pg_url || `상세보기: https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=${item.pbanc_sn}`
       ].filter(Boolean).join('\n\n'),
       status: 'active',
       updated_at: new Date().toISOString()
