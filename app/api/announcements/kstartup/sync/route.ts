@@ -1,0 +1,200 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+// K-Startup API 설정 (공공데이터포털)
+const KSTARTUP_API_URL = 'https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01'
+const KSTARTUP_API_KEY = process.env.KSTARTUP_API_KEY || ''
+
+// Supabase Admin Client 생성
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
+// K-Startup API 응답 형식
+interface KStartupAnnouncement {
+  pbanc_nm: string           // 공고명
+  supt_biz_clsfc: string     // 지원사업 분류
+  biz_pbanc_no: string       // 사업 공고 번호
+  excl_instt_nm: string      // 수행기관명
+  jrsd_instt_nm: string      // 소관기관명
+  pbanc_rcpt_bgng_dt: string // 접수 시작일
+  pbanc_rcpt_end_dt: string  // 접수 종료일
+  pbanc_url: string          // 공고 URL
+  pbanc_ctnt: string         // 공고 내용
+  tot_pbanc_yn: string       // 통합공고 여부 (Y/N)
+  crtr_ymd: string           // 생성일자
+}
+
+interface KStartupResponse {
+  currentCount: number
+  data: KStartupAnnouncement[]
+  matchCount: number
+  page: number
+  perPage: number
+  totalCount: number
+}
+
+// 날짜 포맷 변환 (YYYYMMDD -> YYYY-MM-DD)
+function formatDate(dateStr: string): string | null {
+  if (!dateStr) return null
+  const clean = dateStr.replace(/[.\-\/]/g, '')
+  if (clean.length >= 8) {
+    return `${clean.substring(0, 4)}-${clean.substring(4, 6)}-${clean.substring(6, 8)}`
+  }
+  return null
+}
+
+// 오늘 날짜 (YYYY-MM-DD)
+function getTodayStr(): string {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+}
+
+export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
+  try {
+    // API 키 확인
+    if (!KSTARTUP_API_KEY) {
+      return NextResponse.json(
+        { success: false, error: 'K-Startup API 키가 설정되지 않았어요.' },
+        { status: 500 }
+      )
+    }
+
+    const supabase = getSupabaseAdmin()
+    const todayStr = getTodayStr()
+
+    // 여러 페이지 조회 (최대 500건)
+    const allAnnouncements: KStartupAnnouncement[] = []
+    let page = 1
+    const perPage = 100
+    let hasMore = true
+
+    console.log('📡 K-Startup API 동기화 시작')
+
+    while (hasMore && page <= 5) { // 최대 5페이지 (500건)
+      const params = new URLSearchParams({
+        serviceKey: KSTARTUP_API_KEY,
+        page: String(page),
+        perPage: String(perPage),
+        returnType: 'json',
+      })
+
+      const apiUrl = `${KSTARTUP_API_URL}?${params.toString()}`
+
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      })
+
+      if (!response.ok) {
+        throw new Error(`K-Startup API error: ${response.status}`)
+      }
+
+      const result: KStartupResponse = await response.json()
+      const data = result.data || []
+
+      allAnnouncements.push(...data)
+
+      // 다음 페이지 확인
+      if (data.length < perPage || allAnnouncements.length >= result.totalCount) {
+        hasMore = false
+      } else {
+        page++
+      }
+    }
+
+    // 진행 중인 공고만 필터링
+    const activeAnnouncements = allAnnouncements.filter(item => {
+      const endDate = formatDate(item.pbanc_rcpt_end_dt)
+      if (!endDate) return true // 마감일 없으면 포함
+      return endDate >= todayStr
+    })
+
+    // 중복 제거 (biz_pbanc_no 기준)
+    const seen = new Set<string>()
+    const uniqueAnnouncements = activeAnnouncements.filter(item => {
+      if (!item.biz_pbanc_no) return false
+      if (seen.has(item.biz_pbanc_no)) return false
+      seen.add(item.biz_pbanc_no)
+      return true
+    })
+
+    // 데이터 변환 (배치용)
+    const announcementsToUpsert = uniqueAnnouncements.map(item => ({
+      source: 'kstartup',
+      source_id: item.biz_pbanc_no,
+      title: item.pbanc_nm,
+      organization: item.jrsd_instt_nm || '',
+      category: item.supt_biz_clsfc || '창업',
+      support_type: item.tot_pbanc_yn === 'Y' ? '통합공고' : '',
+      target_company: '창업기업',
+      support_amount: '',
+      application_start: formatDate(item.pbanc_rcpt_bgng_dt),
+      application_end: formatDate(item.pbanc_rcpt_end_dt),
+      content: [
+        item.pbanc_ctnt || '',
+        item.excl_instt_nm ? `수행기관: ${item.excl_instt_nm}` : '',
+        item.pbanc_url || `상세보기: https://www.k-startup.go.kr/web/contents/bizpbanc-ongoing.do?schM=view&pbancSn=${item.biz_pbanc_no}`
+      ].filter(Boolean).join('\n\n'),
+      status: 'active',
+      updated_at: new Date().toISOString()
+    }))
+
+    // 배치 upsert
+    const { error: upsertError, count } = await supabase
+      .from('announcements')
+      .upsert(announcementsToUpsert, {
+        onConflict: 'source,source_id',
+        count: 'exact'
+      })
+
+    if (upsertError) {
+      console.error('Batch upsert error:', upsertError.message)
+      return NextResponse.json(
+        { success: false, error: upsertError.message },
+        { status: 500 }
+      )
+    }
+
+    // 마감된 K-Startup 공고 비활성화
+    await supabase
+      .from('announcements')
+      .update({ status: 'expired' })
+      .eq('source', 'kstartup')
+      .lt('application_end', todayStr)
+
+    const duration = Date.now() - startTime
+
+    console.log(`✅ K-Startup 동기화 완료: ${uniqueAnnouncements.length}건, ${duration}ms`)
+
+    return NextResponse.json({
+      success: true,
+      message: 'K-Startup 동기화 완료',
+      stats: {
+        fetched: allAnnouncements.length,
+        active: activeAnnouncements.length,
+        unique: uniqueAnnouncements.length,
+        upserted: count,
+        pages: page,
+        duration: `${duration}ms`,
+        syncedAt: new Date().toISOString()
+      }
+    })
+
+  } catch (error) {
+    console.error('K-Startup 동기화 오류:', error)
+    return NextResponse.json(
+      { success: false, error: '동기화 중 오류가 발생했어요.' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(request: NextRequest) {
+  return POST(request)
+}
