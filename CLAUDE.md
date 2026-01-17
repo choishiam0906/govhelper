@@ -102,7 +102,12 @@ govhelper-main/
 |--------|----------|-------------|
 | `GET` | `/api/announcements` | 공고 검색 (필터링, 페이지네이션) |
 | `GET` | `/api/announcements/[id]` | 공고 상세 |
-| `POST` | `/api/announcements/smes/sync` | SMES 공고 동기화 (Cron) |
+| `GET` | `/api/announcements/smes` | 중소벤처24 공고 조회 |
+| `POST` | `/api/announcements/smes/sync` | 중소벤처24 동기화 (Cron 00:00, 12:00) |
+| `GET` | `/api/announcements/bizinfo` | 기업마당 공고 조회 |
+| `POST` | `/api/announcements/bizinfo/sync` | 기업마당 동기화 (Cron 01:00, 13:00) |
+| `GET` | `/api/announcements/kstartup` | K-Startup 공고 조회 |
+| `POST` | `/api/announcements/kstartup/sync` | K-Startup 동기화 (Cron 02:00, 14:00) |
 
 ### 기업 (Companies)
 | Method | Endpoint | Description |
@@ -154,6 +159,8 @@ TOSS_PAYMENTS_SECRET_KEY=
 
 # External APIs
 SMES_API_TOKEN=           # 중소벤처24 API
+BIZINFO_API_KEY=          # 기업마당 API (기업마당에서 발급)
+KSTARTUP_API_KEY=         # K-Startup API (공공데이터포털에서 발급)
 NTS_API_KEY=              # 국세청 사업자등록정보
 
 # Email
@@ -225,22 +232,32 @@ npm run lint
 
 ## 외부 API 연동 현황
 
+### 정부 공공 API
+| API | 용도 | Cron | 상태 |
+|-----|------|------|------|
+| 중소벤처24 (SMES) | 정부지원사업 공고 | 00:00, 12:00 | ✅ 완료 |
+| 기업마당 (bizinfo) | 중기부 지원사업 | 01:00, 13:00 | ✅ 완료 |
+| K-Startup | 창업 지원사업 | 02:00, 14:00 | ✅ 완료 |
+| 국세청 사업자등록정보 | 사업자번호 검증 | - | ✅ 완료 |
+| 나라장터 (G2B) | 조달청 입찰공고 | - | 📋 예정 |
+| HRD Korea | 고용노동부 훈련 | - | 📋 예정 |
+
+### 외부 서비스 API
 | API | 용도 | 상태 |
 |-----|------|------|
-| 중소벤처24 (SMES) | 정부지원사업 공고 | ✅ 완료 |
-| 국세청 사업자등록정보 | 사업자번호 검증 | ✅ 완료 |
 | Google Gemini | AI 분석/생성 | ✅ 완료 |
 | Toss Payments | 결제 | ✅ 완료 |
 | Resend | 이메일 알림 | ✅ 완료 |
+| Supabase | DB/인증 | ✅ 완료 |
 
 ---
 
 ## 진행 예정 작업
 
 ### P0 - 즉시
-- [ ] 다크패턴 방지 점검
-- [ ] 반응형 디자인 점검 (375px)
-- [ ] 에러 핸들링 개선
+- [x] 다크패턴 방지 점검 (완료)
+- [x] 반응형 디자인 점검 (375px) (완료)
+- [ ] alert() → toast 교체 (수동 작업 필요)
 
 ### P1 - 단기
 - [ ] LLM 응답 스트리밍 (SSE)
@@ -248,6 +265,8 @@ npm run lint
 - [ ] Rate Limiting
 
 ### P2 - 중기
+- [ ] 나라장터 API 연동 (G2B)
+- [ ] HRD Korea API 연동
 - [ ] 카카오 로그인/페이
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드
