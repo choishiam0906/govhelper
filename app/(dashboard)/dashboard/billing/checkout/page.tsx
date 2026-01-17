@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ArrowLeft, Loader2, Crown, AlertTriangle, Copy, Check, Building2 } from 'lucide-react'
 import { PAYMENT_PRICES } from '@/lib/payments'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,7 +56,7 @@ function CheckoutContent() {
 
   const handleCheckout = async () => {
     if (!depositorName.trim()) {
-      alert('입금자명을 입력해주세요')
+      toast.error('입금자명을 입력해주세요')
       return
     }
 
@@ -79,7 +80,7 @@ function CheckoutContent() {
       setPaymentInfo(result.data)
       setIsCompleted(true)
     } catch (error) {
-      alert(error instanceof Error ? error.message : '결제에 실패했습니다')
+      toast.error(error instanceof Error ? error.message : '결제에 실패했어요')
     } finally {
       setLoading(false)
     }
@@ -98,10 +99,10 @@ function CheckoutContent() {
         throw new Error(result.error || '구독 취소에 실패했습니다')
       }
 
-      alert(result.message)
+      toast.success(result.message || '구독을 취소했어요')
       router.push('/dashboard/billing')
     } catch (error) {
-      alert(error instanceof Error ? error.message : '구독 취소에 실패했습니다')
+      toast.error(error instanceof Error ? error.message : '구독 취소에 실패했어요')
     } finally {
       setCancelling(false)
       setCancelDialogOpen(false)
