@@ -3,6 +3,25 @@ import { MatchAnalysis } from '@/types'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
+// 스트리밍 응답을 위한 제너레이터 함수
+export async function* streamWithGemini(prompt: string): AsyncGenerator<string, void, unknown> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+
+  try {
+    const result = await model.generateContentStream(prompt)
+
+    for await (const chunk of result.stream) {
+      const text = chunk.text()
+      if (text) {
+        yield text
+      }
+    }
+  } catch (error) {
+    console.error('Gemini streaming error:', error)
+    throw error
+  }
+}
+
 export async function analyzeMatchWithGemini(
   announcementContent: string,
   companyProfile: string,

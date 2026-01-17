@@ -69,7 +69,6 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
   const [status, setStatus] = useState(application.status)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [improvingSection, setImprovingSection] = useState<number | null>(null)
   const [improveDialogOpen, setImproveDialogOpen] = useState(false)
   const [selectedSection, setSelectedSection] = useState<number | null>(null)
 
@@ -88,39 +87,14 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
     setImproveDialogOpen(true)
   }
 
-  const handleImprove = async (feedback: string) => {
+  // 스트리밍 완료 후 로컬 상태 업데이트
+  const handleImproveComplete = (newContent: string) => {
     if (selectedSection === null) return
 
-    setImprovingSection(selectedSection)
-    try {
-      const response = await fetch(`/api/applications/${application.id}/improve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sectionIndex: selectedSection,
-          currentContent: content.sections[selectedSection].content,
-          feedback,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || 'AI 개선에 실패했습니다')
-      }
-
-      // 로컬 상태 업데이트
-      const updatedContent = { ...content }
-      updatedContent.sections[selectedSection].content = result.data.improvedContent
-      updatedContent.sections[selectedSection].improvedAt = new Date().toISOString()
-      setContent(updatedContent)
-
-      toast.success('AI가 섹션을 개선했습니다')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '오류가 발생했습니다')
-    } finally {
-      setImprovingSection(null)
-    }
+    const updatedContent = { ...content }
+    updatedContent.sections[selectedSection].content = newContent
+    updatedContent.sections[selectedSection].improvedAt = new Date().toISOString()
+    setContent(updatedContent)
   }
 
   const saveApplication = async (contentToSave: ApplicationContent, newStatus?: string) => {
@@ -275,7 +249,6 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
             content={section.content}
             onSave={(newContent) => handleSectionSave(index, newContent)}
             onImproveRequest={() => handleImproveRequest(index)}
-            isImproving={improvingSection === index}
           />
         ))}
       </div>
@@ -291,14 +264,16 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
         </CardContent>
       </Card>
 
-      {/* AI 개선 다이얼로그 */}
+      {/* AI 개선 다이얼로그 (스트리밍 지원) */}
       {selectedSection !== null && (
         <AIImproveDialog
           open={improveDialogOpen}
           onOpenChange={setImproveDialogOpen}
+          applicationId={application.id}
+          sectionIndex={selectedSection}
           sectionTitle={content.sections[selectedSection]?.section || ''}
           currentContent={content.sections[selectedSection]?.content || ''}
-          onImprove={handleImprove}
+          onImproveComplete={handleImproveComplete}
         />
       )}
     </div>
