@@ -349,13 +349,14 @@ POST /api/announcements/hrd/sync   # DB 동기화
 
 ### 환경 변수
 ```bash
-HRD_API_KEY=공공데이터포털에서_발급받은_서비스키
+HRD_AUTH_KEY=work24에서_발급받은_인증키
 ```
 
 ### API 발급
-1. [공공데이터포털](https://www.data.go.kr/data/15109032/openapi.do) 접속
-2. "한국고용정보원_직업훈련_국민내일배움카드 훈련과정" 검색
-3. 활용신청 후 서비스키 발급
+1. [고용24 OpenAPI](https://www.work24.go.kr/cm/e/a/0110/selectOpenApiSvcInfo.do) 접속
+2. 회원가입 및 로그인
+3. "국민내일배움카드 훈련과정" API 신청
+4. 인증키(authKey) 발급
 
 ### 응답 예시
 ```json

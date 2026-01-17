@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// HRD Korea API 설정 (공공데이터포털 - 국민내일배움카드 훈련과정)
-const HRD_API_URL = 'https://apis.data.go.kr/B552474/SrvcList/getJobTrainingList'
-const HRD_API_KEY = process.env.HRD_API_KEY || ''
+// HRD Korea API 설정 (work24.go.kr - 국민내일배움카드 훈련과정)
+const HRD_API_URL = 'https://www.work24.go.kr/cm/openApi/call/hr/callOpenApiSvcInfo310L01.do'
+const HRD_AUTH_KEY = process.env.HRD_AUTH_KEY || ''
 
 // Supabase Admin Client
 function getSupabaseAdmin() {
@@ -13,7 +13,7 @@ function getSupabaseAdmin() {
   )
 }
 
-// API 응답 타입
+// work24.go.kr API 응답 타입
 interface HRDTraining {
   trprId: string           // 훈련과정 ID
   trprNm: string           // 훈련과정명
@@ -39,23 +39,19 @@ interface HRDTraining {
   grade: string            // 등급
   trainTargetCd: string    // 훈련대상코드
   trainTarget: string      // 훈련대상명
+  instIno: string          // 기관코드
+  addr1: string            // 주소
+  subTitleLink: string     // 상세링크
+  title: string            // 제목
 }
 
 interface HRDResponse {
-  response: {
-    header: {
-      resultCode: string
-      resultMsg: string
-    }
-    body: {
-      items: {
-        item: HRDTraining[] | HRDTraining
-      } | null
-      numOfRows: number
-      pageNo: number
-      totalCount: number
-    }
-  }
+  returnCode: string
+  returnMsg: string
+  scn_cnt: number          // 검색된 총 건수
+  pageNum: number          // 현재페이지
+  pageSize: number         // 페이지당 출력개수
+  srchList: HRDTraining[]  // 훈련과정 목록
 }
 
 // 날짜 포맷 (YYYYMMDD -> YYYY-MM-DD)
@@ -68,9 +64,23 @@ function formatDate(dateStr: string): string | null {
   return null
 }
 
-// 오늘 날짜
+// 오늘 날짜 (YYYYMMDD)
 function getTodayStr(): string {
-  return new Date().toISOString().split('T')[0]
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}${month}${day}`
+}
+
+// 3개월 후 날짜 (YYYYMMDD)
+function get3MonthsLaterStr(): string {
+  const date = new Date()
+  date.setMonth(date.getMonth() + 3)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}${month}${day}`
 }
 
 // 금액 포맷
@@ -85,34 +95,36 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    if (!HRD_API_KEY) {
+    if (!HRD_AUTH_KEY) {
       return NextResponse.json(
-        { success: false, error: 'HRD Korea API 키가 설정되지 않았어요.' },
+        { success: false, error: 'HRD Korea 인증키(authKey)가 설정되지 않았어요.' },
         { status: 500 }
       )
     }
 
     const supabase = getSupabaseAdmin()
     const todayStr = getTodayStr()
+    const todayFormatted = formatDate(todayStr)!
 
     console.log('📡 HRD Korea 동기화 시작')
 
     const allTrainings: HRDTraining[] = []
     let page = 1
-    const numOfRows = 100
+    const pageSize = 100
     let hasMore = true
 
     // 여러 페이지 조회 (최대 5페이지)
     while (hasMore && page <= 5) {
       const params = new URLSearchParams({
-        serviceKey: HRD_API_KEY,
-        pageNo: String(page),
-        numOfRows: String(numOfRows),
-        returnType: 'json',
-        outType: '1', // 리스트 조회
-        srchTraStDt: todayStr.replace(/-/g, ''), // 오늘 이후 시작 과정
+        authKey: HRD_AUTH_KEY,
+        returnType: 'JSON',
+        outType: '1',           // 1: 리스트
+        pageNum: String(page),
+        pageSize: String(pageSize),
+        srchTraStDt: todayStr,           // 훈련시작일 From (오늘부터)
+        srchTraEndDt: get3MonthsLaterStr(), // 훈련시작일 To (3개월 후까지)
         sort: 'ASC',
-        sortCol: 'TRNG_BGDE', // 훈련시작일 기준 정렬
+        sortCol: 'TRNG_BGDE',   // 훈련시작일 기준 정렬
       })
 
       const apiUrl = `${HRD_API_URL}?${params.toString()}`
@@ -130,12 +142,10 @@ export async function POST(request: NextRequest) {
 
         const result: HRDResponse = await response.json()
 
-        if (result.response?.body?.items) {
-          const items = result.response.body.items.item
-          const itemArray = Array.isArray(items) ? items : [items]
-          allTrainings.push(...itemArray.filter(Boolean))
+        if (result.srchList && result.srchList.length > 0) {
+          allTrainings.push(...result.srchList)
 
-          if (itemArray.length < numOfRows || allTrainings.length >= result.response.body.totalCount) {
+          if (result.srchList.length < pageSize || allTrainings.length >= result.scn_cnt) {
             hasMore = false
           } else {
             page++
@@ -153,14 +163,14 @@ export async function POST(request: NextRequest) {
     const activeTrainings = allTrainings.filter(item => {
       const endDate = formatDate(item.traEndDate)
       if (!endDate) return true
-      return endDate >= todayStr
+      return endDate >= todayFormatted
     })
 
     // 중복 제거 (trprId + trainstCstId + trprDegr 기준)
     const seen = new Set<string>()
     const uniqueTrainings = activeTrainings.filter(item => {
       if (!item.trprId) return false
-      const id = `${item.trprId}-${item.trainstCstId}-${item.trprDegr}`
+      const id = `${item.trprId}-${item.trainstCstId || item.instIno}-${item.trprDegr}`
       if (seen.has(id)) return false
       seen.add(id)
       return true
@@ -169,8 +179,8 @@ export async function POST(request: NextRequest) {
     // DB 저장 형식으로 변환
     const trainingsToUpsert = uniqueTrainings.map(item => ({
       source: 'hrd',
-      source_id: `${item.trprId}-${item.trainstCstId}-${item.trprDegr}`,
-      title: item.trprNm || '',
+      source_id: `${item.trprId}-${item.trainstCstId || item.instIno}-${item.trprDegr}`,
+      title: item.title || item.trprNm || '',
       organization: item.inoNm || '',
       category: item.ncsNm || '직업훈련',
       support_type: item.trainTarget || '국민내일배움카드',
@@ -180,35 +190,37 @@ export async function POST(request: NextRequest) {
       application_end: formatDate(item.traEndDate),
       content: [
         item.contents || item.subTitle || '',
-        `훈련기간: ${item.traStartDate} ~ ${item.traEndDate}`,
+        `훈련기간: ${formatDate(item.traStartDate) || '-'} ~ ${formatDate(item.traEndDate) || '-'}`,
         `총 훈련시간: ${item.trainTime || '-'}시간`,
         `정원: ${item.yardMan || '-'}명`,
         item.realExpAmt ? `훈련비: ${formatAmount(item.realExpAmt)}` : '',
         item.perTrco ? `정부지원금: ${formatAmount(item.perTrco)}` : '',
         item.selfBurden ? `자부담금: ${formatAmount(item.selfBurden)}` : '',
         item.eiEmplRate3 ? `취업률: ${item.eiEmplRate3}%` : '',
-        item.address ? `훈련장소: ${item.address}` : '',
+        item.address || item.addr1 ? `훈련장소: ${item.address || item.addr1}` : '',
         item.grade ? `등급: ${item.grade}` : '',
-        item.titleLink || `https://www.hrd.go.kr/hrdp/ti/ptiap/PTIAP0410D.do?tracseId=${item.trprId}&tracseTme=${item.trprDegr}&trainstCstId=${item.trainstCstId}`
+        item.titleLink || item.subTitleLink || `https://www.work24.go.kr/wk/a/b/1200/retriveDtlNtcInfo.do?wantedAuthNo=${item.trprId}`
       ].filter(Boolean).join('\n\n'),
       status: 'active',
       updated_at: new Date().toISOString()
     }))
 
     // 배치 upsert
-    const { error: upsertError, count } = await supabase
-      .from('announcements')
-      .upsert(trainingsToUpsert, {
-        onConflict: 'source,source_id',
-        count: 'exact'
-      })
+    if (trainingsToUpsert.length > 0) {
+      const { error: upsertError, count } = await supabase
+        .from('announcements')
+        .upsert(trainingsToUpsert, {
+          onConflict: 'source,source_id',
+          count: 'exact'
+        })
 
-    if (upsertError) {
-      console.error('HRD upsert error:', upsertError.message)
-      return NextResponse.json(
-        { success: false, error: upsertError.message },
-        { status: 500 }
-      )
+      if (upsertError) {
+        console.error('HRD upsert error:', upsertError.message)
+        return NextResponse.json(
+          { success: false, error: upsertError.message },
+          { status: 500 }
+        )
+      }
     }
 
     // 종료된 훈련과정 비활성화
@@ -216,7 +228,7 @@ export async function POST(request: NextRequest) {
       .from('announcements')
       .update({ status: 'expired' })
       .eq('source', 'hrd')
-      .lt('application_end', todayStr)
+      .lt('application_end', todayFormatted)
 
     const duration = Date.now() - startTime
 
@@ -229,7 +241,7 @@ export async function POST(request: NextRequest) {
         fetched: allTrainings.length,
         active: activeTrainings.length,
         unique: uniqueTrainings.length,
-        upserted: count,
+        upserted: trainingsToUpsert.length,
         pages: page,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
