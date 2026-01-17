@@ -18,6 +18,12 @@
     "app/api/announcements/kstartup/route.ts": {
       "maxDuration": 30
     },
+    "app/api/announcements/g2b/sync/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/announcements/g2b/route.ts": {
+      "maxDuration": 30
+    },
     "app/api/notifications/send/route.ts": {
       "maxDuration": 60
     }
@@ -46,6 +52,14 @@
     {
       "path": "/api/announcements/kstartup/sync",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/announcements/g2b/sync",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/announcements/g2b/sync",
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/notifications/send",

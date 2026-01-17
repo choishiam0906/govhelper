@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SMESAnnouncementList } from './smes-announcement-list'
 import { BizinfoAnnouncementList } from './bizinfo-announcement-list'
 import { KStartupAnnouncementList } from './kstartup-announcement-list'
+import { G2BAnnouncementList } from './g2b-announcement-list'
 import { Badge } from '@/components/ui/badge'
 
 interface AnnouncementsTabsProps {
@@ -27,6 +28,10 @@ export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
           K-Startup
           <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-800">창업</Badge>
         </TabsTrigger>
+        <TabsTrigger value="g2b" className="flex items-center gap-2">
+          나라장터
+          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">입찰</Badge>
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="all" className="space-y-6">
@@ -43,6 +48,10 @@ export function AnnouncementsTabs({ children }: AnnouncementsTabsProps) {
 
       <TabsContent value="kstartup">
         <KStartupAnnouncementList />
+      </TabsContent>
+
+      <TabsContent value="g2b">
+        <G2BAnnouncementList />
       </TabsContent>
     </Tabs>
   )
