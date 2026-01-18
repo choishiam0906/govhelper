@@ -10,6 +10,7 @@ import { AnalysisCard } from '@/components/matching/analysis-card'
 import { EligibilityCard } from '@/components/matching/eligibility-card'
 import { MatchAnalysis } from '@/types'
 import { DeleteMatchButton } from './delete-match-button'
+import { DownloadPDFButton } from './download-pdf-button'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -109,7 +110,10 @@ export default async function MatchingDetailPage({ params }: PageProps) {
             </span>
           </div>
         </div>
-        <DeleteMatchButton matchId={match.id} />
+        <div className="flex items-center gap-2">
+          <DownloadPDFButton match={match} announcement={announcement} />
+          <DeleteMatchButton matchId={match.id} />
+        </div>
       </div>
 
       {/* 1단계: 자격 조건 검토 */}
