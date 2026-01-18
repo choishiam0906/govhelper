@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  syncRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // 기업마당 API 설정
 const BIZINFO_API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do'
@@ -77,6 +84,28 @@ function stripHtml(html: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Vercel Cron 요청은 Rate Limiting 제외
+  const isCronRequest = request.headers.get('x-vercel-cron') === '1'
+
+  if (!isCronRequest && isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(syncRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '동기화 요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   const startTime = Date.now()
 
   try {

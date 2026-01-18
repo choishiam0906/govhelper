@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { improveApplicationSection } from '@/lib/ai/claude'
 import { z } from 'zod'
+import {
+  aiRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -19,6 +26,26 @@ export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  // Rate Limiting 체크
+  if (isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(aiRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   try {
     const { id } = await params
     const supabase = await createClient()

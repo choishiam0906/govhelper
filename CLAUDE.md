@@ -163,6 +163,10 @@ BIZINFO_API_KEY=          # 기업마당 API (기업마당에서 발급)
 KSTARTUP_API_KEY=         # K-Startup API (공공데이터포털에서 발급)
 NTS_API_KEY=              # 국세청 사업자등록정보
 
+# Rate Limiting (Upstash Redis)
+UPSTASH_REDIS_REST_URL=   # Upstash 콘솔에서 발급
+UPSTASH_REDIS_REST_TOKEN= # Upstash 콘솔에서 발급
+
 # Email
 RESEND_API_KEY=
 
@@ -261,12 +265,13 @@ npm run lint
 
 ### P1 - 단기
 - [ ] LLM 응답 스트리밍 (SSE)
-- [ ] PDF 다운로드
-- [ ] Rate Limiting
+- [x] PDF 다운로드 (완료)
+- [x] Rate Limiting (완료 - Upstash Redis)
+- [x] 첨부파일 스크래핑 (완료)
 
 ### P2 - 중기
-- [ ] 나라장터 API 연동 (G2B)
-- [ ] HRD Korea API 연동
+- [x] 나라장터 API 연동 (G2B) (완료)
+- [x] HRD Korea API 연동 (완료)
 - [ ] 카카오 로그인/페이
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드

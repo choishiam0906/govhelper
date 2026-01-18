@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeMatchWithGemini } from '@/lib/ai/gemini'
 import { Tables, InsertTables, Json } from '@/types/database'
+import { withRateLimit } from '@/lib/api-utils'
 
-export async function POST(request: NextRequest) {
+async function handlePost(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -142,3 +143,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// AI Rate Limit 적용 (분당 10회)
+export const POST = withRateLimit(handlePost, 'ai')

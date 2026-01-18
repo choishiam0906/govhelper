@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  syncRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // HRD Korea API 설정 (work24.go.kr - 국민내일배움카드 훈련과정)
 const HRD_API_URL = 'https://www.work24.go.kr/cm/openApi/call/hr/callOpenApiSvcInfo310L01.do'
@@ -92,6 +99,28 @@ function formatAmount(amount: string | number): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Vercel Cron 요청은 Rate Limiting 제외
+  const isCronRequest = request.headers.get('x-vercel-cron') === '1'
+
+  if (!isCronRequest && isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(syncRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '동기화 요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   const startTime = Date.now()
 
   try {

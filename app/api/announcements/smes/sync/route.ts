@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  syncRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -29,6 +36,13 @@ interface SMESAnnouncement {
   policyCnts?: string
   sportCnts?: string
   sportTrget?: string
+  // 추가 필드
+  ablbiz?: string           // 적용 업종
+  emplyCnt?: string         // 직원수 제한
+  needCrtfn?: string        // 필요 인증
+  pblancAttach?: string     // 첨부파일 URL
+  pblancAttachNm?: string   // 첨부파일명
+  sportAmt?: string         // 지원금액
 }
 
 // 날짜 포맷 (YYYYMMDD)
@@ -56,6 +70,28 @@ function getTodayStr(): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Vercel Cron 요청은 Rate Limiting 제외
+  const isCronRequest = request.headers.get('x-vercel-cron') === '1'
+
+  if (!isCronRequest && isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(syncRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '동기화 요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   const startTime = Date.now()
 
   try {
@@ -107,27 +143,44 @@ export async function POST(request: NextRequest) {
     })
 
     // 데이터 변환 (배치용)
-    const announcementsToUpsert = uniqueAnnouncements.map(item => ({
-      source: 'smes24',
-      source_id: String(item.pblancSeq),
-      title: item.pblancNm,
-      organization: item.sportInsttNm || '',
-      category: item.bizType || '',
-      support_type: item.sportType || '',
-      target_company: item.cmpScale || '',
-      support_amount: '',
-      application_start: toDateFormat(item.pblancBgnDt),
-      application_end: toDateFormat(item.pblancEndDt),
-      content: [
-        item.policyCnts || '',
-        item.sportCnts || '',
-        item.sportTrget || '',
-        item.areaNm ? `지역: ${item.areaNm}` : '',
-        item.pblancDtlUrl ? `상세보기: ${item.pblancDtlUrl}` : ''
-      ].filter(Boolean).join('\n\n'),
-      status: 'active',
-      updated_at: new Date().toISOString()
-    }))
+    const announcementsToUpsert = uniqueAnnouncements.map(item => {
+      // 지원 대상 정보 구성 (기업규모 + 업종 + 직원수 + 인증)
+      const targetParts = [
+        item.cmpScale,
+        item.ablbiz ? `업종: ${item.ablbiz}` : '',
+        item.emplyCnt ? `직원수: ${item.emplyCnt}` : '',
+        item.needCrtfn ? `필요인증: ${item.needCrtfn}` : '',
+      ].filter(Boolean)
+
+      // 첨부파일 URL 배열 생성
+      const attachmentUrls: string[] = []
+      if (item.pblancAttach) {
+        attachmentUrls.push(item.pblancAttach)
+      }
+
+      return {
+        source: 'smes24',
+        source_id: String(item.pblancSeq),
+        title: item.pblancNm,
+        organization: item.sportInsttNm || '',
+        category: item.bizType || '',
+        support_type: item.sportType || '',
+        target_company: targetParts.join(' / ') || '',
+        support_amount: item.sportAmt || '',
+        application_start: toDateFormat(item.pblancBgnDt),
+        application_end: toDateFormat(item.pblancEndDt),
+        content: [
+          item.policyCnts || '',
+          item.sportCnts || '',
+          item.sportTrget || '',
+          item.areaNm ? `지역: ${item.areaNm}` : '',
+          item.pblancDtlUrl ? `상세보기: ${item.pblancDtlUrl}` : ''
+        ].filter(Boolean).join('\n\n'),
+        attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : null,
+        status: 'active',
+        updated_at: new Date().toISOString()
+      }
+    })
 
     // 배치 upsert (한 번에 처리)
     const { error: upsertError, count } = await supabase

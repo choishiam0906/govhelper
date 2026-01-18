@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  syncRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // 나라장터 API 설정
 const G2B_API_URL = 'https://apis.data.go.kr/1230000/ad/BidPublicInfoService'
@@ -84,6 +91,28 @@ function getBidTypeName(type: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Vercel Cron 요청은 Rate Limiting 제외
+  const isCronRequest = request.headers.get('x-vercel-cron') === '1'
+
+  if (!isCronRequest && isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(syncRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '동기화 요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   const startTime = Date.now()
 
   try {
@@ -177,28 +206,37 @@ export async function POST(request: NextRequest) {
     })
 
     // DB 저장 형식으로 변환
-    const bidsToUpsert = uniqueBids.map(item => ({
-      source: 'g2b',
-      source_id: `${item.bidNtceNo}-${item.bidNtceOrd}`,
-      title: item.bidNtceNm || '',
-      organization: item.ntceInsttNm || '',
-      category: getBidTypeName(item.bidType),
-      support_type: item.ntceKindNm || '',
-      target_company: item.cntrctMthdNm || '',
-      support_amount: item.presmptPrce ? `추정가 ${Number(item.presmptPrce).toLocaleString()}원` : '',
-      application_start: formatDate(item.bidNtceDt),
-      application_end: formatDate(item.bidClseDt),
-      content: [
-        `입찰방식: ${item.bidMethdNm || ''}`,
-        `계약방법: ${item.cntrctMthdNm || ''}`,
-        `낙찰방법: ${item.sucsfbidMthdNm || ''}`,
-        `수요기관: ${item.dminsttNm || ''}`,
-        item.asignBdgtAmt ? `배정예산: ${Number(item.asignBdgtAmt).toLocaleString()}원` : '',
-        item.bidNtceDtlUrl || '',
-      ].filter(Boolean).join('\n\n'),
-      status: 'active',
-      updated_at: new Date().toISOString()
-    }))
+    const bidsToUpsert = uniqueBids.map(item => {
+      // 참가자격 정보 조합 (공고종류 + 입찰방식)
+      const targetParts = [
+        item.ntceKindNm,
+        item.bidMethdNm,
+      ].filter(Boolean)
+
+      return {
+        source: 'g2b',
+        source_id: `${item.bidNtceNo}-${item.bidNtceOrd}`,
+        title: item.bidNtceNm || '',
+        organization: item.ntceInsttNm || '',
+        category: getBidTypeName(item.bidType),
+        support_type: item.cntrctMthdNm || '', // 계약방법 → support_type으로 이동
+        target_company: targetParts.join(' / ') || '', // 공고종류 + 입찰방식
+        support_amount: item.presmptPrce ? `추정가 ${Number(item.presmptPrce).toLocaleString()}원` : '',
+        application_start: formatDate(item.bidNtceDt),
+        application_end: formatDate(item.bidClseDt),
+        content: [
+          `공고종류: ${item.ntceKindNm || ''}`,
+          `입찰방식: ${item.bidMethdNm || ''}`,
+          `계약방법: ${item.cntrctMthdNm || ''}`,
+          `낙찰방법: ${item.sucsfbidMthdNm || ''}`,
+          `수요기관: ${item.dminsttNm || ''}`,
+          item.asignBdgtAmt ? `배정예산: ${Number(item.asignBdgtAmt).toLocaleString()}원` : '',
+          item.bidNtceDtlUrl ? `상세보기: ${item.bidNtceDtlUrl}` : '',
+        ].filter(Boolean).join('\n\n'),
+        status: 'active',
+        updated_at: new Date().toISOString()
+      }
+    })
 
     // 배치 upsert
     const { error: upsertError, count } = await supabase
