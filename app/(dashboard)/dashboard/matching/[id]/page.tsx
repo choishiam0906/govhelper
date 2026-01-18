@@ -7,6 +7,7 @@ import { ArrowLeft, Building2, Calendar, ExternalLink, FileText, Trash2 } from '
 import { notFound } from 'next/navigation'
 import { ScoreGauge } from '@/components/matching/score-gauge'
 import { AnalysisCard } from '@/components/matching/analysis-card'
+import { EligibilityCard } from '@/components/matching/eligibility-card'
 import { MatchAnalysis } from '@/types'
 import { DeleteMatchButton } from './delete-match-button'
 
@@ -111,66 +112,97 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         <DeleteMatchButton matchId={match.id} />
       </div>
 
-      {/* 종합 점수 */}
+      {/* 1단계: 자격 조건 검토 */}
+      {analysis.eligibility && (
+        <EligibilityCard eligibility={analysis.eligibility} />
+      )}
+
+      {/* 2단계: 종합 점수 */}
       <Card>
         <CardHeader>
-          <CardTitle>AI 매칭 분석 결과</CardTitle>
-          <CardDescription>
-            기업 정보를 기반으로 해당 공고와의 적합도를 AI가 분석한 결과입니다
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>2단계: 적합도 점수</CardTitle>
+              <CardDescription>
+                {analysis.eligibility?.isEligible
+                  ? '자격 조건을 충족하여 적합도 점수를 산정했어요'
+                  : '자격 미달이지만 참고용으로 점수를 표시해요'}
+              </CardDescription>
+            </div>
+            {analysis.eligibility && !analysis.eligibility.isEligible && (
+              <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                참고용
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* 종합 점수 게이지 */}
             <div className="flex-shrink-0">
               <ScoreGauge
-                score={analysis.overallScore}
+                score={analysis.eligibility?.isEligible ? analysis.overallScore : 0}
                 size="lg"
                 label="종합 매칭 점수"
               />
+              {analysis.eligibility && !analysis.eligibility.isEligible && (
+                <p className="text-center text-xs text-muted-foreground mt-2">
+                  (자격 미달로 0점 처리)
+                </p>
+              )}
             </div>
 
             {/* 세부 점수 */}
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-muted rounded-lg">
+            <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="text-center p-3 bg-muted rounded-lg">
                 <ScoreGauge
-                  score={analysis.technicalScore}
-                  maxScore={30}
+                  score={analysis.technicalScore || 0}
+                  maxScore={25}
                   size="sm"
                   showLabel={false}
                 />
                 <p className="text-sm font-medium mt-2">기술성</p>
-                <p className="text-xs text-muted-foreground">{analysis.technicalScore}/30점</p>
+                <p className="text-xs text-muted-foreground">{analysis.technicalScore || 0}/25점</p>
               </div>
-              <div className="text-center p-4 bg-muted rounded-lg">
+              <div className="text-center p-3 bg-muted rounded-lg">
                 <ScoreGauge
-                  score={analysis.marketScore}
-                  maxScore={25}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">시장성</p>
-                <p className="text-xs text-muted-foreground">{analysis.marketScore}/25점</p>
-              </div>
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.businessScore}
-                  maxScore={25}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">사업성</p>
-                <p className="text-xs text-muted-foreground">{analysis.businessScore}/25점</p>
-              </div>
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.bonusPoints}
+                  score={analysis.marketScore || 0}
                   maxScore={20}
                   size="sm"
                   showLabel={false}
                 />
+                <p className="text-sm font-medium mt-2">시장성</p>
+                <p className="text-xs text-muted-foreground">{analysis.marketScore || 0}/20점</p>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <ScoreGauge
+                  score={analysis.businessScore || 0}
+                  maxScore={20}
+                  size="sm"
+                  showLabel={false}
+                />
+                <p className="text-sm font-medium mt-2">사업성</p>
+                <p className="text-xs text-muted-foreground">{analysis.businessScore || 0}/20점</p>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <ScoreGauge
+                  score={analysis.fitScore || 0}
+                  maxScore={25}
+                  size="sm"
+                  showLabel={false}
+                />
+                <p className="text-sm font-medium mt-2">공고부합도</p>
+                <p className="text-xs text-muted-foreground">{analysis.fitScore || 0}/25점</p>
+              </div>
+              <div className="text-center p-3 bg-muted rounded-lg">
+                <ScoreGauge
+                  score={analysis.bonusPoints || 0}
+                  maxScore={10}
+                  size="sm"
+                  showLabel={false}
+                />
                 <p className="text-sm font-medium mt-2">가점</p>
-                <p className="text-xs text-muted-foreground">{analysis.bonusPoints}/20점</p>
+                <p className="text-xs text-muted-foreground">{analysis.bonusPoints || 0}/10점</p>
               </div>
             </div>
           </div>
@@ -241,23 +273,40 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         <CardHeader>
           <CardTitle className="text-base">점수 해석 가이드</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span>80점 이상: 높은 적합도</span>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium mb-2">1단계: 자격 조건</p>
+            <p className="text-xs text-muted-foreground">
+              공고의 지원 자격 요건(업종, 지역, 업력, 매출, 직원수)을 검토하여 지원 가능 여부를 판단해요.
+              하나라도 미충족 시 "지원 불가"로 표시됩니다.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-medium mb-2">2단계: 적합도 점수 (총 100점)</p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-muted-foreground mb-3">
+              <span>• 기술성: 25점</span>
+              <span>• 시장성: 20점</span>
+              <span>• 사업성: 20점</span>
+              <span>• 공고부합도: 25점</span>
+              <span>• 가점: 10점</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span>60-79점: 양호한 적합도</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-500" />
-              <span>40-59점: 보통</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span>40점 미만: 낮은 적합도</span>
+            <div className="grid md:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span>80점 이상: 높은 적합도</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span>60-79점: 양호한 적합도</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <span>40-59점: 보통</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span>40점 미만: 낮은 적합도</span>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -52,12 +52,58 @@ export interface MatchResult {
   analysis: MatchAnalysis
 }
 
+// 1단계: 자격 조건 체크
+export interface EligibilityCheck {
+  isEligible: boolean           // 최종 자격 여부
+  checks: {
+    industry: {                 // 업종 조건
+      passed: boolean
+      requirement: string       // 공고 요구사항
+      companyValue: string      // 기업 현황
+      reason: string
+    }
+    region: {                   // 지역 조건
+      passed: boolean
+      requirement: string
+      companyValue: string
+      reason: string
+    }
+    companyAge: {               // 업력 조건
+      passed: boolean
+      requirement: string
+      companyValue: string
+      reason: string
+    }
+    revenue: {                  // 매출 조건
+      passed: boolean
+      requirement: string
+      companyValue: string
+      reason: string
+    }
+    employeeCount: {            // 직원수 조건
+      passed: boolean
+      requirement: string
+      companyValue: string
+      reason: string
+    }
+  }
+  failedReasons: string[]       // 불합격 사유 목록
+}
+
+// 2단계: 적합도 점수
 export interface MatchAnalysis {
-  overallScore: number
-  technicalScore: number
-  marketScore: number
-  businessScore: number
-  bonusPoints: number
+  // 1단계: 자격 조건
+  eligibility: EligibilityCheck
+
+  // 2단계: 적합도 점수 (자격 조건 통과 시에만 유효)
+  overallScore: number          // 0-100 종합 점수
+  technicalScore: number        // 0-25 기술성 (기존 30 → 25)
+  marketScore: number           // 0-20 시장성 (기존 25 → 20)
+  businessScore: number         // 0-20 사업성 (기존 25 → 20)
+  fitScore: number              // 0-25 공고부합도 (신규)
+  bonusPoints: number           // 0-10 가점 (기존 20 → 10)
+
+  // 분석 내용
   strengths: string[]
   weaknesses: string[]
   recommendations: string[]
