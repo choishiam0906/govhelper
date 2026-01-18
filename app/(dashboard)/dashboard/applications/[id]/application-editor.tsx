@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { SectionEditor } from '@/components/applications/section-editor'
 import { AIImproveDialog } from '@/components/applications/ai-improve-dialog'
 import { ArrowLeft, Building2, Calendar, Save, Loader2, Trash2, CheckCircle } from 'lucide-react'
+import { DownloadPDFButton } from './download-pdf-button'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
@@ -183,6 +184,7 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <DownloadPDFButton application={application} />
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="text-destructive">

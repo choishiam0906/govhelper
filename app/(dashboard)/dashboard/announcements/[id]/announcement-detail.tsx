@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Loader2,
 } from 'lucide-react'
+import { DownloadPDFButton } from './download-pdf-button'
 
 interface Announcement {
   id: string
@@ -184,6 +185,8 @@ export function AnnouncementDetail({ announcement, isSaved: initialSaved }: Anno
                   AI 매칭 분석
                 </Link>
               </Button>
+
+              <DownloadPDFButton announcement={announcement} />
             </div>
           </CardContent>
         </Card>
