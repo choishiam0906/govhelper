@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
 
 // 스트리밍 응답을 위한 제너레이터 함수
 export async function* streamWithGemini(prompt: string): AsyncGenerator<string, void, unknown> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
   try {
     const result = await model.generateContentStream(prompt)
@@ -27,7 +27,7 @@ export async function analyzeMatchWithGemini(
   companyProfile: string,
   businessPlan: string
 ): Promise<MatchAnalysis> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
   const prompt = `
 당신은 정부지원사업 매칭 전문가입니다. 아래 정보를 바탕으로 **2단계 평가**를 수행해주세요.
@@ -180,7 +180,7 @@ export async function parseEligibilityCriteria(
   announcementContent: string,
   targetCompany: string | null
 ): Promise<EligibilityCriteria> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
   const prompt = `
 당신은 정부지원사업 공고 분석 전문가입니다. 아래 공고 내용에서 **지원자격 조건**을 상세하게 추출해주세요.
