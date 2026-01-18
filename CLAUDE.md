@@ -37,7 +37,7 @@
 | **UI Components** | Radix UI + Shadcn | Latest |
 | **Database** | Supabase (PostgreSQL) | Latest |
 | **Auth** | Supabase Auth | Latest |
-| **AI** | Google Gemini 1.5 Pro | Latest |
+| **AI** | Google Gemini 2.5 Flash | Latest |
 | **Payments** | Toss Payments SDK | 1.9.2 |
 | **State** | Zustand | 5.0.9 |
 | **Forms** | React Hook Form + Zod | 7.x / 4.x |
@@ -108,6 +108,8 @@ govhelper-main/
 | `POST` | `/api/announcements/bizinfo/sync` | 기업마당 동기화 (Cron 01:00, 13:00) |
 | `GET` | `/api/announcements/kstartup` | K-Startup 공고 조회 |
 | `POST` | `/api/announcements/kstartup/sync` | K-Startup 동기화 (Cron 02:00, 14:00) |
+| `GET` | `/api/announcements/parse-eligibility?id=` | 지원자격 AI 파싱 (단일) |
+| `POST` | `/api/announcements/parse-eligibility` | 지원자격 AI 파싱 (배치) |
 
 ### 기업 (Companies)
 | Method | Endpoint | Description |
@@ -223,11 +225,30 @@ npm run lint
 
 ### 주요 테이블
 - `companies`: 기업 정보
-- `announcements`: 정부지원사업 공고
+- `announcements`: 정부지원사업 공고 (eligibility_criteria JSONB 포함)
 - `matches`: AI 매칭 결과
 - `applications`: 지원서
 - `payments`: 결제 내역
 - `subscriptions`: 구독 정보
+
+### eligibility_criteria 스키마
+공고의 지원자격을 AI가 파싱한 구조화된 데이터:
+```json
+{
+  "companyTypes": ["중소기업", "스타트업"],
+  "employeeCount": { "min": 5, "max": 300, "description": "상시근로자 5인 이상" },
+  "revenue": { "min": null, "max": 10000000000, "description": "연매출 100억 이하" },
+  "businessAge": { "min": null, "max": 7, "description": "창업 7년 이내" },
+  "industries": { "included": ["제조업"], "excluded": ["금융업"] },
+  "regions": { "included": ["전국"], "excluded": [] },
+  "requiredCertifications": ["벤처인증"],
+  "additionalRequirements": ["고용보험 가입"],
+  "exclusions": ["세금 체납 기업"],
+  "summary": "창업 7년 이내 중소기업 대상",
+  "confidence": 0.85,
+  "parsedAt": "2026-01-18T00:00:00.000Z"
+}
+```
 
 ### RLS (Row Level Security)
 모든 테이블에 RLS 적용됨. 사용자는 자신의 데이터만 접근 가능.
@@ -268,6 +289,7 @@ npm run lint
 - [x] PDF 다운로드 (완료)
 - [x] Rate Limiting (완료 - Upstash Redis)
 - [x] 첨부파일 스크래핑 (완료)
+- [x] 지원자격 AI 상세 파싱 (완료 - Gemini 2.5 Flash)
 
 ### P2 - 중기
 - [x] 나라장터 API 연동 (G2B) (완료)
