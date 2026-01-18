@@ -251,6 +251,49 @@ NTS_API_KEY=공공데이터포털에서_발급받은_서비스키
 | K-Startup | 02:00, 14:00 | 11:00, 23:00 |
 | G2B | 03:00, 15:00 | 12:00, 00:00 |
 | HRD | 04:00, 16:00 | 13:00, 01:00 |
+| 첨부파일 스크래핑 | 05:00, 17:00 | 14:00, 02:00 |
+
+---
+
+## 6. 첨부파일 스크래핑
+
+### 개요
+- 각 공고의 상세페이지에서 첨부파일 URL을 추출
+- 기업마당, 중소벤처24, K-Startup 지원
+- 자동 스크래핑: 하루 2회 (UTC 05:00, 17:00)
+
+### 엔드포인트
+```
+GET  /api/announcements/scrape-attachments?id={id}  # 단일 공고 스크래핑
+POST /api/announcements/scrape-attachments          # 배치 스크래핑
+```
+
+### 배치 스크래핑 옵션 (POST 요청 본문)
+```json
+{
+  "limit": 50,
+  "source": "bizinfo"
+}
+```
+
+### 응답 예시
+```json
+{
+  "success": true,
+  "message": "3개의 첨부파일을 찾았어요",
+  "attachments": [
+    "https://www.bizinfo.go.kr/download/file1.pdf",
+    "https://www.bizinfo.go.kr/download/file2.hwp"
+  ]
+}
+```
+
+### 지원 파일 형식
+- 문서: PDF, HWP, HWPX, DOC, DOCX
+- 스프레드시트: XLS, XLSX
+- 프레젠테이션: PPT, PPTX
+- 압축: ZIP, RAR, 7Z
+- 이미지: PNG, JPG, JPEG, GIF
 
 ---
 
