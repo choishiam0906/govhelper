@@ -19,6 +19,7 @@ import {
   BookmarkCheck,
   TrendingUp,
   Loader2,
+  RefreshCw,
 } from 'lucide-react'
 import { DownloadPDFButton } from './download-pdf-button'
 
@@ -70,10 +71,12 @@ function getDaysLeft(endDate: string | null) {
   return diff
 }
 
-export function AnnouncementDetail({ announcement, isSaved: initialSaved }: AnnouncementDetailProps) {
+export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved: initialSaved }: AnnouncementDetailProps) {
   const router = useRouter()
+  const [announcement, setAnnouncement] = useState(initialAnnouncement)
   const [isSaved, setIsSaved] = useState(initialSaved)
   const [saving, setSaving] = useState(false)
+  const [fetchingAttachments, setFetchingAttachments] = useState(false)
 
   const daysLeft = getDaysLeft(announcement.application_end)
 
@@ -99,6 +102,34 @@ export function AnnouncementDetail({ announcement, isSaved: initialSaved }: Anno
       toast.error('오류가 발생했어요')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const fetchAttachments = async () => {
+    setFetchingAttachments(true)
+    try {
+      const response = await fetch(`/api/announcements/scrape-attachments?id=${announcement.id}`)
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      // 공고 상태 업데이트
+      setAnnouncement(prev => ({
+        ...prev,
+        attachment_urls: result.attachments || []
+      }))
+
+      if (result.attachments && result.attachments.length > 0) {
+        toast.success(`${result.attachments.length}개의 첨부파일을 찾았어요`)
+      } else {
+        toast.info('첨부파일이 없어요')
+      }
+    } catch (error) {
+      toast.error('첨부파일을 가져오지 못했어요')
+    } finally {
+      setFetchingAttachments(false)
     }
   }
 
@@ -245,30 +276,63 @@ export function AnnouncementDetail({ announcement, isSaved: initialSaved }: Anno
         <TabsContent value="attachments" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>첨부파일</CardTitle>
-              <CardDescription>공고와 관련된 첨부파일입니다</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>첨부파일</CardTitle>
+                  <CardDescription>공고와 관련된 첨부파일입니다</CardDescription>
+                </div>
+                {(!announcement.attachment_urls || announcement.attachment_urls.length === 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAttachments}
+                    disabled={fetchingAttachments}
+                  >
+                    {fetchingAttachments ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        가져오는 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        첨부파일 가져오기
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {announcement.attachment_urls && announcement.attachment_urls.length > 0 ? (
                 <div className="space-y-2">
-                  {announcement.attachment_urls.map((url, index) => (
-                    <a
-                      key={index}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-                    >
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="flex-1 truncate">첨부파일 {index + 1}</span>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    </a>
-                  ))}
+                  {announcement.attachment_urls.map((url, index) => {
+                    // URL에서 파일명 추출
+                    const fileName = url.split('/').pop() || `첨부파일 ${index + 1}`
+                    return (
+                      <a
+                        key={index}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="flex-1 truncate">{decodeURIComponent(fileName)}</span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </a>
+                    )
+                  })}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  첨부파일이 없습니다
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    첨부파일이 아직 로드되지 않았어요
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    &apos;첨부파일 가져오기&apos; 버튼을 클릭하여 원본 공고에서 첨부파일을 가져올 수 있어요
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
