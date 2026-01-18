@@ -1,10 +1,10 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-// Upstash Redis 클라이언트
+// Upstash Redis 클라이언트 (Vercel KV 또는 직접 Upstash 지원)
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
 })
 
 // Rate Limiter 설정
@@ -82,10 +82,15 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
   }
 }
 
-// Upstash 연결 상태 확인
+// Upstash 연결 상태 확인 (Vercel KV 또는 직접 Upstash)
 export function isRateLimitEnabled(): boolean {
-  return !!(
+  const hasVercelKV = !!(
+    process.env.KV_REST_API_URL &&
+    process.env.KV_REST_API_TOKEN
+  )
+  const hasUpstash = !!(
     process.env.UPSTASH_REDIS_REST_URL &&
     process.env.UPSTASH_REDIS_REST_TOKEN
   )
+  return hasVercelKV || hasUpstash
 }
