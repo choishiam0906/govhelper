@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { MatchAnalysis } from '@/types'
+import { MatchAnalysis, EligibilityCriteria } from '@/types'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
@@ -172,4 +172,166 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     console.error('Embedding generation error:', error)
     throw error
   }
+}
+
+// 지원자격 상세 파싱 함수
+export async function parseEligibilityCriteria(
+  announcementTitle: string,
+  announcementContent: string,
+  targetCompany: string | null
+): Promise<EligibilityCriteria> {
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+
+  const prompt = `
+당신은 정부지원사업 공고 분석 전문가입니다. 아래 공고 내용에서 **지원자격 조건**을 상세하게 추출해주세요.
+
+## 공고 제목
+${announcementTitle}
+
+## 기존 지원대상 정보
+${targetCompany || '없음'}
+
+## 공고 내용
+${announcementContent}
+
+---
+
+# 추출 지침
+
+1. **기업 유형**: 중소기업, 스타트업, 소상공인, 중견기업, 대기업, 예비창업자, 1인 창조기업 등
+2. **직원수 조건**: "상시근로자 5인 이상", "50인 미만" 등의 표현에서 min/max 추출
+3. **매출 조건**: "연매출 100억 이하", "매출액 10억 이상" 등에서 금액 추출 (원 단위로 변환)
+4. **업력 조건**: "창업 7년 이내", "설립 3년 이상" 등에서 년수 추출
+5. **업종 조건**: 지원 가능/불가능 업종 구분
+6. **지역 조건**: 특정 지역 제한 여부 (수도권, 비수도권, 특정 시/도 등)
+7. **필요 인증**: 벤처인증, 이노비즈, 메인비즈, ISO, 여성기업, 사회적기업 등
+8. **기타 조건**: 고용보험 가입, 세금 체납 없음, 특정 사업 참여 이력 등
+9. **지원 제외 대상**: 부도/파산, 세금 체납, 휴/폐업 등
+
+**중요**:
+- 공고에 명시되지 않은 조건은 빈 배열 [] 또는 null로 설정
+- 숫자는 정확히 추출 (예: "5인 이상" → min: 5, max: null)
+- 매출은 원 단위로 변환 (예: "100억" → 10000000000)
+- 확실하지 않은 정보는 confidence를 낮게 설정
+
+---
+
+# 응답 형식 (JSON만 반환)
+
+{
+  "companyTypes": ["중소기업", "스타트업"],
+  "employeeCount": {
+    "min": 5,
+    "max": 300,
+    "description": "상시근로자 5인 이상 300인 미만"
+  },
+  "revenue": {
+    "min": null,
+    "max": 10000000000,
+    "description": "연매출 100억 이하"
+  },
+  "businessAge": {
+    "min": null,
+    "max": 7,
+    "description": "창업 7년 이내"
+  },
+  "industries": {
+    "included": ["제조업", "IT서비스업"],
+    "excluded": ["부동산업", "금융업"],
+    "description": "제조업, IT서비스업 (부동산, 금융업 제외)"
+  },
+  "regions": {
+    "included": ["전국"],
+    "excluded": [],
+    "description": "전국 (지역 제한 없음)"
+  },
+  "requiredCertifications": ["벤처인증"],
+  "additionalRequirements": ["고용보험 가입 기업"],
+  "exclusions": ["세금 체납 기업", "휴폐업 기업"],
+  "summary": "창업 7년 이내 중소기업 및 스타트업 대상, 제조업/IT서비스업 분야, 상시근로자 5인 이상",
+  "confidence": 0.85
+}
+
+**주의**: JSON만 응답하세요. 설명이나 마크다운 없이 순수 JSON만 출력하세요.
+`
+
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('Failed to parse eligibility criteria')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+
+    // Add metadata
+    const criteria: EligibilityCriteria = {
+      companyTypes: parsed.companyTypes || [],
+      employeeCount: parsed.employeeCount || null,
+      revenue: parsed.revenue || null,
+      businessAge: parsed.businessAge || null,
+      industries: parsed.industries || { included: [], excluded: [], description: '' },
+      regions: parsed.regions || { included: [], excluded: [], description: '' },
+      requiredCertifications: parsed.requiredCertifications || [],
+      additionalRequirements: parsed.additionalRequirements || [],
+      exclusions: parsed.exclusions || [],
+      summary: parsed.summary || '',
+      confidence: parsed.confidence || 0.5,
+      parsedAt: new Date().toISOString()
+    }
+
+    return criteria
+  } catch (error) {
+    console.error('Eligibility parsing error:', error)
+    // Return default empty criteria on error
+    return {
+      companyTypes: [],
+      employeeCount: null,
+      revenue: null,
+      businessAge: null,
+      industries: { included: [], excluded: [], description: '' },
+      regions: { included: [], excluded: [], description: '' },
+      requiredCertifications: [],
+      additionalRequirements: [],
+      exclusions: [],
+      summary: '지원자격 정보를 파싱할 수 없습니다.',
+      confidence: 0,
+      parsedAt: new Date().toISOString()
+    }
+  }
+}
+
+// 배치 파싱 함수 (여러 공고를 한 번에 처리)
+export async function parseEligibilityCriteriaBatch(
+  announcements: Array<{
+    id: string
+    title: string
+    content: string | null
+    target_company: string | null
+  }>
+): Promise<Map<string, EligibilityCriteria>> {
+  const results = new Map<string, EligibilityCriteria>()
+
+  // 순차 처리 (Rate Limit 고려)
+  for (const ann of announcements) {
+    try {
+      const criteria = await parseEligibilityCriteria(
+        ann.title,
+        ann.content || '',
+        ann.target_company
+      )
+      results.set(ann.id, criteria)
+
+      // Rate limiting: 요청 간 딜레이
+      await new Promise(resolve => setTimeout(resolve, 500))
+    } catch (error) {
+      console.error(`Failed to parse eligibility for ${ann.id}:`, error)
+    }
+  }
+
+  return results
 }

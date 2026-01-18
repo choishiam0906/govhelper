@@ -23,6 +23,21 @@ import {
 } from 'lucide-react'
 import { DownloadPDFButton } from './download-pdf-button'
 
+interface EligibilityCriteria {
+  companyTypes: string[]
+  employeeCount: { min: number | null; max: number | null; description: string } | null
+  revenue: { min: number | null; max: number | null; description: string } | null
+  businessAge: { min: number | null; max: number | null; description: string } | null
+  industries: { included: string[]; excluded: string[]; description: string }
+  regions: { included: string[]; excluded: string[]; description: string }
+  requiredCertifications: string[]
+  additionalRequirements: string[]
+  exclusions: string[]
+  summary: string
+  confidence: number
+  parsedAt: string
+}
+
 interface Announcement {
   id: string
   title: string
@@ -36,6 +51,7 @@ interface Announcement {
   content: string | null
   parsed_content: string | null
   attachment_urls: string[] | null
+  eligibility_criteria: EligibilityCriteria | null
   source: string
   status: string
   created_at: string
@@ -77,6 +93,7 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
   const [isSaved, setIsSaved] = useState(initialSaved)
   const [saving, setSaving] = useState(false)
   const [fetchingAttachments, setFetchingAttachments] = useState(false)
+  const [parsingEligibility, setParsingEligibility] = useState(false)
 
   const daysLeft = getDaysLeft(announcement.application_end)
 
@@ -130,6 +147,34 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
       toast.error('첨부파일을 가져오지 못했어요')
     } finally {
       setFetchingAttachments(false)
+    }
+  }
+
+  const parseEligibility = async () => {
+    setParsingEligibility(true)
+    try {
+      const response = await fetch(`/api/announcements/parse-eligibility?id=${announcement.id}`)
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      // 공고 상태 업데이트
+      setAnnouncement(prev => ({
+        ...prev,
+        eligibility_criteria: result.data
+      }))
+
+      if (result.cached) {
+        toast.info('저장된 지원자격 정보를 불러왔어요')
+      } else {
+        toast.success('지원자격을 분석했어요')
+      }
+    } catch (error) {
+      toast.error('지원자격 분석에 실패했어요')
+    } finally {
+      setParsingEligibility(false)
     }
   }
 
@@ -253,21 +298,165 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
         <TabsContent value="requirements" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>지원 자격</CardTitle>
-              <CardDescription>이 공고에 지원하기 위한 자격 요건입니다</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>지원 자격</CardTitle>
+                  <CardDescription>이 공고에 지원하기 위한 자격 요건입니다</CardDescription>
+                </div>
+                {!announcement.eligibility_criteria && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={parseEligibility}
+                    disabled={parsingEligibility}
+                  >
+                    {parsingEligibility ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        분석 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        AI 상세 분석
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {announcement.target_company ? (
+              {announcement.eligibility_criteria ? (
+                <div className="space-y-6">
+                  {/* 요약 */}
+                  {announcement.eligibility_criteria.summary && (
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        {announcement.eligibility_criteria.summary}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-2">
+                        분석 신뢰도: {Math.round(announcement.eligibility_criteria.confidence * 100)}%
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 기업 유형 */}
+                  {announcement.eligibility_criteria.companyTypes.length > 0 && (
+                    <div>
+                      <p className="font-medium mb-2">기업 유형</p>
+                      <div className="flex flex-wrap gap-2">
+                        {announcement.eligibility_criteria.companyTypes.map((type, idx) => (
+                          <Badge key={idx} variant="secondary">{type}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 규모 조건 */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {announcement.eligibility_criteria.employeeCount && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">직원수</p>
+                        <p className="font-medium">{announcement.eligibility_criteria.employeeCount.description}</p>
+                      </div>
+                    )}
+                    {announcement.eligibility_criteria.revenue && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">매출</p>
+                        <p className="font-medium">{announcement.eligibility_criteria.revenue.description}</p>
+                      </div>
+                    )}
+                    {announcement.eligibility_criteria.businessAge && (
+                      <div className="p-3 border rounded-lg">
+                        <p className="text-sm text-muted-foreground">업력</p>
+                        <p className="font-medium">{announcement.eligibility_criteria.businessAge.description}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 업종 조건 */}
+                  {(announcement.eligibility_criteria.industries.included.length > 0 ||
+                    announcement.eligibility_criteria.industries.excluded.length > 0) && (
+                    <div>
+                      <p className="font-medium mb-2">업종</p>
+                      {announcement.eligibility_criteria.industries.included.length > 0 && (
+                        <div className="mb-2">
+                          <span className="text-sm text-green-600 mr-2">지원 가능:</span>
+                          {announcement.eligibility_criteria.industries.included.join(', ')}
+                        </div>
+                      )}
+                      {announcement.eligibility_criteria.industries.excluded.length > 0 && (
+                        <div>
+                          <span className="text-sm text-red-600 mr-2">지원 불가:</span>
+                          {announcement.eligibility_criteria.industries.excluded.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 지역 조건 */}
+                  {announcement.eligibility_criteria.regions.description && (
+                    <div>
+                      <p className="font-medium mb-2">지역</p>
+                      <p className="text-muted-foreground">{announcement.eligibility_criteria.regions.description}</p>
+                    </div>
+                  )}
+
+                  {/* 필요 인증 */}
+                  {announcement.eligibility_criteria.requiredCertifications.length > 0 && (
+                    <div>
+                      <p className="font-medium mb-2">필요 인증/자격</p>
+                      <div className="flex flex-wrap gap-2">
+                        {announcement.eligibility_criteria.requiredCertifications.map((cert, idx) => (
+                          <Badge key={idx} variant="outline">{cert}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 기타 요건 */}
+                  {announcement.eligibility_criteria.additionalRequirements.length > 0 && (
+                    <div>
+                      <p className="font-medium mb-2">기타 요건</p>
+                      <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                        {announcement.eligibility_criteria.additionalRequirements.map((req, idx) => (
+                          <li key={idx}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* 지원 제외 대상 */}
+                  {announcement.eligibility_criteria.exclusions.length > 0 && (
+                    <div className="p-4 bg-red-50 rounded-lg">
+                      <p className="font-medium mb-2 text-red-800">지원 제외 대상</p>
+                      <ul className="list-disc list-inside text-red-700 space-y-1">
+                        {announcement.eligibility_criteria.exclusions.map((ex, idx) => (
+                          <li key={idx}>{ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : announcement.target_company ? (
                 <div className="space-y-4">
                   <div>
-                    <p className="font-medium mb-2">지원 대상</p>
+                    <p className="font-medium mb-2">지원 대상 (기본 정보)</p>
                     <p className="text-muted-foreground">{announcement.target_company}</p>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    &apos;AI 상세 분석&apos; 버튼을 클릭하면 더 자세한 지원자격 정보를 확인할 수 있어요
+                  </p>
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  자격 요건 정보가 없습니다
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    지원자격 정보가 없어요
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    &apos;AI 상세 분석&apos; 버튼을 클릭하면 공고 내용에서 지원자격을 분석해드려요
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>

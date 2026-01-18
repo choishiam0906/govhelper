@@ -156,3 +156,59 @@ export interface AnnouncementFilters {
   page?: number
   limit?: number
 }
+
+// 지원자격 상세 파싱 결과
+export interface EligibilityCriteria {
+  // 기업 유형
+  companyTypes: string[]          // 중소기업, 스타트업, 소상공인, 중견기업 등
+
+  // 규모 조건
+  employeeCount: {
+    min: number | null            // 최소 직원수
+    max: number | null            // 최대 직원수
+    description: string           // 원문 설명 (예: "상시근로자 5인 이상")
+  } | null
+
+  revenue: {
+    min: number | null            // 최소 매출 (원)
+    max: number | null            // 최대 매출 (원)
+    description: string           // 원문 설명 (예: "연매출 100억 이하")
+  } | null
+
+  // 업력 조건
+  businessAge: {
+    min: number | null            // 최소 업력 (년)
+    max: number | null            // 최대 업력 (년)
+    description: string           // 원문 설명 (예: "창업 7년 이내")
+  } | null
+
+  // 업종 조건
+  industries: {
+    included: string[]            // 지원 가능 업종
+    excluded: string[]            // 지원 불가 업종
+    description: string
+  }
+
+  // 지역 조건
+  regions: {
+    included: string[]            // 지원 가능 지역
+    excluded: string[]            // 지원 불가 지역
+    description: string
+  }
+
+  // 필요 인증/자격
+  requiredCertifications: string[]  // 벤처인증, ISO, 이노비즈 등
+
+  // 기타 조건
+  additionalRequirements: string[]  // 기타 지원 조건
+
+  // 지원 제외 대상
+  exclusions: string[]              // 지원 불가 대상
+
+  // 원문 요약
+  summary: string                   // 지원자격 요약 (1-2문장)
+
+  // 파싱 메타데이터
+  confidence: number                // 파싱 신뢰도 (0-1)
+  parsedAt: string                  // 파싱 시각
+}
