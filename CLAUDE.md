@@ -318,6 +318,8 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 | Toss Payments | 결제 | ✅ 완료 |
 | Resend | 이메일 알림 | ✅ 완료 |
 | Supabase | DB/인증 | ✅ 완료 |
+| Google OAuth | 소셜 로그인 | ✅ 완료 |
+| Kakao OAuth | 소셜 로그인 | ✅ 완료 |
 
 ---
 
@@ -349,10 +351,11 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드
 
-### Supabase 설정 (미등록 사업자 기능) - 완료 (2026-01-19)
+### Supabase 설정 - 완료 (2026-01-19)
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
 - [x] Storage 버킷 생성: `business-plans` (비공개)
 - [x] Storage RLS 정책 추가
+- [x] OAuth URL 설정 수정 (Site URL, Redirect URLs)
 
 ---
 
@@ -392,6 +395,29 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ### Vercel 프로젝트 연결 수정
 - 기존 `govhelper-main` 프로젝트에서 `govhelper` 프로젝트로 재연결
 - `govhelpers.com` 도메인에 올바르게 배포되도록 수정
+
+### Google/카카오 OAuth 설정 수정
+- 문제: OAuth 로그인 후 `localhost:3000`으로 리다이렉트됨
+- 원인: Supabase Site URL이 localhost로 설정되어 있었음
+- 해결: Supabase Dashboard > Authentication > URL Configuration 수정
+  - Site URL: `https://govhelpers.com`
+  - Redirect URLs: `https://govhelpers.com/auth/callback` 추가
+
+---
+
+## Supabase 필수 설정
+
+### Authentication > URL Configuration
+| 설정 | 값 |
+|------|-----|
+| Site URL | `https://govhelpers.com` |
+| Redirect URLs | `https://govhelpers.com/auth/callback` |
+
+### Authentication > Providers
+| Provider | 필요 설정 |
+|----------|----------|
+| Google | Client ID, Client Secret (Google Cloud Console) |
+| Kakao | REST API Key, Client Secret (Kakao Developers) |
 
 ---
 
