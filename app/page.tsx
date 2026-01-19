@@ -322,8 +322,8 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">법적 고지</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/register" className="hover:text-foreground">이용약관</Link></li>
-                <li><Link href="/register" className="hover:text-foreground">개인정보처리방침</Link></li>
+                <li><Link href="/terms" className="hover:text-foreground">이용약관</Link></li>
+                <li><Link href="/privacy" className="hover:text-foreground">개인정보처리방침</Link></li>
               </ul>
             </div>
           </div>
