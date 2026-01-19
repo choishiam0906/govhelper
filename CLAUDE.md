@@ -363,12 +363,14 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
 
-### P3 - 장기 (신규)
+### P3 - 장기 (남은 작업)
 - [ ] 모바일 앱 (React Native/Expo)
 - [ ] 공고 알림 푸시 (FCM)
-- [ ] 관리자 대시보드 통계 차트
 - [ ] 사용자 피드백 수집 기능
 - [ ] A/B 테스트 인프라
+
+### P3 - 장기 (완료)
+- [x] 관리자 대시보드 통계 차트 (완료 - 2026-01-20)
 
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
@@ -382,6 +384,31 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ---
 
 ## 최근 완료 작업 (2026-01-20)
+
+### 관리자 대시보드 통계 차트
+recharts 라이브러리를 사용한 관리자 대시보드 통계 시각화:
+
+**주요 지표 카드:**
+- 전체 사용자 (+ 최근 7일 신규)
+- 전체 공고
+- AI 매칭 (+ 최근 7일)
+- 총 매출 (+ 최근 7일)
+
+**차트:**
+| 차트 | 유형 | 설명 |
+|------|------|------|
+| 사용자 가입 추이 | Area Chart | 최근 7일 가입자 |
+| AI 매칭 추이 | Bar Chart | 최근 7일 매칭 |
+| 소스별 공고 분포 | Pie Chart | 기업마당, K-Startup 등 |
+| 월별 매출 추이 | Bar Chart | 최근 6개월 매출 |
+
+**추가 지표:** 지원서 작성 수, 활성 구독 수, 평균 매칭률
+
+수정 파일:
+- `app/admin/page.tsx` (신규)
+- `app/admin/admin-dashboard.tsx` (신규)
+- `app/api/admin/stats/route.ts` (신규)
+- `app/admin/layout.tsx` (사이드바 링크 추가)
 
 ### 관리자 페이지 사용자 목록 개선
 - 문제: 온보딩 미완료 사용자가 관리자 페이지에 표시되지 않음
