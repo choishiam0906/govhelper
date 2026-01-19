@@ -88,9 +88,30 @@ export async function GET() {
       )
     }
 
+    // 사업계획서 서명된 URL 생성
+    interface CompanyWithPlan {
+      business_plan_url?: string | null
+      [key: string]: unknown
+    }
+
+    const dataWithSignedUrls = await Promise.all(
+      ((data || []) as CompanyWithPlan[]).map(async (company) => {
+        if (company.business_plan_url) {
+          const { data: signedUrlData } = await supabase.storage
+            .from('business-plans')
+            .createSignedUrl(company.business_plan_url, 3600) // 1시간 유효
+          return {
+            ...company,
+            business_plan_signed_url: signedUrlData?.signedUrl || null,
+          }
+        }
+        return company
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      data,
+      data: dataWithSignedUrls,
     })
   } catch (error) {
     console.error('Admin approvals GET error:', error)

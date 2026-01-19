@@ -68,16 +68,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 공개 URL 생성
-    const { data: urlData } = supabase.storage
-      .from('business-plans')
-      .getPublicUrl(fileName)
-
+    // 파일 경로 반환 (비공개 버킷이므로 경로만 저장)
     return NextResponse.json({
       success: true,
       data: {
         path: data.path,
-        url: urlData.publicUrl,
+        url: data.path, // 경로를 저장하고, 조회 시 서명된 URL 생성
       },
     })
   } catch (error) {

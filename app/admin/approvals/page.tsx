@@ -87,11 +87,25 @@ export default async function ApprovalsPage() {
 
   const rawCompanies = (pendingCompanies || []) as CompanyData[]
 
-  // 사용자 이메일은 서버 컴포넌트에서 직접 조회하지 않고 간략화
-  const companies: Company[] = rawCompanies.map(company => ({
-    ...company,
-    users: null // 이메일은 별도로 표시하지 않거나 API에서 조회
-  }))
+  // 사업계획서 서명된 URL 생성
+  const companiesWithSignedUrls = await Promise.all(
+    rawCompanies.map(async (company) => {
+      let signedUrl = null
+      if (company.business_plan_url) {
+        const { data: signedUrlData } = await supabase.storage
+          .from('business-plans')
+          .createSignedUrl(company.business_plan_url, 3600) // 1시간 유효
+        signedUrl = signedUrlData?.signedUrl || null
+      }
+      return {
+        ...company,
+        business_plan_url: signedUrl, // 서명된 URL로 교체
+        users: null,
+      }
+    })
+  )
+
+  const companies: Company[] = companiesWithSignedUrls
 
   const pendingCount = companies.filter(c => c.approval_status === 'pending').length
   const approvedCount = companies.filter(c => c.approval_status === 'approved').length
