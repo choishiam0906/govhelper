@@ -1,75 +1,67 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ExternalLink, Building2, Calendar, Search, RefreshCw, GraduationCap, Clock, Users } from 'lucide-react'
-import Link from 'next/link'
+import { Calendar, Building2, RefreshCw, AlertCircle, ChevronRight, Bookmark, TrendingUp, GraduationCap } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
-interface HRDTraining {
+interface Announcement {
   id: string
   title: string
-  organization: string
-  category: string
-  supportType: string
-  targetCompany: string
-  supportAmount: string
-  startDate: string
-  endDate: string
-  content: string
-  detailUrl: string
-  status: string
+  organization: string | null
+  category: string | null
+  support_type: string | null
+  target_company: string | null
+  support_amount: string | null
+  application_start: string | null
+  application_end: string | null
+  content: string | null
   source: string
+  status: string
 }
 
 export function HRDAnnouncementList() {
-  const [trainings, setTrainings] = useState<HRDTraining[]>([])
+  const [data, setData] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [keyword, setKeyword] = useState('')
-  const [searchKeyword, setSearchKeyword] = useState('')
+  const [lastFetched, setLastFetched] = useState<string | null>(null)
 
-  const fetchTrainings = async () => {
+  const fetchData = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const params = new URLSearchParams({
-        limit: '50',
-      })
+      const supabase = createClient()
+      const { data: announcements, error: fetchError } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('source', 'hrd')
+        .eq('status', 'active')
+        .order('application_end', { ascending: true })
+        .limit(50)
 
-      if (searchKeyword) {
-        params.set('keyword', searchKeyword)
+      if (fetchError) {
+        throw new Error(fetchError.message)
       }
 
-      const response = await fetch(`/api/announcements/hrd?${params.toString()}`)
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || '데이터를 불러오지 못했어요')
-      }
-
-      setTrainings(result.data)
+      setData(announcements || [])
+      setLastFetched(new Date().toISOString())
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
+      setError('데이터를 불러오는데 실패했어요')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchTrainings()
-  }, [searchKeyword])
+    fetchData()
+  }, [])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSearchKeyword(keyword)
-  }
-
-  const getDaysRemaining = (endDate: string): number | null => {
+  const getDaysRemaining = (endDate: string | null) => {
     if (!endDate) return null
     const end = new Date(endDate)
     const today = new Date()
@@ -77,38 +69,45 @@ export function HRDAnnouncementList() {
     return diff
   }
 
-  const parseContent = (content: string) => {
-    const lines = content.split('\n\n')
-    const result: Record<string, string> = {}
-
-    lines.forEach(line => {
-      if (line.includes('훈련시간:')) {
-        result.trainTime = line.replace('총 훈련시간:', '').trim()
-      } else if (line.includes('정원:')) {
-        result.capacity = line.replace('정원:', '').trim()
-      } else if (line.includes('취업률:')) {
-        result.employRate = line.replace('취업률:', '').trim()
-      } else if (line.includes('자부담금:')) {
-        result.selfBurden = line.replace('자부담금:', '').trim()
-      } else if (line.startsWith('http')) {
-        result.detailUrl = line
-      }
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     })
+  }
 
-    return result
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-4 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="text-center space-y-4">
-            <p className="text-destructive">{error}</p>
-            <Button onClick={fetchTrainings} variant="outline">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              다시 시도
-            </Button>
+      <Card className="border-destructive">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
           </div>
+          <Button onClick={fetchData} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            다시 시도
+          </Button>
         </CardContent>
       </Card>
     )
@@ -116,145 +115,139 @@ export function HRDAnnouncementList() {
 
   return (
     <div className="space-y-4">
-      {/* 검색 */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex gap-4">
-            <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-              <Input
-                placeholder="훈련과정명, 훈련기관명 검색"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
-              <Button type="submit" variant="secondary">
-                <Search className="w-4 h-4" />
-              </Button>
-            </form>
-
-            <Button onClick={fetchTrainings} variant="outline" size="icon">
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 훈련과정 목록 */}
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-            </Card>
-          ))}
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge variant="default" className="bg-orange-600">
+            <GraduationCap className="h-3 w-3 mr-1" />
+            HRD-Net
+          </Badge>
+          <span className="text-sm text-muted-foreground">
+            진행 중인 훈련과정 {data.length}건
+          </span>
         </div>
-      ) : trainings.length === 0 ? (
+        <Button onClick={fetchData} variant="ghost" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          새로고침
+        </Button>
+      </div>
+
+      {lastFetched && (
+        <p className="text-xs text-muted-foreground">
+          마지막 업데이트: {new Date(lastFetched).toLocaleString('ko-KR')}
+        </p>
+      )}
+
+      {/* 데이터 없음 안내 */}
+      {data.length === 0 ? (
         <Card>
-          <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">
-              조회된 훈련과정이 없어요
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-2">현재 진행 중인 훈련과정이 없어요</p>
+            <p className="text-xs text-muted-foreground">
+              HRD-Net API 키가 설정되어 있는지 확인해주세요
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            총 {trainings.length}건의 훈련과정
-          </p>
+        data.map((item) => {
+          const daysLeft = getDaysRemaining(item.application_end)
 
-          {trainings.map((item) => {
-            const daysRemaining = getDaysRemaining(item.endDate)
-            const parsed = parseContent(item.content)
-            const detailUrl = parsed.detailUrl || item.detailUrl
-
-            return (
-              <Card key={item.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                          <GraduationCap className="w-3 h-3 mr-1" />
-                          직업훈련
-                        </Badge>
-                        {item.category && (
-                          <Badge variant="secondary">{item.category}</Badge>
-                        )}
-                        {item.supportType && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700">
-                            {item.supportType}
-                          </Badge>
-                        )}
-                        {daysRemaining !== null && daysRemaining <= 7 && daysRemaining >= 0 && (
-                          <Badge variant="destructive">마감임박</Badge>
-                        )}
-                      </div>
-                      <CardTitle className="text-base leading-tight">
-                        {item.title}
-                      </CardTitle>
-                      <CardDescription className="flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        {item.organization}
-                      </CardDescription>
-                    </div>
-                    {detailUrl && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={detailUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span>{item.startDate || '-'} ~ {item.endDate || '-'}</span>
-                      {daysRemaining !== null && daysRemaining >= 0 && (
-                        <Badge variant={daysRemaining <= 7 ? 'destructive' : 'secondary'} className="ml-1">
-                          D-{daysRemaining}
-                        </Badge>
+          return (
+            <Card key={item.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    {/* 배지 */}
+                    <div className="flex flex-wrap gap-2">
+                      {item.category && (
+                        <Badge variant="outline">{item.category}</Badge>
+                      )}
+                      {item.support_type && (
+                        <Badge variant="secondary">{item.support_type}</Badge>
                       )}
                     </div>
-                    {parsed.trainTime && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="w-4 h-4" />
-                        <span>{parsed.trainTime}</span>
-                      </div>
-                    )}
-                    {parsed.capacity && (
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Users className="w-4 h-4" />
-                        <span>{parsed.capacity}</span>
-                      </div>
-                    )}
-                    {item.supportAmount && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                        {item.supportAmount}
-                      </Badge>
-                    )}
-                    {parsed.selfBurden && (
-                      <Badge variant="outline">
-                        자부담: {parsed.selfBurden}
-                      </Badge>
-                    )}
-                    {parsed.employRate && (
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                        취업률 {parsed.employRate}
-                      </Badge>
+
+                    {/* 제목 */}
+                    <Link
+                      href={`/dashboard/announcements/${item.id}`}
+                      className="block"
+                    >
+                      <CardTitle className="text-lg leading-tight hover:text-primary transition-colors line-clamp-2">
+                        {item.title}
+                      </CardTitle>
+                    </Link>
+
+                    {item.organization && (
+                      <CardDescription className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        {item.organization}
+                      </CardDescription>
                     )}
                   </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+
+                  {/* 마감일 표시 */}
+                  {daysLeft !== null && (
+                    <div
+                      className={`text-right shrink-0 ${
+                        daysLeft <= 7
+                          ? 'text-red-500'
+                          : daysLeft <= 14
+                          ? 'text-orange-500'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      <p className="text-2xl font-bold">D-{daysLeft > 0 ? daysLeft : 0}</p>
+                      <p className="text-xs">종료</p>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      훈련기간: {formatDate(item.application_start)} ~ {formatDate(item.application_end)}
+                    </span>
+                  </div>
+                </div>
+
+                {item.target_company && (
+                  <p className="text-sm text-muted-foreground mb-3">
+                    대상: {item.target_company}
+                  </p>
+                )}
+
+                {item.support_amount && (
+                  <p className="text-sm font-medium text-primary mb-4">
+                    {item.support_amount}
+                  </p>
+                )}
+
+                {/* 액션 버튼 */}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm">
+                    <Bookmark className="h-4 w-4 mr-1" />
+                    관심 등록
+                  </Button>
+                  <Link href={`/dashboard/matching?announcementId=${item.id}`}>
+                    <Button variant="outline" size="sm">
+                      <TrendingUp className="h-4 w-4 mr-1" />
+                      매칭 분석
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/announcements/${item.id}`}>
+                    <Button size="sm">
+                      상세 보기
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })
       )}
     </div>
   )
