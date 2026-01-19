@@ -52,14 +52,14 @@ export default function Home() {
             <span className="font-bold text-xl">GovHelper</span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/announcements" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               공고 검색
             </Link>
-            <Link href="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              요금제
+            <Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              AI 매칭
             </Link>
-            <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              서비스 소개
+            <Link href="/register" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              지원서 작성
             </Link>
           </nav>
           <div className="flex items-center gap-3">
@@ -94,7 +94,7 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
-            <Link href="/announcements">
+            <Link href="/register">
               <Button size="lg" variant="outline">
                 공고 둘러보기
               </Button>
@@ -306,24 +306,24 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">서비스</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/announcements" className="hover:text-foreground">공고 검색</Link></li>
-                <li><Link href="/matching" className="hover:text-foreground">AI 매칭</Link></li>
-                <li><Link href="/applications" className="hover:text-foreground">지원서 작성</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">공고 검색</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">AI 매칭</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">지원서 작성</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">회사</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/about" className="hover:text-foreground">서비스 소개</Link></li>
-                <li><Link href="/pricing" className="hover:text-foreground">요금제</Link></li>
-                <li><Link href="/contact" className="hover:text-foreground">문의하기</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">서비스 소개</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">요금제</Link></li>
+                <li><Link href="mailto:choishiam@gmail.com" className="hover:text-foreground">문의하기</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">법적 고지</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/terms" className="hover:text-foreground">이용약관</Link></li>
-                <li><Link href="/privacy" className="hover:text-foreground">개인정보처리방침</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">이용약관</Link></li>
+                <li><Link href="/register" className="hover:text-foreground">개인정보처리방침</Link></li>
               </ul>
             </div>
           </div>
