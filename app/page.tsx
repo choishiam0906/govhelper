@@ -314,7 +314,7 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">회사</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="/register" className="hover:text-foreground">서비스 소개</Link></li>
+                <li><Link href="/about" className="hover:text-foreground">서비스 소개</Link></li>
                 <li><Link href="/register" className="hover:text-foreground">요금제</Link></li>
                 <li><Link href="mailto:choishiam@gmail.com" className="hover:text-foreground">문의하기</Link></li>
               </ul>
