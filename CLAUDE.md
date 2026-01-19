@@ -294,7 +294,9 @@ npm run lint
 ### P2 - 중기
 - [x] 나라장터 API 연동 (G2B) (완료)
 - [x] HRD Korea API 연동 (완료)
-- [ ] 카카오 로그인/페이
+- [x] Google 로그인 (완료 - Supabase OAuth)
+- [x] 카카오 로그인 (완료 - Supabase OAuth)
+- [ ] 카카오페이 결제
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드
 
