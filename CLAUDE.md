@@ -290,15 +290,23 @@ npm run lint
 - [x] Rate Limiting (완료 - Upstash Redis)
 - [x] 첨부파일 스크래핑 (완료)
 - [x] 지원자격 AI 상세 파싱 (완료 - Gemini 2.5 Flash)
+- [x] 공고 상세 페이지 원본 바로가기 (완료 - 2026-01-19)
+- [x] 소스별 탭 내부 상세 페이지 연동 (완료 - 2026-01-19)
+- [x] 미등록 사업자 승인 프로세스 (완료 - 2026-01-19)
+- [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
 
 ### P2 - 중기
-- [x] 나라장터 API 연동 (G2B) (완료)
-- [x] HRD Korea API 연동 (완료)
+- [x] 나라장터 API 연동 (G2B) (완료 - API 키 설정됨, 데이터 동기화 필요)
+- [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
 - [ ] 카카오페이 결제
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드
+
+### Supabase 설정 필요 (미등록 사업자 기능)
+- [ ] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
+- [ ] Storage 버킷 생성: `business-plans` (비공개)
 
 ---
 
