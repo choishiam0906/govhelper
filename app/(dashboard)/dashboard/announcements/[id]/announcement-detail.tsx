@@ -311,7 +311,6 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
               <TabsTrigger value="content">공고 내용</TabsTrigger>
               <TabsTrigger value="requirements">지원 자격</TabsTrigger>
               <TabsTrigger value="attachments">첨부파일</TabsTrigger>
-              {sourceUrl && <TabsTrigger value="visit">직접방문</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="content" className="mt-6">
@@ -328,6 +327,30 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
                     <p className="text-muted-foreground text-center py-8">
                       상세 내용이 없습니다
                     </p>
+                  )}
+
+                  {/* 원본 페이지 바로가기 */}
+                  {sourceUrl && (
+                    <div className="mt-8 pt-6 border-t">
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                        <div>
+                          <p className="font-medium">원본 공고 페이지</p>
+                          <p className="text-sm text-muted-foreground">
+                            더 자세한 정보는 원본 사이트에서 확인하세요
+                          </p>
+                        </div>
+                        <Button asChild>
+                          <a
+                            href={sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            바로가기
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -565,37 +588,6 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
               </Card>
             </TabsContent>
 
-            {sourceUrl && (
-              <TabsContent value="visit" className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>직접방문</CardTitle>
-                    <CardDescription>원본 공고 사이트로 이동하여 더 자세한 정보를 확인하세요</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="p-4 bg-muted rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-2">원본 공고 링크</p>
-                        <p className="text-sm break-all font-mono">{sourceUrl}</p>
-                      </div>
-                      <Button asChild className="w-full" size="lg">
-                        <a
-                          href={sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          원본 사이트에서 확인하기
-                        </a>
-                      </Button>
-                      <p className="text-xs text-center text-muted-foreground">
-                        새 탭에서 원본 공고 페이지가 열립니다
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
           </Tabs>
         )
       })()}
