@@ -101,8 +101,9 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 |------|----------|------|
 | 이메일/비밀번호 로그인 | P0 | ✅ 완료 |
 | Google OAuth | P0 | ✅ 완료 |
+| 카카오 로그인 | P1 | ✅ 완료 |
 | 비밀번호 재설정 | P1 | ⏳ 예정 |
-| 카카오 로그인 | P2 | ⏳ 예정 |
+| 네이버 로그인 | P2 | ⏳ 예정 |
 
 #### 2.2 기업 프로필 (Company Profile)
 
@@ -280,7 +281,7 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 | **UI Components** | Radix UI + Shadcn | Latest |
 | **Database** | Supabase (PostgreSQL) | Latest |
 | **Auth** | Supabase Auth | Latest |
-| **AI** | Google Gemini 1.5 Pro | Latest |
+| **AI** | Google Gemini 2.5 Flash | Latest |
 | **Payments** | Toss Payments SDK | 1.9.2 |
 | **State Management** | Zustand | 5.0.9 |
 | **Forms** | React Hook Form + Zod | 7.x / 4.x |
@@ -388,10 +389,10 @@ SMES_API_TOKEN=
 
 ## Project Progress
 
-### Overall Progress: 85%
+### Overall Progress: 90%
 
 ```
-████████████████░░░░ 85%
+██████████████████░░ 90%
 ```
 
 ### Feature Completion Status
@@ -400,7 +401,7 @@ SMES_API_TOKEN=
 |----------|---------|--------|----------|
 | **Auth** | 이메일 로그인 | ✅ Done | 100% |
 | | Google OAuth | ✅ Done | 100% |
-| | 카카오 로그인 | ⏳ Planned | 0% |
+| | 카카오 로그인 | ✅ Done | 100% |
 | **Profile** | 기업 정보 등록 | ✅ Done | 100% |
 | | 온보딩 플로우 | ✅ Done | 100% |
 | **Search** | 통합 공고 검색 | ✅ Done | 100% |
