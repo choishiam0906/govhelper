@@ -52,11 +52,14 @@
 ```
 govhelper-main/
 ├── app/                          # Next.js App Router
-│   ├── (auth)/                   # 인증 페이지 (로그인, 회원가입)
+│   ├── (auth)/                   # 인증 및 정적 페이지
 │   │   ├── login/
 │   │   ├── register/
 │   │   ├── forgot-password/
-│   │   └── reset-password/
+│   │   ├── reset-password/
+│   │   ├── about/                # 서비스 소개
+│   │   ├── terms/                # 이용약관
+│   │   └── privacy/              # 개인정보처리방침
 │   ├── (dashboard)/              # 대시보드 페이지
 │   │   ├── dashboard/
 │   │   │   ├── announcements/    # 공고 검색/상세
@@ -335,8 +338,6 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### P1 - 단기 (남은 작업)
 - [ ] LLM 응답 스트리밍 (SSE) - AI 매칭/지원서 작성 UX 개선
-- [ ] 이용약관/개인정보처리방침 페이지 작성
-- [ ] 서비스 소개 페이지 작성
 - [ ] 이메일 알림 기능 (신규 공고, 매칭 결과)
 
 ### P1 - 단기 (완료)
@@ -349,6 +350,9 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 미등록 사업자 승인 프로세스 (완료 - 2026-01-19)
 - [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
 - [x] 동기화 시 AI 자동 분류 (완료 - 2026-01-19)
+- [x] 이용약관 페이지 (완료 - 2026-01-20)
+- [x] 개인정보처리방침 페이지 (완료 - 2026-01-20)
+- [x] 서비스 소개 페이지 (완료 - 2026-01-20)
 
 ### P2 - 중기 (남은 작업)
 - [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
@@ -374,8 +378,8 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] Storage RLS 정책 추가
 - [x] OAuth URL 설정 수정 (Site URL, Redirect URLs)
 
-### Vercel 환경변수 점검 필요
-- [ ] `UPSTASH_REDIS_REST_TOKEN` - 공백/줄바꿈 제거 필요 (빌드 경고)
+### Vercel 환경변수 - 완료 (2026-01-20)
+- [x] `UPSTASH_REDIS_REST_TOKEN` - 공백/줄바꿈 제거 완료
 
 ---
 
@@ -391,8 +395,26 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### 랜딩 페이지 404 링크 수정
 - 문제: 서비스 링크(공고 검색, AI 매칭, 지원서 작성) 클릭 시 404
-- 해결: 모든 서비스 링크를 회원가입 페이지(`/register`)로 연결
+- 해결: 서비스 링크 → 회원가입, 법적 고지 링크 → 실제 페이지 연결
 - 수정 파일: `app/page.tsx`
+
+### Vercel 환경변수 수정
+- 문제: `UPSTASH_REDIS_REST_TOKEN`에 줄바꿈(`\n`) 포함되어 빌드 경고 발생
+- 해결: Vercel CLI로 환경변수 재설정 (줄바꿈 제거)
+
+### 정적 페이지 추가
+신규 생성된 페이지:
+| 페이지 | URL | 설명 |
+|--------|-----|------|
+| 이용약관 | `/terms` | 14개 조항 (서비스 정의, 회원의무, 결제/환불, AI 면책 등) |
+| 개인정보처리방침 | `/privacy` | 11개 조항 (수집항목, 위탁업체, 보유기간, 이용자권리 등) |
+| 서비스 소개 | `/about` | 문제/솔루션, 핵심 기능, 타겟 사용자, 요금제 |
+
+수정 파일:
+- `app/(auth)/terms/page.tsx` (신규)
+- `app/(auth)/privacy/page.tsx` (신규)
+- `app/(auth)/about/page.tsx` (신규)
+- `app/page.tsx` (Footer 링크 수정)
 
 ---
 
