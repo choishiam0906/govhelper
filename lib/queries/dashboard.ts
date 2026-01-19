@@ -1,5 +1,27 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
+// 프로모션 설정: 2026년 6월 30일까지 모든 사용자 Pro 무료
+export const PROMOTION_CONFIG = {
+  enabled: true,
+  endDate: new Date('2026-06-30T23:59:59+09:00'), // KST
+  name: '얼리버드 프로모션',
+  description: '2026년 6월 30일까지 모든 분들께 Pro 플랜을 무료로 제공합니다!',
+}
+
+// 프로모션 기간인지 확인
+export function isPromotionActive(): boolean {
+  if (!PROMOTION_CONFIG.enabled) return false
+  return new Date() < PROMOTION_CONFIG.endDate
+}
+
+// 프로모션 남은 일수 계산
+export function getPromotionDaysRemaining(): number {
+  const now = new Date()
+  const end = PROMOTION_CONFIG.endDate
+  const diff = end.getTime() - now.getTime()
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+}
+
 // 대시보드 통계 조회
 export async function getDashboardStats(
   supabase: SupabaseClient,
@@ -117,6 +139,11 @@ export async function checkUsageLimit(
   companyId: string,
   featureType: 'matching' | 'application'
 ) {
+  // 프로모션 기간 중에는 모든 사용자 무제한
+  if (isPromotionActive()) {
+    return { allowed: true, remaining: -1, limit: -1, promotion: true }
+  }
+
   // 구독 정보 조회
   const { data: subscription } = await supabase
     .from('subscriptions')

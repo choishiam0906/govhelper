@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { getDashboardStats, getRecentAnnouncements } from "@/lib/queries/dashboard"
+import { getDashboardStats, getRecentAnnouncements, isPromotionActive, getPromotionDaysRemaining, PROMOTION_CONFIG } from "@/lib/queries/dashboard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +14,9 @@ import {
   CheckCircle,
   Crown,
   Building2,
+  Gift,
 } from "lucide-react"
+import { PromotionPopup } from "@/components/promotion/promotion-popup"
 
 // 출처 라벨
 const sourceLabels: Record<string, string> = {
@@ -64,8 +66,45 @@ export default async function DashboardPage() {
     pro: 'Pro',
   }
 
+  // 프로모션 정보
+  const promotionActive = isPromotionActive()
+  const promotionDaysRemaining = getPromotionDaysRemaining()
+
   return (
     <div className="space-y-8">
+      {/* 프로모션 팝업 */}
+      {promotionActive && (
+        <PromotionPopup
+          promotionName={PROMOTION_CONFIG.name}
+          promotionDescription={PROMOTION_CONFIG.description}
+          endDate={PROMOTION_CONFIG.endDate.toISOString()}
+          daysRemaining={promotionDaysRemaining}
+        />
+      )}
+
+      {/* 프로모션 배너 */}
+      {promotionActive && (
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+              <Gift className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{PROMOTION_CONFIG.name}</p>
+                <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  Pro 무료
+                </Badge>
+                <Badge variant="outline">D-{promotionDaysRemaining}</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {PROMOTION_CONFIG.description}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold">
           안녕하세요, {company?.name || user?.user_metadata?.full_name || "사용자"}님
@@ -116,24 +155,34 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">구독 상태</CardTitle>
-            {stats?.subscription?.plan === 'free' ? (
+            {promotionActive ? (
+              <Gift className="h-4 w-4 text-primary" />
+            ) : stats?.subscription?.plan === 'free' ? (
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             ) : (
               <Crown className="h-4 w-4 text-yellow-500" />
             )}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {planLabels[stats?.subscription?.plan || 'free']}
+            <div className="text-2xl font-bold flex items-center gap-2">
+              Pro
+              {promotionActive && (
+                <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                  무료
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats?.subscription?.plan === 'free' ? (
-                <Link href="/dashboard/billing" className="text-primary hover:underline">
-                  업그레이드
-                </Link>
-              ) : (
-                '구독 중'
-              )}
+              {promotionActive
+                ? `D-${promotionDaysRemaining} 남음`
+                : stats?.subscription?.plan === 'free'
+                ? (
+                  <Link href="/dashboard/billing" className="text-primary hover:underline">
+                    업그레이드
+                  </Link>
+                )
+                : '구독 중'
+              }
             </p>
           </CardContent>
         </Card>

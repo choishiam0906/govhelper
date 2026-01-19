@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isPromotionActive, getPromotionDaysRemaining, PROMOTION_CONFIG } from '@/lib/queries/dashboard'
 
 // GET: 구독 정보 조회
 export async function GET(request: NextRequest) {
@@ -39,20 +40,31 @@ export async function GET(request: NextRequest) {
       current_period_end: string | null
     } | null
 
-    // 구독이 없으면 무료 플랜 기본값 반환
+    // 프로모션 정보
+    const promotionActive = isPromotionActive()
+    const promotionInfo = promotionActive
+      ? {
+          active: true,
+          name: PROMOTION_CONFIG.name,
+          description: PROMOTION_CONFIG.description,
+          endDate: PROMOTION_CONFIG.endDate.toISOString(),
+          daysRemaining: getPromotionDaysRemaining(),
+        }
+      : { active: false }
+
+    // 구독이 없으면 무료 플랜 기본값 반환 (프로모션 중이면 Pro 기능 제공)
     if (!subscription) {
       return NextResponse.json({
         success: true,
         data: {
-          plan: 'free',
+          plan: promotionActive ? 'pro' : 'free',
           status: 'active',
           current_period_start: null,
-          current_period_end: null,
-          features: {
-            matchingLimit: 3,
-            applicationEnabled: false,
-            priority: false,
-          },
+          current_period_end: promotionActive ? PROMOTION_CONFIG.endDate.toISOString() : null,
+          features: promotionActive
+            ? { matchingLimit: -1, applicationEnabled: true, priority: true }
+            : { matchingLimit: 3, applicationEnabled: false, priority: false },
+          promotion: promotionInfo,
         },
       })
     }
@@ -77,17 +89,21 @@ export async function GET(request: NextRequest) {
       subscription.status = 'expired'
     }
 
-    // 플랜별 기능 정보
-    const features = getFeaturesByPlan(subscription.plan)
+    // 플랜별 기능 정보 (프로모션 중이면 Pro 기능 제공)
+    const effectivePlan = promotionActive ? 'pro' : subscription.plan
+    const features = getFeaturesByPlan(effectivePlan)
 
     return NextResponse.json({
       success: true,
       data: {
         ...subscription,
+        plan: effectivePlan, // 프로모션 중이면 pro로 표시
+        originalPlan: subscription.plan, // 실제 구독 플랜
         features,
         daysRemaining: subscription.current_period_end
           ? Math.max(0, Math.ceil((new Date(subscription.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
           : null,
+        promotion: promotionInfo,
       },
     })
   } catch (error) {
