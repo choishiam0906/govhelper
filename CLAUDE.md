@@ -336,10 +336,6 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 관리자 페이지 사용자 목록 (완료 - 2026-01-20)
 - [x] 랜딩 페이지 404 링크 수정 (완료 - 2026-01-20)
 
-### P1 - 단기 (남은 작업)
-- [ ] LLM 응답 스트리밍 (SSE) - AI 매칭/지원서 작성 UX 개선
-- [ ] 이메일 알림 기능 (신규 공고, 매칭 결과)
-
 ### P1 - 단기 (완료)
 - [x] PDF 다운로드 (완료)
 - [x] Rate Limiting (완료 - Upstash Redis)
@@ -347,6 +343,8 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 지원자격 AI 상세 파싱 (완료 - Gemini 2.5 Flash)
 - [x] 공고 상세 페이지 원본 바로가기 (완료 - 2026-01-19)
 - [x] 소스별 탭 내부 상세 페이지 연동 (완료 - 2026-01-19)
+- [x] LLM 응답 스트리밍 (SSE) (완료 - 2026-01-20)
+- [x] 이메일 알림 기능 (완료 - 2026-01-20)
 - [x] 미등록 사업자 승인 프로세스 (완료 - 2026-01-19)
 - [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
 - [x] 동기화 시 AI 자동 분류 (완료 - 2026-01-19)
@@ -415,6 +413,21 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - `app/(auth)/privacy/page.tsx` (신규)
 - `app/(auth)/about/page.tsx` (신규)
 - `app/page.tsx` (Footer 링크 수정)
+
+### P1 작업 완료 확인
+**LLM 응답 스트리밍 (SSE)** - 이미 구현되어 있음:
+- `/api/matching/stream` - AI 매칭 스트리밍 API
+- `/api/applications/stream` - 지원서 생성 스트리밍 API
+- `lib/hooks/use-matching-stream.ts` - 매칭 스트리밍 훅
+- `lib/hooks/use-application-stream.ts` - 지원서 스트리밍 훅
+
+**이메일 알림 기능** - 이미 구현되어 있음:
+- DB 테이블: `notification_preferences`, `notification_logs`, `saved_announcements`
+- API: `/api/notifications/send` (Cron job), `/api/notifications/settings`
+- UI: `components/notifications/notification-settings.tsx` (설정 페이지에 통합)
+- 공고 저장: 공고 상세 페이지에 "관심 등록" 버튼 구현
+- Cron job: 매일 00:00 UTC (09:00 KST) 마감 알림 발송
+- Resend: 이메일 발송 서비스 연동
 
 ---
 
