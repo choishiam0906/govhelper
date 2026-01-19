@@ -12,7 +12,7 @@
 |------|------|
 | **라이브 URL** | https://govhelpers.com |
 | **GitHub** | https://github.com/choishiam0906/govhelper |
-| **진행도** | 90% 완성 |
+| **진행도** | 95% 완성 |
 | **상태** | 프로덕션 운영 중 |
 
 ---
@@ -20,6 +20,7 @@
 ## 핵심 기능
 
 - **통합 공고 검색**: 중소벤처24, 나라장터, 기업마당, K-Startup 공고 통합
+- **AI 자동 분류**: 공고 동기화 시 Gemini AI가 지원자격 자동 파싱 및 구조화
 - **AI 매칭 분석**: 기업 정보 기반 0-100점 매칭 점수 제공
 - **AI 지원서 작성**: 지원서 초안 자동 생성 및 섹션별 개선
 - **결제/구독**: Toss Payments 연동, Free/Pro 플랜
@@ -337,6 +338,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 소스별 탭 내부 상세 페이지 연동 (완료 - 2026-01-19)
 - [x] 미등록 사업자 승인 프로세스 (완료 - 2026-01-19)
 - [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
+- [x] 동기화 시 AI 자동 분류 (완료 - 2026-01-19)
 
 ### P2 - 중기
 - [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
@@ -355,6 +357,20 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ---
 
 ## 최근 완료 작업 (2026-01-19)
+
+### 동기화 시 AI 자동 분류 기능
+- 공고 동기화 완료 후 Gemini AI가 자동으로 지원자격 파싱
+- 각 동기화 API(smes, bizinfo, kstartup)에서 최신 10개 공고 자동 분류
+- 파싱 내용: 기업유형, 직원수, 매출, 업력, 업종, 지역, 필요 인증 등
+- Cron 추가: `parse-eligibility` (05:30, 17:30 UTC) - 미파싱 공고 추가 처리
+- vercel.json: 동기화 API maxDuration 60초 → 120초 증가
+- 기존 550건 공고 AI 파싱 완료
+
+수정 파일:
+- `app/api/announcements/smes/sync/route.ts`
+- `app/api/announcements/bizinfo/sync/route.ts`
+- `app/api/announcements/kstartup/sync/route.ts`
+- `vercel.json`
 
 ### 소스별 탭 내부 상세 페이지 연동
 - 기존: 각 소스별 탭에서 외부 API 직접 호출 → 외부 링크로 이동
