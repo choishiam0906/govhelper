@@ -26,10 +26,14 @@ export default async function DashboardLayout({
   const pathname = headersList.get("x-pathname") || ""
   const isOnboarding = pathname.includes("/onboarding")
   const isAdminPage = pathname.includes("/admin")
+  const isProfilePage = pathname.includes("/dashboard/profile")
+  const isSettingsPage = pathname.includes("/dashboard/settings")
 
-  // 관리자가 아닌 경우에만 기업 정보 체크
-  // 관리자는 온보딩 없이 관리자 페이지 접근 가능
-  if (!isOnboarding && !isAdmin && !isAdminPage) {
+  // 기업 프로필 필수 체크
+  // 예외: 온보딩, 관리자 페이지, 프로필 페이지, 설정 페이지
+  const isExemptFromCompanyCheck = isOnboarding || isAdmin || isAdminPage || isProfilePage || isSettingsPage
+
+  if (!isExemptFromCompanyCheck) {
     const { data: company } = await supabase
       .from("companies")
       .select("id")
@@ -37,7 +41,7 @@ export default async function DashboardLayout({
       .single()
 
     if (!company) {
-      redirect("/onboarding")
+      redirect("/dashboard/profile")
     }
   }
 

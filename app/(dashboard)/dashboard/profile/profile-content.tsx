@@ -87,6 +87,19 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
   if (!company) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
+        {/* 안내 배너 */}
+        <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Building2 className="w-5 h-5 text-primary mt-0.5" />
+            <div>
+              <p className="font-medium text-primary">기업 정보 등록이 필요해요</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                AI 매칭 분석, 지원서 작성 등 모든 기능을 사용하려면 먼저 기업 정보를 등록해주세요.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -94,7 +107,7 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
               기업 정보 등록
             </CardTitle>
             <CardDescription>
-              아직 등록된 기업 정보가 없습니다. 정부지원사업 매칭을 위해 기업 정보를 등록해주세요.
+              정부지원사업 매칭을 위한 기업 정보를 입력해주세요.
             </CardDescription>
           </CardHeader>
           <CardContent>
