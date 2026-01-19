@@ -325,13 +325,21 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 진행 예정 작업
 
-### P0 - 즉시
+### P0 - 완료
 - [x] 다크패턴 방지 점검 (완료)
 - [x] 반응형 디자인 점검 (375px) (완료)
 - [x] alert() → toast 교체 (완료 - sonner)
+- [x] OAuth 로그인 설정 (완료 - 2026-01-20)
+- [x] 관리자 페이지 사용자 목록 (완료 - 2026-01-20)
+- [x] 랜딩 페이지 404 링크 수정 (완료 - 2026-01-20)
 
-### P1 - 단기
-- [ ] LLM 응답 스트리밍 (SSE)
+### P1 - 단기 (남은 작업)
+- [ ] LLM 응답 스트리밍 (SSE) - AI 매칭/지원서 작성 UX 개선
+- [ ] 이용약관/개인정보처리방침 페이지 작성
+- [ ] 서비스 소개 페이지 작성
+- [ ] 이메일 알림 기능 (신규 공고, 매칭 결과)
+
+### P1 - 단기 (완료)
 - [x] PDF 다운로드 (완료)
 - [x] Rate Limiting (완료 - Upstash Redis)
 - [x] 첨부파일 스크래핑 (완료)
@@ -342,24 +350,53 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
 - [x] 동기화 시 AI 자동 분류 (완료 - 2026-01-19)
 
-### P2 - 중기
+### P2 - 중기 (남은 작업)
 - [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
 - [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
+- [ ] 카카오페이 결제
+- [ ] RAG 검색 엔진 (pgvector) - 시맨틱 공고 검색
+- [ ] HWP 파일 다운로드/생성
+
+### P2 - 중기 (완료)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
-- [ ] 카카오페이 결제
-- [ ] RAG 검색 엔진 (pgvector)
-- [ ] HWP 파일 다운로드
 
-### Supabase 설정 - 완료 (2026-01-19)
+### P3 - 장기 (신규)
+- [ ] 모바일 앱 (React Native/Expo)
+- [ ] 공고 알림 푸시 (FCM)
+- [ ] 관리자 대시보드 통계 차트
+- [ ] 사용자 피드백 수집 기능
+- [ ] A/B 테스트 인프라
+
+### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
 - [x] Storage 버킷 생성: `business-plans` (비공개)
 - [x] Storage RLS 정책 추가
 - [x] OAuth URL 설정 수정 (Site URL, Redirect URLs)
 
+### Vercel 환경변수 점검 필요
+- [ ] `UPSTASH_REDIS_REST_TOKEN` - 공백/줄바꿈 제거 필요 (빌드 경고)
+
 ---
 
-## 최근 완료 작업 (2026-01-19)
+## 최근 완료 작업 (2026-01-20)
+
+### 관리자 페이지 사용자 목록 개선
+- 문제: 온보딩 미완료 사용자가 관리자 페이지에 표시되지 않음
+- 해결: Supabase Auth Admin API (`auth.admin.listUsers()`) 사용
+- 표시 정보: 이메일, 로그인 방식(Google/카카오/이메일), 가입일, 마지막 로그인
+- 수정 파일:
+  - `app/api/admin/users/route.ts`
+  - `app/admin/users/page.tsx`
+
+### 랜딩 페이지 404 링크 수정
+- 문제: 서비스 링크(공고 검색, AI 매칭, 지원서 작성) 클릭 시 404
+- 해결: 모든 서비스 링크를 회원가입 페이지(`/register`)로 연결
+- 수정 파일: `app/page.tsx`
+
+---
+
+## 완료 작업 (2026-01-19)
 
 ### 동기화 시 AI 자동 분류 기능
 - 공고 동기화 완료 후 Gemini AI가 자동으로 지원자격 파싱
