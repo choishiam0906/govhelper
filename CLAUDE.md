@@ -282,7 +282,7 @@ npm run lint
 ### P0 - 즉시
 - [x] 다크패턴 방지 점검 (완료)
 - [x] 반응형 디자인 점검 (375px) (완료)
-- [ ] alert() → toast 교체 (수동 작업 필요)
+- [x] alert() → toast 교체 (완료 - sonner)
 
 ### P1 - 단기
 - [ ] LLM 응답 스트리밍 (SSE)
