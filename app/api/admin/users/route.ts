@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['choishiam@gmail.com']
 
-// GET: 사용자 목록 조회 (구독 정보 포함)
+// Supabase Admin Client (Auth 사용자 조회용)
+function getSupabaseAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  )
+}
+
+// GET: 사용자 목록 조회 (Auth 사용자 + 구독 정보)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -26,6 +41,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Admin Client로 Auth 사용자 목록 조회
+    const adminClient = getSupabaseAdmin()
+    const { data: authData, error: authListError } = await adminClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
+
+    if (authListError) {
+      console.error('Auth users fetch error:', authListError)
+      return NextResponse.json(
+        { success: false, error: 'Auth 사용자 조회에 실패했습니다' },
+        { status: 500 }
+      )
+    }
+
+    const authUsers = authData?.users || []
+
     // 구독 정보 조회
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
@@ -36,7 +68,7 @@ export async function GET(request: NextRequest) {
       console.error('Subscriptions fetch error:', subError)
     }
 
-    // 회사 정보 조회 (사용자 정보로 활용)
+    // 회사 정보 조회
     const { data: companies, error: compError } = await supabase
       .from('companies')
       .select('id, user_id, name, created_at')
@@ -46,40 +78,36 @@ export async function GET(request: NextRequest) {
       console.error('Companies fetch error:', compError)
     }
 
-    // 데이터 병합
-    const usersMap = new Map()
+    // 데이터 병합: Auth 사용자 기준으로 구성
+    const subscriptionsMap = new Map(
+      (subscriptions || []).map((sub: any) => [sub.user_id, sub])
+    )
+    const companiesMap = new Map(
+      (companies || []).map((comp: any) => [comp.user_id, comp])
+    )
 
-    // 회사 정보로 사용자 목록 구성
-    companies?.forEach((company: any) => {
-      if (!usersMap.has(company.user_id)) {
-        usersMap.set(company.user_id, {
-          user_id: company.user_id,
-          company_name: company.name,
-          created_at: company.created_at,
-          subscription: null,
-        })
+    const users = authUsers.map((authUser) => {
+      const company = companiesMap.get(authUser.id)
+      const subscription = subscriptionsMap.get(authUser.id)
+
+      return {
+        user_id: authUser.id,
+        email: authUser.email,
+        company_name: company?.name || null,
+        created_at: authUser.created_at,
+        last_sign_in_at: authUser.last_sign_in_at,
+        subscription: subscription || null,
+        provider: authUser.app_metadata?.provider || 'email',
       }
     })
 
-    // 구독 정보 병합
-    subscriptions?.forEach((sub: any) => {
-      if (usersMap.has(sub.user_id)) {
-        usersMap.get(sub.user_id).subscription = sub
-      } else {
-        usersMap.set(sub.user_id, {
-          user_id: sub.user_id,
-          company_name: null,
-          created_at: sub.created_at,
-          subscription: sub,
-        })
-      }
-    })
-
-    const users = Array.from(usersMap.values())
+    // 최신 가입자 순으로 정렬
+    users.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     return NextResponse.json({
       success: true,
       data: users,
+      total: users.length,
     })
   } catch (error) {
     console.error('Admin users GET error:', error)

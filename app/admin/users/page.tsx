@@ -35,8 +35,11 @@ import { ko } from "date-fns/locale"
 
 interface UserData {
   user_id: string
+  email: string | null
   company_name: string | null
   created_at: string
+  last_sign_in_at: string | null
+  provider: string
   subscription: {
     id: string
     plan: string
@@ -264,12 +267,20 @@ export default function AdminUsersPage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">
-                          {userData.company_name || "기업 미등록"}
+                          {userData.email || "이메일 없음"}
                         </span>
                         {getSubscriptionBadge(userData.subscription)}
+                        <Badge variant="outline" className="text-xs">
+                          {userData.provider === 'google' ? 'Google' :
+                           userData.provider === 'kakao' ? '카카오' : '이메일'}
+                        </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        <span className="font-mono text-xs">{userData.user_id.slice(0, 8)}...</span>
+                        <span>{userData.company_name || "기업 미등록"}</span>
+                        <span className="mx-2">•</span>
+                        <span className="text-xs">
+                          가입: {format(new Date(userData.created_at), "yyyy.M.d", { locale: ko })}
+                        </span>
                         {userData.subscription?.current_period_end && userData.subscription?.status === "active" && (
                           <>
                             <span className="mx-2">•</span>
