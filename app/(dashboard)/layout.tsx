@@ -28,20 +28,28 @@ export default async function DashboardLayout({
   const isAdminPage = pathname.includes("/admin")
   const isProfilePage = pathname.includes("/dashboard/profile")
   const isSettingsPage = pathname.includes("/dashboard/settings")
+  const isPendingApprovalPage = pathname.includes("/dashboard/pending-approval")
 
   // 기업 프로필 필수 체크
-  // 예외: 온보딩, 관리자 페이지, 프로필 페이지, 설정 페이지
-  const isExemptFromCompanyCheck = isOnboarding || isAdmin || isAdminPage || isProfilePage || isSettingsPage
+  // 예외: 온보딩, 관리자 페이지, 프로필 페이지, 설정 페이지, 승인 대기 페이지
+  const isExemptFromCompanyCheck = isOnboarding || isAdmin || isAdminPage || isProfilePage || isSettingsPage || isPendingApprovalPage
 
   if (!isExemptFromCompanyCheck) {
-    const { data: company } = await supabase
+    const { data: companyData } = await supabase
       .from("companies")
-      .select("id")
+      .select("id, approval_status")
       .eq("user_id", user.id)
       .single()
 
+    const company = companyData as { id: string; approval_status: string } | null
+
     if (!company) {
       redirect("/dashboard/profile")
+    }
+
+    // 승인 대기 중인 사용자는 승인 대기 페이지로 리다이렉트
+    if (company.approval_status === 'pending' || company.approval_status === 'rejected') {
+      redirect("/dashboard/pending-approval")
     }
   }
 

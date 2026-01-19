@@ -1,19 +1,275 @@
 'use client'
 
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { CompanyForm } from '@/components/forms/company-form'
-import { Building2, Sparkles } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Building2, Sparkles, Upload, FileText, Loader2, CheckCircle, XCircle, Search, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+
+// 사업자 검증 결과 타입
+interface BusinessVerifyResult {
+  businessNumber: string
+  isValid: boolean
+  status?: string
+  statusCode?: string
+  taxType?: string
+}
+
+// 폼 스키마
+const onboardingSchema = z.object({
+  name: z.string().min(1, '기업명을 입력해주세요'),
+  isRegisteredBusiness: z.boolean(),
+  businessNumber: z.string().optional(),
+  industry: z.string().optional(),
+  employeeCount: z.string().optional(),
+  foundedDate: z.string().optional(),
+  location: z.string().optional(),
+  certifications: z.array(z.string()).optional(),
+  annualRevenue: z.string().optional(),
+  description: z.string().optional(),
+  businessPlanUrl: z.string().optional(),
+})
+
+type OnboardingFormData = z.infer<typeof onboardingSchema>
+
+// 업종 목록
+const industries = [
+  { value: 'software', label: 'SW 개발' },
+  { value: 'ai', label: 'AI/빅데이터' },
+  { value: 'biotech', label: '바이오/의료' },
+  { value: 'manufacturing', label: '제조업' },
+  { value: 'commerce', label: '유통/커머스' },
+  { value: 'fintech', label: '핀테크' },
+  { value: 'contents', label: '콘텐츠/미디어' },
+  { value: 'education', label: '에듀테크' },
+  { value: 'energy', label: '에너지/환경' },
+  { value: 'other', label: '기타' },
+]
+
+// 지역 목록
+const locations = [
+  { value: 'seoul', label: '서울' },
+  { value: 'gyeonggi', label: '경기' },
+  { value: 'incheon', label: '인천' },
+  { value: 'busan', label: '부산' },
+  { value: 'daegu', label: '대구' },
+  { value: 'daejeon', label: '대전' },
+  { value: 'gwangju', label: '광주' },
+  { value: 'ulsan', label: '울산' },
+  { value: 'sejong', label: '세종' },
+  { value: 'gangwon', label: '강원' },
+  { value: 'chungbuk', label: '충북' },
+  { value: 'chungnam', label: '충남' },
+  { value: 'jeonbuk', label: '전북' },
+  { value: 'jeonnam', label: '전남' },
+  { value: 'gyeongbuk', label: '경북' },
+  { value: 'gyeongnam', label: '경남' },
+  { value: 'jeju', label: '제주' },
+]
+
+// 인증 목록
+const certificationOptions = [
+  { value: 'venture', label: '벤처기업' },
+  { value: 'innobiz', label: '이노비즈' },
+  { value: 'mainbiz', label: '메인비즈' },
+  { value: 'womanEnterprise', label: '여성기업' },
+  { value: 'socialEnterprise', label: '사회적기업' },
+  { value: 'researchInstitute', label: '기업부설연구소' },
+]
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [verifyResult, setVerifyResult] = useState<BusinessVerifyResult | null>(null)
+  const [selectedCertifications, setSelectedCertifications] = useState<string[]>([])
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleSuccess = () => {
-    // 서버 컴포넌트 캐시를 새로고침한 후 대시보드로 이동
-    router.refresh()
-    // 약간의 딜레이 후 이동하여 캐시 갱신 보장
-    setTimeout(() => {
-      window.location.href = '/dashboard'
-    }, 100)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+  } = useForm<OnboardingFormData>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: {
+      name: '',
+      isRegisteredBusiness: true,
+      businessNumber: '',
+      industry: '',
+      employeeCount: '',
+      foundedDate: '',
+      location: '',
+      certifications: [],
+      annualRevenue: '',
+      description: '',
+      businessPlanUrl: '',
+    },
+  })
+
+  const isRegistered = watch('isRegisteredBusiness')
+
+  const toggleCertification = (value: string) => {
+    const updated = selectedCertifications.includes(value)
+      ? selectedCertifications.filter((c) => c !== value)
+      : [...selectedCertifications, value]
+    setSelectedCertifications(updated)
+    setValue('certifications', updated)
+  }
+
+  // 사업자번호 검증
+  const verifyBusinessNumber = async () => {
+    const businessNumber = watch('businessNumber')
+    if (!businessNumber || businessNumber.replace(/[^0-9]/g, '').length < 10) {
+      toast.error('사업자번호 10자리를 입력해 주세요')
+      return
+    }
+
+    setVerifying(true)
+    setVerifyResult(null)
+
+    try {
+      const response = await fetch('/api/business/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessNumber }),
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        setVerifyResult(result.data)
+        if (result.data.isValid) {
+          if (result.data.statusCode === '03') {
+            toast.warning('폐업한 사업자예요')
+          } else if (result.data.statusCode === '02') {
+            toast.warning('휴업 중인 사업자예요')
+          } else {
+            toast.success('유효한 사업자번호예요')
+          }
+        }
+      } else {
+        setVerifyResult({ businessNumber, isValid: false })
+        toast.error(result.error || '사업자번호를 확인할 수 없어요')
+      }
+    } catch {
+      toast.error('검증 중 오류가 발생했어요')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  // 파일 업로드
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.type !== 'application/pdf') {
+      toast.error('PDF 파일만 업로드할 수 있어요')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('파일 크기는 10MB 이하여야 해요')
+      return
+    }
+
+    setUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/upload/business-plan', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setUploadedFile({ name: file.name, url: result.data.url })
+        setValue('businessPlanUrl', result.data.url)
+        toast.success('사업계획서를 업로드했어요')
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '업로드에 실패했어요')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const onSubmit = async (data: OnboardingFormData) => {
+    // 미등록 사업자는 사업계획서 필수
+    if (!data.isRegisteredBusiness && !uploadedFile) {
+      toast.error('사업계획서를 업로드해 주세요')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const payload = {
+        name: data.name,
+        isRegisteredBusiness: data.isRegisteredBusiness,
+        businessNumber: data.isRegisteredBusiness ? data.businessNumber || null : null,
+        industry: data.industry || null,
+        employeeCount: data.employeeCount ? parseInt(data.employeeCount) : null,
+        foundedDate: data.foundedDate || null,
+        location: data.location || null,
+        certifications: data.isRegisteredBusiness && selectedCertifications.length > 0 ? selectedCertifications : null,
+        annualRevenue: data.annualRevenue ? parseInt(data.annualRevenue.replace(/,/g, '')) : null,
+        description: data.description || null,
+        businessPlanUrl: !data.isRegisteredBusiness ? uploadedFile?.url : null,
+      }
+
+      const response = await fetch('/api/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || '저장하지 못했어요')
+      }
+
+      toast.success(result.message)
+
+      // 승인 필요 여부에 따라 다른 페이지로 이동
+      if (result.requiresApproval) {
+        router.push('/dashboard/pending-approval')
+      } else {
+        router.refresh()
+        setTimeout(() => {
+          window.location.href = '/dashboard'
+        }, 100)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '문제가 생겼어요')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -42,8 +298,306 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        {/* 기업 정보 폼 */}
-        <CompanyForm onSuccess={handleSuccess} mode="create" />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* 사업자 등록 여부 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>사업자 등록 여부</CardTitle>
+              <CardDescription>사업자등록증 보유 여부를 선택해 주세요</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isRegistered"
+                  checked={isRegistered}
+                  onCheckedChange={(checked) => setValue('isRegisteredBusiness', checked === true)}
+                />
+                <label
+                  htmlFor="isRegistered"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  사업자등록증을 보유하고 있어요
+                </label>
+              </div>
+              {!isRegistered && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-800">미등록 사업자 안내</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      사업자등록증이 없는 경우, 사업계획서를 제출하시면 관리자 검토 후 서비스를 이용할 수 있어요.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 기본 정보 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>기본 정보</CardTitle>
+              <CardDescription>기업의 기본 정보를 입력해 주세요</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 기업명 */}
+              <div className="space-y-2">
+                <Label htmlFor="name">
+                  기업명 <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="기업명"
+                  {...register('name')}
+                />
+                {errors.name && (
+                  <p className="text-sm text-red-500">{errors.name.message}</p>
+                )}
+              </div>
+
+              {/* 사업자등록번호 - 등록 사업자만 */}
+              {isRegistered && (
+                <div className="space-y-2">
+                  <Label htmlFor="businessNumber">사업자등록번호</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="businessNumber"
+                      placeholder="000-00-00000"
+                      {...register('businessNumber')}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={verifyBusinessNumber}
+                      disabled={verifying}
+                    >
+                      {verifying ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                      <span className="ml-1">조회</span>
+                    </Button>
+                  </div>
+                  {verifyResult && (
+                    <div className="flex items-center gap-2 mt-2">
+                      {verifyResult.isValid ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-sm text-green-600">
+                            {verifyResult.status}
+                          </span>
+                          {verifyResult.taxType && (
+                            <Badge variant="outline" className="text-xs">
+                              {verifyResult.taxType}
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 text-red-500" />
+                          <span className="text-sm text-red-500">
+                            등록되지 않은 사업자번호
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 업종 */}
+              <div className="space-y-2">
+                <Label>업종</Label>
+                <Select
+                  value={watch('industry') || ''}
+                  onValueChange={(value) => setValue('industry', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="업종 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {industries.map((industry) => (
+                      <SelectItem key={industry.value} value={industry.value}>
+                        {industry.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 설립일 & 직원수 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="foundedDate">설립일</Label>
+                  <Input
+                    id="foundedDate"
+                    type="date"
+                    {...register('foundedDate')}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="employeeCount">직원 수</Label>
+                  <Input
+                    id="employeeCount"
+                    type="number"
+                    placeholder="0"
+                    {...register('employeeCount')}
+                  />
+                </div>
+              </div>
+
+              {/* 소재지 */}
+              <div className="space-y-2">
+                <Label>소재지</Label>
+                <Select
+                  value={watch('location') || ''}
+                  onValueChange={(value) => setValue('location', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="지역 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location.value} value={location.value}>
+                        {location.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* 연 매출 */}
+              <div className="space-y-2">
+                <Label htmlFor="annualRevenue">연 매출 (만원)</Label>
+                <Input
+                  id="annualRevenue"
+                  type="text"
+                  placeholder="예: 50000 (5억원)"
+                  {...register('annualRevenue')}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 보유 인증 - 등록 사업자만 */}
+          {isRegistered && (
+            <Card>
+              <CardHeader>
+                <CardTitle>보유 인증</CardTitle>
+                <CardDescription>보유하고 있는 인증을 선택해주세요</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {certificationOptions.map((cert) => (
+                    <button
+                      key={cert.value}
+                      type="button"
+                      onClick={() => toggleCertification(cert.value)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        selectedCertifications.includes(cert.value)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted hover:bg-muted/80'
+                      }`}
+                    >
+                      {cert.label}
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 사업계획서 업로드 - 미등록 사업자만 */}
+          {!isRegistered && (
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  사업계획서 <span className="text-red-500">*</span>
+                </CardTitle>
+                <CardDescription>
+                  사업 내용을 검토할 수 있는 사업계획서를 PDF로 업로드해 주세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                {uploadedFile ? (
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-8 w-8 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-800">{uploadedFile.name}</p>
+                        <p className="text-sm text-green-600">업로드 완료</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setUploadedFile(null)
+                        setValue('businessPlanUrl', '')
+                        if (fileInputRef.current) fileInputRef.current.value = ''
+                      }}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">업로드 중...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="font-medium">클릭하여 파일 업로드</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          PDF 파일, 최대 10MB
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 기업 소개 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>기업 소개</CardTitle>
+              <CardDescription>기업에 대한 간단한 소개를 작성해주세요</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="w-full min-h-[120px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="주요 사업 내용, 핵심 기술, 비전 등을 작성해주세요"
+                {...register('description')}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end">
+            <Button type="submit" disabled={loading} size="lg">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isRegistered ? '기업 등록' : '승인 요청'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )

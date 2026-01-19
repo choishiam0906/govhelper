@@ -13,6 +13,9 @@ const companySchema = z.object({
   certifications: z.array(z.string()).optional().nullable(),
   annualRevenue: z.number().optional().nullable(),
   description: z.string().optional().nullable(),
+  // 미등록 사업자 관련 필드
+  isRegisteredBusiness: z.boolean().optional(),
+  businessPlanUrl: z.string().optional().nullable(),
 })
 
 // GET: 현재 사용자의 기업 정보 조회
@@ -100,6 +103,10 @@ export async function POST(request: NextRequest) {
 
     const companyData = validationResult.data
 
+    // 미등록 사업자 여부에 따른 승인 상태 결정
+    const isRegistered = companyData.isRegisteredBusiness !== false
+    const approvalStatus = isRegistered ? 'approved' : 'pending'
+
     // 기업 정보 저장
     const { data, error } = await (supabase
       .from('companies') as any)
@@ -114,6 +121,9 @@ export async function POST(request: NextRequest) {
         certifications: companyData.certifications,
         annual_revenue: companyData.annualRevenue,
         description: companyData.description,
+        is_registered_business: isRegistered,
+        business_plan_url: companyData.businessPlanUrl,
+        approval_status: approvalStatus,
       })
       .select()
       .single()
@@ -126,10 +136,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const message = isRegistered
+      ? '기업 정보가 등록되었습니다'
+      : '미등록 사업자 정보가 등록되었습니다. 관리자 승인 후 서비스를 이용할 수 있어요.'
+
     return NextResponse.json({
       success: true,
       data,
-      message: '기업 정보가 등록되었습니다',
+      message,
+      requiresApproval: !isRegistered,
     })
   } catch (error) {
     console.error('Companies POST error:', error)
