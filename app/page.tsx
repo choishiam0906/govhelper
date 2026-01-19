@@ -10,12 +10,38 @@ import {
   Shield,
   Users,
   ArrowRight,
-  CheckCircle
+  CheckCircle,
+  Gift,
+  Sparkles,
 } from "lucide-react";
+import { isPromotionActive, getPromotionDaysRemaining, PROMOTION_CONFIG } from "@/lib/queries/dashboard";
 
 export default function Home() {
+  const promotionActive = isPromotionActive()
+  const promotionDaysRemaining = getPromotionDaysRemaining()
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* 프로모션 배너 */}
+      {promotionActive && (
+        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-center gap-3 text-sm md:text-base">
+              <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="font-medium">{PROMOTION_CONFIG.name}</span>
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                Pro 무료
+              </Badge>
+              <span className="hidden sm:inline">|</span>
+              <span className="hidden sm:inline">{PROMOTION_CONFIG.description}</span>
+              <Badge variant="outline" className="border-white/50 text-white">
+                D-{promotionDaysRemaining}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
