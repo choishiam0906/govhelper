@@ -264,8 +264,8 @@ npm run lint
 | 기업마당 (bizinfo) | 중기부 지원사업 | 01:00, 13:00 | ✅ 완료 |
 | K-Startup | 창업 지원사업 | 02:00, 14:00 | ✅ 완료 |
 | 국세청 사업자등록정보 | 사업자번호 검증 | - | ✅ 완료 |
-| 나라장터 (G2B) | 조달청 입찰공고 | - | 📋 예정 |
-| HRD Korea | 고용노동부 훈련 | - | 📋 예정 |
+| 나라장터 (G2B) | 조달청 입찰공고 | 03:00, 15:00 | ⚠️ 401 오류 (API 키 재발급 필요) |
+| HRD Korea | 고용노동부 훈련 | - | 📋 API 키 미설정 (`HRD_AUTH_KEY`) |
 
 ### 외부 서비스 API
 | API | 용도 | 상태 |
@@ -296,7 +296,7 @@ npm run lint
 - [x] 랜딩 페이지 프로모션 배너 (완료 - 2026-01-19)
 
 ### P2 - 중기
-- [x] 나라장터 API 연동 (G2B) (완료 - API 키 설정됨, 데이터 동기화 필요)
+- [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
 - [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
@@ -304,9 +304,10 @@ npm run lint
 - [ ] RAG 검색 엔진 (pgvector)
 - [ ] HWP 파일 다운로드
 
-### Supabase 설정 필요 (미등록 사업자 기능)
-- [ ] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
-- [ ] Storage 버킷 생성: `business-plans` (비공개)
+### Supabase 설정 (미등록 사업자 기능) - 완료 (2026-01-19)
+- [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
+- [x] Storage 버킷 생성: `business-plans` (비공개)
+- [x] Storage RLS 정책 추가
 
 ---
 
