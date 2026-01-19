@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
@@ -105,7 +106,7 @@ export function DownloadPDFButton({ announcement }: DownloadPDFButtonProps) {
       pdf.save(fileName)
     } catch (error) {
       console.error('PDF 생성 오류:', error)
-      alert('PDF 생성 중 오류가 발생했어요')
+      toast.error('PDF 생성 중 오류가 발생했어요')
     } finally {
       setIsGenerating(false)
     }
