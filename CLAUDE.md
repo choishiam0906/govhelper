@@ -12,7 +12,7 @@
 |------|------|
 | **라이브 URL** | https://govhelpers.com |
 | **GitHub** | https://github.com/choishiam0906/govhelper |
-| **진행도** | 85% 완성 |
+| **진행도** | 90% 완성 |
 | **상태** | 프로덕션 운영 중 |
 
 ---
@@ -65,6 +65,7 @@ govhelper-main/
 │   │   │   └── profile/          # 기업 프로필
 │   │   └── onboarding/           # 온보딩
 │   ├── admin/                    # 관리자 페이지
+│   │   ├── approvals/            # 미등록 사업자 승인
 │   │   ├── users/
 │   │   └── payments/
 │   ├── api/                      # API Routes
@@ -141,6 +142,19 @@ govhelper-main/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/business/verify` | 국세청 사업자등록정보 검증 |
+
+### 파일 업로드
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/upload/business-plan` | 사업계획서 PDF 업로드 (비공개 버킷) |
+
+### 관리자 (Admin)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/admin/approvals` | 미등록 사업자 승인 대기 목록 |
+| `POST` | `/api/admin/approvals` | 미등록 사업자 승인/거절 처리 |
+| `GET` | `/api/admin/users` | 사용자 목록 조회 |
+| `GET` | `/api/admin/payments` | 결제 내역 조회 |
 
 ---
 
@@ -224,12 +238,24 @@ npm run lint
 ## 데이터베이스 스키마
 
 ### 주요 테이블
-- `companies`: 기업 정보
+- `companies`: 기업 정보 (미등록 사업자 승인 관련 컬럼 포함)
 - `announcements`: 정부지원사업 공고 (eligibility_criteria JSONB 포함)
 - `matches`: AI 매칭 결과
 - `applications`: 지원서
 - `payments`: 결제 내역
 - `subscriptions`: 구독 정보
+
+### companies 테이블 스키마
+```sql
+-- 기본 컬럼
+id, user_id, name, business_number, industry, employee_count,
+founded_date, location, certifications, annual_revenue, description
+
+-- 미등록 사업자 관련 컬럼 (2026-01-19 추가)
+is_registered_business BOOLEAN DEFAULT true,  -- 사업자등록 여부
+business_plan_url TEXT,                        -- 사업계획서 경로 (Storage)
+approval_status TEXT DEFAULT 'approved'        -- 승인상태: pending/approved/rejected
+```
 
 ### eligibility_criteria 스키마
 공고의 지원자격을 AI가 파싱한 구조화된 데이터:
@@ -252,6 +278,23 @@ npm run lint
 
 ### RLS (Row Level Security)
 모든 테이블에 RLS 적용됨. 사용자는 자신의 데이터만 접근 가능.
+
+### Supabase Storage 버킷
+| 버킷명 | 용도 | Public | 파일 형식 |
+|--------|------|--------|----------|
+| `business-plans` | 미등록 사업자 사업계획서 | 비공개 | PDF (10MB 제한) |
+
+**Storage RLS 정책:**
+```sql
+-- 사용자는 자신의 폴더에만 업로드/조회 가능
+CREATE POLICY "Users can upload their own business plans"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(name))[1]);
+
+CREATE POLICY "Users can view their own business plans"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(name))[1]);
+```
 
 ---
 
@@ -308,6 +351,31 @@ npm run lint
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
 - [x] Storage 버킷 생성: `business-plans` (비공개)
 - [x] Storage RLS 정책 추가
+
+---
+
+## 최근 완료 작업 (2026-01-19)
+
+### 소스별 탭 내부 상세 페이지 연동
+- 기존: 각 소스별 탭에서 외부 API 직접 호출 → 외부 링크로 이동
+- 변경: Supabase에서 데이터 조회 → 내부 상세 페이지(`/dashboard/announcements/[id]`)로 이동
+- 수정 파일:
+  - `components/announcements/smes-announcement-list.tsx`
+  - `components/announcements/bizinfo-announcement-list.tsx`
+  - `components/announcements/kstartup-announcement-list.tsx`
+  - `components/announcements/g2b-announcement-list.tsx`
+  - `components/announcements/hrd-announcement-list.tsx`
+
+### 미등록 사업자 승인 프로세스
+- 온보딩 페이지에서 사업자등록 여부 선택 가능
+- 미등록 사업자는 사업계획서(PDF) 업로드 필수
+- 제출 후 승인 대기 페이지(`/dashboard/pending-approval`)로 이동
+- 관리자 승인 페이지(`/admin/approvals`)에서 승인/거절 처리
+- 비공개 Storage 버킷 사용 (서명된 URL로 파일 접근)
+
+### Vercel 프로젝트 연결 수정
+- 기존 `govhelper-main` 프로젝트에서 `govhelper` 프로젝트로 재연결
+- `govhelpers.com` 도메인에 올바르게 배포되도록 수정
 
 ---
 
