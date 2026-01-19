@@ -7,6 +7,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
+import { parseEligibilityCriteria } from '@/lib/ai/gemini'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -205,7 +206,52 @@ export async function POST(request: NextRequest) {
       .eq('source', 'smes24')
       .lt('application_end', todayStr)
 
+    // AI 자동 분류: eligibility_criteria가 null인 새 공고들 파싱
+    let aiParsed = 0
+    try {
+      // 파싱되지 않은 최근 공고 조회 (최대 10개, API 비용 및 시간 제한)
+      const { data: unparsedAnnouncements } = await supabase
+        .from('announcements')
+        .select('id, title, content, target_company')
+        .eq('source', 'smes24')
+        .eq('status', 'active')
+        .is('eligibility_criteria', null)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (unparsedAnnouncements && unparsedAnnouncements.length > 0) {
+        console.log(`🤖 AI 자동 분류 시작: ${unparsedAnnouncements.length}건`)
+
+        for (const ann of unparsedAnnouncements) {
+          try {
+            const criteria = await parseEligibilityCriteria(
+              ann.title,
+              ann.content || '',
+              ann.target_company
+            )
+
+            await supabase
+              .from('announcements')
+              .update({ eligibility_criteria: criteria })
+              .eq('id', ann.id)
+
+            aiParsed++
+            console.log(`✅ AI 분류 완료: ${ann.id} (신뢰도: ${criteria.confidence})`)
+
+            // Rate limiting: Gemini API 요청 간 딜레이
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          } catch (parseError) {
+            console.error(`AI 분류 실패 (${ann.id}):`, parseError)
+          }
+        }
+      }
+    } catch (aiError) {
+      console.error('AI 자동 분류 중 오류:', aiError)
+    }
+
     const duration = Date.now() - startTime
+
+    console.log(`✅ SMES 동기화 완료: ${uniqueAnnouncements.length}건, AI 분류: ${aiParsed}건, ${duration}ms`)
 
     return NextResponse.json({
       success: true,
@@ -213,6 +259,7 @@ export async function POST(request: NextRequest) {
       stats: {
         total: uniqueAnnouncements.length,
         upserted: count,
+        aiParsed,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
       }

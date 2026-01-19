@@ -1,19 +1,19 @@
 {
   "functions": {
     "app/api/announcements/smes/sync/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
     "app/api/announcements/smes/route.ts": {
       "maxDuration": 30
     },
     "app/api/announcements/bizinfo/sync/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
     "app/api/announcements/bizinfo/route.ts": {
       "maxDuration": 30
     },
     "app/api/announcements/kstartup/sync/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
     "app/api/announcements/kstartup/route.ts": {
       "maxDuration": 30
@@ -29,6 +29,9 @@
     },
     "app/api/announcements/hrd/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/announcements/parse-eligibility/route.ts": {
+      "maxDuration": 300
     },
     "app/api/notifications/send/route.ts": {
       "maxDuration": 60
@@ -89,6 +92,14 @@
     {
       "path": "/api/announcements/scrape-attachments",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/announcements/parse-eligibility",
+      "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/announcements/parse-eligibility",
+      "schedule": "30 17 * * *"
     }
   ]
 }
