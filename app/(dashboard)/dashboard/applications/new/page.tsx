@@ -4,63 +4,62 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Sparkles, AlertCircle } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { Loader2, Sparkles, AlertCircle, CheckCircle2, Circle } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useApplicationStream } from '@/lib/hooks/use-application-stream'
+import { cn } from '@/lib/utils'
 
 export default function NewApplicationPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const matchId = searchParams.get('matchId')
-  const announcementId = searchParams.get('announcementId')
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [hasStarted, setHasStarted] = useState(false)
+
+  const {
+    isStreaming,
+    progress,
+    message,
+    currentSection,
+    sections,
+    applicationId,
+    error,
+    startGeneration,
+    reset,
+  } = useApplicationStream({
+    onComplete: (newApplicationId) => {
+      toast.success('AI가 지원서 초안을 작성했어요')
+      // 2초 후 자동으로 지원서 페이지로 이동
+      setTimeout(() => {
+        router.push(`/dashboard/applications/${newApplicationId}`)
+      }, 2000)
+    },
+    onError: (errorMsg) => {
+      toast.error(errorMsg)
+    },
+  })
 
   const handleCreate = async () => {
-    if (!matchId) {
-      setError('매칭 정보가 없습니다. AI 매칭을 먼저 진행해주세요.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId }),
-      })
-
-      const result = await response.json()
-
-      if (!result.success) {
-        // 이미 지원서가 있는 경우
-        if (result.existingId) {
-          toast.info('이미 작성된 지원서가 있습니다')
-          router.push(`/dashboard/applications/${result.existingId}`)
-          return
-        }
-        throw new Error(result.error || '지원서 생성에 실패했습니다')
-      }
-
-      toast.success('AI가 지원서 초안을 작성했습니다')
-      router.push(`/dashboard/applications/${result.data.id}`)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : '오류가 발생했습니다')
-      toast.error(error instanceof Error ? error.message : '오류가 발생했습니다')
-    } finally {
-      setLoading(false)
-    }
+    if (!matchId) return
+    setHasStarted(true)
+    await startGeneration(matchId)
   }
 
   // matchId가 있으면 자동으로 생성 시작
   useEffect(() => {
-    if (matchId && !loading && !error) {
+    if (matchId && !hasStarted && !isStreaming && !applicationId && !error) {
       handleCreate()
     }
-  }, [matchId])
+  }, [matchId, hasStarted])
+
+  // 기존 지원서가 있는 경우 리다이렉트
+  useEffect(() => {
+    if (applicationId && !isStreaming) {
+      router.push(`/dashboard/applications/${applicationId}`)
+    }
+  }, [applicationId, isStreaming])
 
   if (!matchId) {
     return (
@@ -85,17 +84,80 @@ export default function NewApplicationPage() {
     )
   }
 
-  if (loading) {
+  if (isStreaming || (hasStarted && !error && !applicationId)) {
     return (
       <div className="max-w-2xl mx-auto py-12">
         <Card>
-          <CardContent className="py-12 text-center">
+          <CardHeader className="text-center">
             <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
-            <h2 className="text-xl font-semibold mb-2">AI가 지원서를 작성 중입니다</h2>
-            <p className="text-muted-foreground">
-              기업 정보와 공고 내용을 분석하여 맞춤형 지원서를 생성합니다.
-              <br />
-              잠시만 기다려주세요... (약 30초~1분 소요)
+            <CardTitle>AI가 지원서를 작성 중입니다</CardTitle>
+            <CardDescription>
+              기업 정보와 공고 내용을 분석하여 맞춤형 지원서를 생성합니다
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 진행률 */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{message}</span>
+                <span className="font-medium">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+
+            {/* 섹션 목록 */}
+            <div className="space-y-3">
+              {sections.map((section, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    'flex items-start gap-3 p-3 rounded-lg transition-colors',
+                    section.isComplete
+                      ? 'bg-green-50 dark:bg-green-950/30'
+                      : index === currentSection
+                      ? 'bg-primary/10'
+                      : 'bg-muted/50'
+                  )}
+                >
+                  <div className="mt-0.5">
+                    {section.isComplete ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : index === currentSection ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        'font-medium',
+                        section.isComplete
+                          ? 'text-green-700 dark:text-green-400'
+                          : index === currentSection
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                      )}
+                    >
+                      {section.sectionName}
+                    </p>
+                    {index === currentSection && section.content && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {section.content.slice(0, 100)}...
+                      </p>
+                    )}
+                    {section.isComplete && (
+                      <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                        작성 완료
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-sm text-center text-muted-foreground">
+              창을 닫지 마세요. AI가 지원서를 작성 중입니다.
             </p>
           </CardContent>
         </Card>
@@ -118,7 +180,13 @@ export default function NewApplicationPage() {
                 매칭 분석으로 돌아가기
               </Link>
             </Button>
-            <Button onClick={handleCreate}>
+            <Button
+              onClick={() => {
+                reset()
+                setHasStarted(false)
+                handleCreate()
+              }}
+            >
               다시 시도
             </Button>
           </CardContent>
