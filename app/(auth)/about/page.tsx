@@ -374,34 +374,8 @@ export default function AboutPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Free</CardTitle>
-                  <CardDescription>시작하기 좋은</CardDescription>
+                  <CardDescription>모든 분께 무료로</CardDescription>
                   <div className="text-3xl font-bold mt-4">무료</div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      공고 검색 무제한
-                    </li>
-                    <li className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      AI 매칭 분석 월 5회
-                    </li>
-                    <li className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      기업 프로필 1개
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-              <Card className="border-primary">
-                <CardHeader>
-                  <Badge className="w-fit mb-2">추천</Badge>
-                  <CardTitle>Pro</CardTitle>
-                  <CardDescription>본격적으로 활용하는</CardDescription>
-                  <div className="text-3xl font-bold mt-4">
-                    ₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span>
-                  </div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
@@ -411,11 +385,37 @@ export default function AboutPage() {
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      AI 지원서 작성 월 10회
+                      AI 시맨틱 검색 무제한
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      PDF 다운로드
+                      공고 검색 무제한
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+              <Card className="border-primary">
+                <CardHeader>
+                  <Badge className="w-fit mb-2">추천</Badge>
+                  <CardTitle>Pro</CardTitle>
+                  <CardDescription>AI 지원서 작성이 필요할 때</CardDescription>
+                  <div className="text-3xl font-bold mt-4">
+                    ₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      Free 플랜의 모든 기능
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      AI 지원서 초안 작성
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      AI 섹션별 개선 제안
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />

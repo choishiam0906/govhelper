@@ -106,7 +106,8 @@ export default async function BillingPage() {
           {currentPlan === 'free' ? (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                무료 플랜을 사용 중이에요. Pro로 업그레이드하면 무제한 AI 매칭과 지원서 작성 기능을 이용할 수 있어요.
+                무료 플랜을 사용 중이에요. AI 매칭 분석은 무제한 무료로 이용 가능해요!
+                Pro로 업그레이드하면 AI 지원서 작성 기능을 이용할 수 있어요.
               </p>
               <Button asChild>
                 <Link href="/dashboard/billing/checkout">
@@ -175,7 +176,8 @@ export default async function BillingPage() {
             price={0}
             period="monthly"
             features={[
-              'AI 매칭 분석 월 3회',
+              'AI 매칭 분석 무제한',
+              'AI 시맨틱 검색 무제한',
               '공고 검색 무제한',
               '관심 공고 저장',
             ]}
@@ -183,18 +185,18 @@ export default async function BillingPage() {
           />
           <PricingCard
             name="Pro 월간"
-            description="더 많은 기능이 필요할 때"
+            description="AI 지원서 작성이 필요할 때"
             price={PAYMENT_PRICES.proMonthly}
             period="monthly"
             features={[
-              'AI 매칭 분석 무제한',
-              'AI 지원서 작성',
+              'Free 플랜의 모든 기능',
+              'AI 지원서 초안 작성',
+              'AI 섹션별 개선 제안',
               '우선 고객 지원',
-              '매칭 결과 상세 분석',
             ]}
             popular
             current={currentPlan === 'pro'}
-            
+
           />
           <PricingCard
             name="Pro 연간"
@@ -207,7 +209,7 @@ export default async function BillingPage() {
               '2개월 무료',
             ]}
             current={currentPlan === 'pro'}
-            
+
           />
         </div>
       </div>

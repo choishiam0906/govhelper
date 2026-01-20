@@ -39,6 +39,8 @@
 | **Database** | Supabase (PostgreSQL) | Latest |
 | **Auth** | Supabase Auth | Latest |
 | **AI** | Google Gemini 2.5 Flash | Latest |
+| **Embedding** | Gemini text-embedding-004 | 768차원 |
+| **Vector DB** | pgvector (PostgreSQL) | Latest |
 | **Payments** | Toss Payments SDK | 1.9.2 |
 | **State** | Zustand | 5.0.9 |
 | **Forms** | React Hook Form + Zod | 7.x / 4.x |
@@ -107,6 +109,8 @@ govhelper-main/
 |--------|----------|-------------|
 | `GET` | `/api/announcements` | 공고 검색 (필터링, 페이지네이션) |
 | `GET` | `/api/announcements/[id]` | 공고 상세 |
+| `POST` | `/api/announcements/search` | AI 시맨틱 검색 (pgvector) |
+| `GET` | `/api/announcements/search` | 검색 통계 및 추천 검색어 |
 | `GET` | `/api/announcements/smes` | 중소벤처24 공고 조회 |
 | `POST` | `/api/announcements/smes/sync` | 중소벤처24 동기화 (Cron 00:00, 12:00) |
 | `GET` | `/api/announcements/bizinfo` | 기업마당 공고 조회 |
@@ -115,6 +119,12 @@ govhelper-main/
 | `POST` | `/api/announcements/kstartup/sync` | K-Startup 동기화 (Cron 02:00, 14:00) |
 | `GET` | `/api/announcements/parse-eligibility?id=` | 지원자격 AI 파싱 (단일) |
 | `POST` | `/api/announcements/parse-eligibility` | 지원자격 AI 파싱 (배치) |
+
+### 임베딩 (Embeddings)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/embeddings/generate` | 공고 임베딩 생성 (관리자 전용) |
+| `GET` | `/api/embeddings/generate` | 임베딩 현황 조회 (관리자 전용) |
 
 ### 기업 (Companies)
 | Method | Endpoint | Description |
@@ -244,6 +254,7 @@ npm run lint
 ### 주요 테이블
 - `companies`: 기업 정보 (미등록 사업자 승인 관련 컬럼 포함)
 - `announcements`: 정부지원사업 공고 (eligibility_criteria JSONB 포함)
+- `announcement_embeddings`: 공고 벡터 임베딩 (pgvector, 768차원)
 - `matches`: AI 매칭 결과
 - `applications`: 지원서
 - `payments`: 결제 내역
@@ -278,6 +289,26 @@ approval_status TEXT DEFAULT 'approved'        -- 승인상태: pending/approved
   "confidence": 0.85,
   "parsedAt": "2026-01-18T00:00:00.000Z"
 }
+```
+
+### announcement_embeddings 테이블 스키마
+```sql
+-- pgvector 확장 활성화
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- 공고 임베딩 테이블
+CREATE TABLE announcement_embeddings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  announcement_id UUID REFERENCES announcements(id) ON DELETE CASCADE,
+  embedding VECTOR(768),      -- Gemini text-embedding-004 (768차원)
+  content_hash TEXT,          -- 변경 감지용 MD5 해시
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(announcement_id)
+);
+
+-- IVFFlat 인덱스 (빠른 근사 검색)
+CREATE INDEX idx_embeddings_ivfflat ON announcement_embeddings
+USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 ```
 
 ### RLS (Row Level Security)
@@ -356,12 +387,12 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
 - [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
 - [ ] 카카오페이 결제
-- [ ] RAG 검색 엔진 (pgvector) - 시맨틱 공고 검색
 - [ ] HWP 파일 다운로드/생성
 
 ### P2 - 중기 (완료)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
+- [x] RAG 시맨틱 검색 엔진 (완료 - 2026-01-20)
 
 ### P3 - 장기 (남은 작업)
 - [ ] 모바일 앱 (React Native/Expo)
@@ -374,6 +405,8 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
+- [x] DB 마이그레이션 실행: `supabase/migrations/004_pgvector_embeddings.sql`
+- [x] pgvector 확장 활성화 및 announcement_embeddings 테이블 생성
 - [x] Storage 버킷 생성: `business-plans` (비공개)
 - [x] Storage RLS 정책 추가
 - [x] OAuth URL 설정 수정 (Site URL, Redirect URLs)
@@ -384,6 +417,68 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ---
 
 ## 최근 완료 작업 (2026-01-20)
+
+### 비즈니스 모델 변경 (매칭 무료화)
+기존 "매칭=유료, 지원서=유료" → 신규 "매칭=무료, 지원서=유료" 모델로 전환:
+
+**변경 사항:**
+| 기능 | 이전 | 변경 후 |
+|------|------|---------|
+| AI 매칭 분석 | Free: 월 3회 / Pro: 무제한 | **모든 사용자 무제한** |
+| AI 시맨틱 검색 | 무제한 | 무제한 (유지) |
+| AI 지원서 작성 | Free: 불가 / Pro: 무제한 | Free: 불가 / Pro: 무제한 (유지) |
+
+**변경 이유:**
+- 사용자가 서비스 가치를 먼저 체험 → 자연스러운 결제 유도
+- "매칭률 확인 → 지원서 작성" 전환 퍼널 최적화
+- 지원서 작성(시간 절약)이 더 명확한 유료 가치
+
+**수정 파일:**
+- `lib/queries/dashboard.ts` - checkUsageLimit 로직 변경
+- `app/(dashboard)/dashboard/matching/page.tsx` - 사용량 표시 제거
+- `app/(dashboard)/dashboard/matching/matching-form.tsx` - canAnalyze 제한 제거
+- `app/(dashboard)/dashboard/billing/page.tsx` - 요금제 설명 업데이트
+- `app/page.tsx` - 랜딩 페이지 요금제 업데이트
+- `app/(auth)/about/page.tsx` - 서비스 소개 요금제 업데이트
+
+### RAG 시맨틱 검색 엔진
+pgvector와 Gemini Embedding을 활용한 AI 시맨틱 공고 검색 기능:
+
+**핵심 기술:**
+| 기술 | 설명 |
+|------|------|
+| pgvector | PostgreSQL 벡터 검색 확장 |
+| Gemini text-embedding-004 | 768차원 임베딩 모델 |
+| IVFFlat Index | 빠른 근사 벡터 검색 인덱스 |
+| Cosine Similarity | 유사도 계산 방식 |
+
+**주요 기능:**
+- 자연어 검색: "IT 스타트업 R&D 지원금" 같은 자연어 쿼리 지원
+- 유사도 점수: 0-100% 일치도 표시
+- 폴백 검색: 시맨틱 검색 실패 시 키워드 검색으로 자동 전환
+- 추천 검색어: 사전 정의된 인기 검색어 제공
+
+**데이터베이스:**
+```sql
+-- announcement_embeddings 테이블
+id, announcement_id, embedding (vector[768]), content_hash, updated_at
+
+-- search_announcements_by_embedding RPC 함수
+-- 코사인 유사도 기반 시맨틱 검색
+```
+
+**벡터화 현황:**
+- 총 1,000개 공고 벡터화 완료
+- 배치 처리: 10개씩, 1초 딜레이 (Rate Limit 방지)
+- 변경 감지: content_hash로 변경된 공고만 재벡터화
+
+수정 파일:
+- `supabase/migrations/004_pgvector_embeddings.sql` (신규)
+- `app/api/embeddings/generate/route.ts` (신규)
+- `app/api/announcements/search/route.ts` (신규)
+- `components/announcements/semantic-search.tsx` (신규)
+- `components/announcements/announcements-tabs.tsx` (AI 검색 탭 추가)
+- `scripts/generate-embeddings.ts` (신규 - 배치 벡터화 스크립트)
 
 ### 관리자 대시보드 통계 차트
 recharts 라이브러리를 사용한 관리자 대시보드 통계 시각화:

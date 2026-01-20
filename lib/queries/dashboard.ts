@@ -133,53 +133,41 @@ export async function getRecentMatches(
 }
 
 // 사용량 체크 (무료 플랜 제한)
+// 비즈니스 모델:
+// - 매칭 분석: 무료 (모든 사용자)
+// - 지원서 작성: 유료 (Pro 이상)
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
   companyId: string,
   featureType: 'matching' | 'application'
 ) {
-  // 프로모션 기간 중에는 모든 사용자 무제한
-  if (isPromotionActive()) {
-    return { allowed: true, remaining: -1, limit: -1, promotion: true }
-  }
-
-  // 구독 정보 조회
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('plan')
-    .eq('user_id', userId)
-    .single()
-
-  const plan = subscription?.plan || 'free'
-
-  // Pro/Enterprise는 제한 없음
-  if (plan !== 'free') {
+  // 매칭 분석은 모든 사용자에게 무료로 제공
+  if (featureType === 'matching') {
     return { allowed: true, remaining: -1, limit: -1 }
   }
 
-  // 이번 달 사용량 조회
-  const startOfMonth = new Date()
-  startOfMonth.setDate(1)
-  startOfMonth.setHours(0, 0, 0, 0)
-
-  if (featureType === 'matching') {
-    const { count } = await supabase
-      .from('matches')
-      .select('id', { count: 'exact' })
-      .eq('company_id', companyId)
-      .gte('created_at', startOfMonth.toISOString())
-
-    const limit = 3 // Free 플랜 월 3회
-    const used = count || 0
-    return {
-      allowed: used < limit,
-      remaining: Math.max(0, limit - used),
-      limit,
-    }
-  }
-
+  // 지원서 작성은 프로모션 기간 또는 유료 플랜만 가능
   if (featureType === 'application') {
+    // 프로모션 기간 중에는 모든 사용자 무제한
+    if (isPromotionActive()) {
+      return { allowed: true, remaining: -1, limit: -1, promotion: true }
+    }
+
+    // 구독 정보 조회
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', userId)
+      .single()
+
+    const plan = subscription?.plan || 'free'
+
+    // Pro/Enterprise는 제한 없음
+    if (plan !== 'free') {
+      return { allowed: true, remaining: -1, limit: -1 }
+    }
+
     // Free 플랜은 지원서 작성 불가
     return { allowed: false, remaining: 0, limit: 0 }
   }

@@ -25,14 +25,12 @@ interface MatchingFormProps {
     title: string
     organization: string | null
   } | null
-  canAnalyze: boolean
 }
 
 export function MatchingForm({
   companyId,
   companyName,
   selectedAnnouncement,
-  canAnalyze,
 }: MatchingFormProps) {
   const router = useRouter()
   const [announcement, setAnnouncement] = useState(selectedAnnouncement)
@@ -66,10 +64,6 @@ export function MatchingForm({
       return
     }
 
-    if (!canAnalyze) {
-      toast.error('이번 달 무료 사용량을 모두 사용했습니다')
-      return
-    }
 
     setShowDialog(true)
     await startAnalysis(announcement.id, companyId)
@@ -130,7 +124,7 @@ export function MatchingForm({
         {announcement && (
           <Button
             onClick={handleAnalyze}
-            disabled={isStreaming || !canAnalyze}
+            disabled={isStreaming}
             className="w-full"
             size="lg"
           >
@@ -139,15 +133,6 @@ export function MatchingForm({
           </Button>
         )}
 
-        {!canAnalyze && (
-          <p className="text-sm text-center text-muted-foreground">
-            무료 사용량을 모두 소진했습니다.{' '}
-            <Link href="/dashboard/billing" className="text-primary hover:underline">
-              Pro로 업그레이드
-            </Link>
-            하여 무제한으로 사용하세요.
-          </p>
-        )}
       </div>
 
       {/* 스트리밍 다이얼로그 */}

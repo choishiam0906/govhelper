@@ -1,10 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { TrendingUp, Clock, Building2, ArrowRight, Sparkles } from 'lucide-react'
-import { checkUsageLimit } from '@/lib/queries/dashboard'
 import { MatchingForm } from './matching-form'
 
 interface SearchParams {
@@ -40,9 +38,6 @@ export default async function MatchingPage({
       </div>
     )
   }
-
-  // 사용량 체크
-  const usage = await checkUsageLimit(supabase, user!.id, company.id, 'matching')
 
   // 최근 매칭 결과 조회
   const { data: recentMatches } = await supabase
@@ -83,20 +78,6 @@ export default async function MatchingPage({
         </p>
       </div>
 
-      {/* 사용량 표시 */}
-      {usage.limit > 0 && (
-        <div className="flex items-center gap-2 text-sm">
-          <Badge variant={usage.remaining > 0 ? 'secondary' : 'destructive'}>
-            이번 달 {usage.limit - usage.remaining}/{usage.limit}회 사용
-          </Badge>
-          {usage.remaining === 0 && (
-            <Link href="/dashboard/billing" className="text-primary hover:underline">
-              Pro로 업그레이드하여 무제한 사용
-            </Link>
-          )}
-        </div>
-      )}
-
       {/* 새 분석 카드 */}
       <Card>
         <CardHeader>
@@ -113,7 +94,6 @@ export default async function MatchingPage({
             companyId={company.id}
             companyName={company.name}
             selectedAnnouncement={selectedAnnouncement}
-            canAnalyze={usage.allowed}
           />
         </CardContent>
       </Card>
