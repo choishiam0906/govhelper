@@ -386,13 +386,12 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ### P2 - 중기 (남은 작업)
 - [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
 - [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
-- [ ] 카카오페이 결제
-- [ ] HWP 파일 다운로드/생성
 
 ### P2 - 중기 (완료)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
 - [x] RAG 시맨틱 검색 엔진 (완료 - 2026-01-20)
+- [x] HWP 파일 다운로드 (완료 - 2026-01-20, HWPX 형식)
 
 ### P3 - 장기 (남은 작업)
 - [ ] 모바일 앱 (React Native/Expo)
@@ -402,6 +401,9 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### P3 - 장기 (완료)
 - [x] 관리자 대시보드 통계 차트 (완료 - 2026-01-20)
+
+### P9 - 사업자 등록 후 진행
+- [ ] 카카오페이 결제 연동 (사업자등록증 필요)
 
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
@@ -417,6 +419,37 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ---
 
 ## 최근 완료 작업 (2026-01-20)
+
+### HWPX 파일 다운로드 기능
+지원서를 한글(HWP) 형식으로 다운로드하는 기능:
+
+**기술 스택:**
+- JSZip: ZIP 파일 생성 (HWPX는 ZIP 기반)
+- HWPX 형식: 한글 2014+ 지원 오픈 포맷
+
+**HWPX 구조:**
+```
+hwpx/
+├── mimetype                  # application/hwp+zip
+├── META-INF/
+│   ├── container.xml        # 루트 파일 정보
+│   └── manifest.xml         # 파일 목록
+└── Contents/
+    ├── content.hpf          # 패키지 메타데이터
+    ├── header.xml           # 문서 설정 (폰트, 스타일)
+    └── section0.xml         # 본문 내용
+```
+
+**주요 기능:**
+- 지원서 섹션별 내용을 HWPX로 변환
+- 공고 메타정보 포함 (분류, 지원유형, 금액, 마감일)
+- 매칭 점수 표시
+- 한글 오피스에서 직접 열기 가능
+
+수정 파일:
+- `lib/hwpx/generator.ts` (신규)
+- `app/(dashboard)/dashboard/applications/[id]/download-hwpx-button.tsx` (신규)
+- `app/(dashboard)/dashboard/applications/[id]/application-editor.tsx` (버튼 추가)
 
 ### 비즈니스 모델 변경 (매칭 무료화)
 기존 "매칭=유료, 지원서=유료" → 신규 "매칭=무료, 지원서=유료" 모델로 전환:
