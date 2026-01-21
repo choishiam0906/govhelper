@@ -112,6 +112,13 @@ export default function TryPage() {
     email: '',
   })
 
+  // 진위확인 결과 상태
+  const [verifyResult, setVerifyResult] = useState<{
+    isMatched: boolean
+    status: string
+    taxType: string
+  } | null>(null)
+
   const progress = ((step - 1) / 3) * 100
 
   const updateFormData = (key: keyof FormData, value: string | string[]) => {
@@ -127,10 +134,17 @@ export default function TryPage() {
     }))
   }
 
-  // 사업자번호 검증
+  // 사업자번호 + 회사명 진위확인
   const verifyBusinessNumber = async () => {
-    if (!formData.businessNumber || formData.businessNumber.replace(/[^0-9]/g, '').length !== 10) {
+    const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
+
+    if (!bizNum || bizNum.length !== 10) {
       toast.error('사업자번호 10자리를 입력해주세요')
+      return
+    }
+
+    if (!formData.companyName.trim()) {
+      toast.error('회사명을 입력해주세요')
       return
     }
 
@@ -139,14 +153,28 @@ export default function TryPage() {
       const response = await fetch('/api/business/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessNumber: formData.businessNumber }),
+        body: JSON.stringify({
+          businessNumber: formData.businessNumber,
+          companyName: formData.companyName,
+          startDate: formData.foundedDate || undefined,
+        }),
       })
 
       const result = await response.json()
 
       if (result.success && result.data?.isValid) {
         setBusinessVerified(true)
-        toast.success('사업자번호가 확인됐어요')
+        setVerifyResult({
+          isMatched: result.data.isMatched,
+          status: result.data.status || '',
+          taxType: result.data.taxType || '',
+        })
+
+        if (result.data.isMatched) {
+          toast.success('사업자 정보가 확인됐어요')
+        } else {
+          toast.warning('사업자번호는 유효하지만, 회사명이 일치하지 않아요. 정확한 상호명을 입력해주세요.')
+        }
         setStep(2)
       } else {
         toast.error(result.error || '유효하지 않은 사업자번호예요')
@@ -253,7 +281,7 @@ export default function TryPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* 1단계: 사업자번호 입력 */}
+          {/* 1단계: 사업자번호 + 회사명 입력 */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -266,37 +294,74 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <Building2 className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">사업자번호를 입력해주세요</CardTitle>
+                  <CardTitle className="text-2xl">사업자 정보를 입력해주세요</CardTitle>
                   <CardDescription>
                     국세청 데이터로 사업자 정보를 확인해요
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4">
+                  {/* 사업자번호 */}
                   <div className="space-y-2">
-                    <Label htmlFor="businessNumber">사업자번호</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="businessNumber"
-                        placeholder="000-00-00000"
-                        value={formData.businessNumber}
-                        onChange={(e) => updateFormData('businessNumber', e.target.value)}
-                        className="text-lg"
-                      />
-                      <Button
-                        onClick={verifyBusinessNumber}
-                        disabled={verifying}
-                      >
-                        {verifying ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          '확인'
-                        )}
-                      </Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
+                    <Label htmlFor="businessNumber">사업자번호 *</Label>
+                    <Input
+                      id="businessNumber"
+                      placeholder="000-00-00000"
+                      value={formData.businessNumber}
+                      onChange={(e) => updateFormData('businessNumber', e.target.value)}
+                      className="text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground">
                       하이픈(-) 없이 숫자만 입력해도 돼요
                     </p>
                   </div>
+
+                  {/* 회사명 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">회사명 (상호) *</Label>
+                    <Input
+                      id="companyName"
+                      placeholder="(주)회사명"
+                      value={formData.companyName}
+                      onChange={(e) => updateFormData('companyName', e.target.value)}
+                      className="text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      사업자등록증에 기재된 상호를 입력해주세요
+                    </p>
+                  </div>
+
+                  {/* 설립일 (선택) */}
+                  <div className="space-y-2">
+                    <Label htmlFor="foundedDate">개업일 (선택)</Label>
+                    <Input
+                      id="foundedDate"
+                      type="date"
+                      value={formData.foundedDate}
+                      onChange={(e) => updateFormData('foundedDate', e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      입력하면 더 정확한 진위확인이 가능해요
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={verifyBusinessNumber}
+                    disabled={verifying}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {verifying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        확인 중...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        국세청 진위확인
+                      </>
+                    )}
+                  </Button>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -345,6 +410,31 @@ export default function TryPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* 진위확인 결과 배지 */}
+                  {businessVerified && verifyResult && (
+                    <div className={`p-3 rounded-lg flex items-center gap-2 ${
+                      verifyResult.isMatched
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-amber-50 border border-amber-200'
+                    }`}>
+                      {verifyResult.isMatched ? (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <Shield className="h-5 w-5 text-amber-600" />
+                      )}
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium ${
+                          verifyResult.isMatched ? 'text-green-700' : 'text-amber-700'
+                        }`}>
+                          {verifyResult.isMatched ? '국세청 진위확인 완료' : '사업자번호 확인됨'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {verifyResult.status} · {verifyResult.taxType}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* 회사명 */}
                   <div className="space-y-2">
                     <Label htmlFor="companyName">회사명 *</Label>
@@ -353,7 +443,12 @@ export default function TryPage() {
                       placeholder="(주)회사명"
                       value={formData.companyName}
                       onChange={(e) => updateFormData('companyName', e.target.value)}
+                      disabled={businessVerified && verifyResult?.isMatched}
+                      className={businessVerified && verifyResult?.isMatched ? 'bg-muted' : ''}
                     />
+                    {businessVerified && verifyResult?.isMatched && (
+                      <p className="text-xs text-green-600">국세청 확인된 상호명이에요</p>
+                    )}
                   </div>
 
                   {/* 업종 */}
