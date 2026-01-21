@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { CreditCard, Calendar, Crown, AlertTriangle, Building2, Mail } from 'lucide-react'
 import { PAYMENT_PRICES } from '@/lib/payments'
 import { PricingCard } from '@/components/billing/pricing-card'
+import { PLAN_INFO, PlanType } from '@/lib/queries/dashboard'
 
 // 계좌 정보
 const BANK_ACCOUNT = {
@@ -42,7 +43,8 @@ export default async function BillingPage() {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const currentPlan = subscription?.plan || 'free'
+  const currentPlan = (subscription?.plan || 'free') as PlanType
+  const currentPlanInfo = PLAN_INFO[currentPlan]
   const isActive = subscription?.status === 'active'
   const isCancelled = subscription?.status === 'cancelled'
   const periodEnd = subscription?.current_period_end
@@ -94,11 +96,11 @@ export default async function BillingPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Crown className={currentPlan === 'pro' ? 'h-5 w-5 text-primary' : 'h-5 w-5 text-muted-foreground'} />
+              <Crown className={currentPlan !== 'free' ? 'h-5 w-5 text-primary' : 'h-5 w-5 text-muted-foreground'} />
               <CardTitle>현재 플랜</CardTitle>
             </div>
-            <Badge variant={currentPlan === 'pro' ? 'default' : 'secondary'}>
-              {currentPlan === 'pro' ? 'Pro' : 'Free'}
+            <Badge variant={currentPlan !== 'free' ? 'default' : 'secondary'}>
+              {currentPlanInfo.name}
             </Badge>
           </div>
         </CardHeader>
@@ -106,12 +108,13 @@ export default async function BillingPage() {
           {currentPlan === 'free' ? (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                무료 플랜을 사용 중이에요. AI 매칭 분석은 무제한 무료로 이용 가능해요!
-                Pro로 업그레이드하면 AI 지원서 작성 기능을 이용할 수 있어요.
+                무료 플랜을 사용 중이에요. AI 매칭 분석은 3~5순위까지 무료로 확인할 수 있어요!
+                <br />
+                <span className="text-primary font-medium">Pro</span>로 업그레이드하면 1~5순위 전체 매칭 결과를 볼 수 있어요.
               </p>
               <Button asChild>
-                <Link href="/dashboard/billing/checkout">
-                  Pro로 업그레이드
+                <Link href="/dashboard/billing/checkout?plan=pro">
+                  Pro로 업그레이드 (월 ₩5,000)
                 </Link>
               </Button>
             </div>
@@ -149,18 +152,27 @@ export default async function BillingPage() {
                 <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-800 rounded-lg">
                   <AlertTriangle className="h-5 w-5" />
                   <p className="text-sm">
-                    구독이 취소됐어요. {periodEnd ? formatDate(periodEnd.toISOString()) : ''}까지 Pro 기능을 이용할 수 있어요.
+                    구독이 취소됐어요. {periodEnd ? formatDate(periodEnd.toISOString()) : ''}까지 {currentPlanInfo.name} 기능을 이용할 수 있어요.
                   </p>
                 </div>
               )}
 
-              {isActive && !isCancelled && (
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard/billing/checkout?cancel=true">
-                    구독 취소
-                  </Link>
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {currentPlan === 'pro' && (
+                  <Button asChild>
+                    <Link href="/dashboard/billing/checkout?plan=premium">
+                      Premium으로 업그레이드
+                    </Link>
+                  </Button>
+                )}
+                {isActive && !isCancelled && (
+                  <Button variant="outline" asChild>
+                    <Link href="/dashboard/billing/checkout?cancel=true">
+                      구독 취소
+                    </Link>
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -172,44 +184,42 @@ export default async function BillingPage() {
         <div className="grid md:grid-cols-3 gap-4">
           <PricingCard
             name="Free"
-            description="시작하기 좋은 무료 플랜"
+            description="기본 기능 체험"
             price={0}
             period="monthly"
             features={[
-              'AI 매칭 분석 무제한',
-              'AI 시맨틱 검색 무제한',
               '공고 검색 무제한',
+              'AI 시맨틱 검색',
+              'AI 매칭 분석 (3~5순위)',
               '관심 공고 저장',
             ]}
             current={currentPlan === 'free'}
           />
           <PricingCard
-            name="Pro 월간"
-            description="AI 지원서 작성이 필요할 때"
+            name="Pro"
+            description="커피 한 잔 가격으로 전체 매칭"
             price={PAYMENT_PRICES.proMonthly}
             period="monthly"
             features={[
               'Free 플랜의 모든 기능',
+              'AI 매칭 전체 공개 (1~5순위)',
+              '상세 분석 리포트',
+            ]}
+            popular
+            current={currentPlan === 'pro'}
+          />
+          <PricingCard
+            name="Premium"
+            description="AI 지원서 작성까지 올인원"
+            price={PAYMENT_PRICES.premiumMonthly}
+            period="monthly"
+            features={[
+              'Pro 플랜의 모든 기능',
               'AI 지원서 초안 작성',
               'AI 섹션별 개선 제안',
               '우선 고객 지원',
             ]}
-            popular
-            current={currentPlan === 'pro'}
-
-          />
-          <PricingCard
-            name="Pro 연간"
-            description="2개월 무료로 절약하세요"
-            price={PAYMENT_PRICES.proYearly}
-            period="yearly"
-            features={[
-              'Pro 월간의 모든 기능',
-              '연간 결제 시 17% 할인',
-              '2개월 무료',
-            ]}
-            current={currentPlan === 'pro'}
-
+            current={currentPlan === 'premium'}
           />
         </div>
       </div>
@@ -257,17 +267,24 @@ export default async function BillingPage() {
                 <ul className="mt-2 space-y-1 text-amber-700">
                   <li>• 입금자명</li>
                   <li>• 입금 금액</li>
-                  <li>• 선택하신 요금제 (월간/연간)</li>
+                  <li>• 선택하신 요금제 (Pro/Premium)</li>
                 </ul>
               </div>
             </div>
           </div>
 
-          <Button asChild className="w-full">
-            <Link href="/dashboard/billing/checkout">
-              Pro 구독 신청하기
-            </Link>
-          </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/billing/checkout?plan=pro">
+                Pro 구독 (₩5,000/월)
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/billing/checkout?plan=premium">
+                Premium 구독 (₩50,000/월)
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

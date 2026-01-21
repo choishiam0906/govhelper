@@ -23,7 +23,7 @@
 - **AI 자동 분류**: 공고 동기화 시 Gemini AI가 지원자격 자동 파싱 및 구조화
 - **AI 매칭 분석**: 기업 정보 기반 0-100점 매칭 점수 제공
 - **AI 지원서 작성**: 지원서 초안 자동 생성 및 섹션별 개선
-- **결제/구독**: Toss Payments 연동, Free/Pro 플랜
+- **결제/구독**: Toss Payments 연동, Free/Pro/Premium 3단계 플랜
 
 ---
 
@@ -521,8 +521,38 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - 헤더: "무료 분석받기" → `/try`
 
 **남은 작업 (선택):**
-- 이메일 결과 발송 기능 (Resend 연동)
+- ~~이메일 결과 발송 기능 (Resend 연동)~~ (완료)
 - 결제 후 1~2순위 공개 기능
+
+### 3단계 요금제 개편 (Free/Pro/Premium)
+기존 Free/Pro 2단계 → Free/Pro/Premium 3단계로 개편:
+
+**요금제 구조:**
+| 플랜 | 가격 | 주요 기능 |
+|------|------|----------|
+| **Free** | 무료 | 공고 검색, AI 시맨틱 검색, AI 매칭 분석 (3~5순위만) |
+| **Pro** | ₩5,000/월 | Free + AI 매칭 전체 공개 (1~5순위), 상세 분석 리포트 |
+| **Premium** | ₩50,000/월 | Pro + AI 지원서 작성, AI 섹션별 개선, 우선 고객 지원 |
+
+**핵심 설계 원칙:**
+- Free: 3~5순위만 공개 → 서비스 가치 체험 유도
+- Pro: "커피 한 잔 가격" 마케팅 (월 5,000원)
+- Premium: AI 지원서 작성으로 시간 절약 가치
+
+**수정 파일:**
+- `lib/queries/dashboard.ts` - PLAN_INFO, PlanType, getUserPlan, checkFeatureAccess
+- `lib/payments/index.ts` - PAYMENT_PRICES 업데이트
+- `app/page.tsx` - 랜딩 페이지 요금제 섹션 3단계로 변경
+- `app/(dashboard)/dashboard/billing/page.tsx` - 결제 페이지 3단계 표시
+- `app/(dashboard)/dashboard/matching/page.tsx` - 플랜 기반 블러 처리
+- `app/(dashboard)/dashboard/matching/[id]/page.tsx` - Free 사용자 1~2순위 접근 차단
+- `app/api/subscriptions/route.ts` - 플랜별 기능 반환 업데이트
+
+### 프로모션 코드 제거
+6개월 무료 프로모션 관련 코드 전체 제거:
+- 프로모션 배너, 팝업 제거 (랜딩/대시보드)
+- `PROMOTION_CONFIG.enabled = false` 설정
+- `isPromotionActive()` 관련 로직 비활성화
 
 ---
 
@@ -558,29 +588,6 @@ hwpx/
 - `lib/hwpx/generator.ts` (신규)
 - `app/(dashboard)/dashboard/applications/[id]/download-hwpx-button.tsx` (신규)
 - `app/(dashboard)/dashboard/applications/[id]/application-editor.tsx` (버튼 추가)
-
-### 비즈니스 모델 변경 (매칭 무료화)
-기존 "매칭=유료, 지원서=유료" → 신규 "매칭=무료, 지원서=유료" 모델로 전환:
-
-**변경 사항:**
-| 기능 | 이전 | 변경 후 |
-|------|------|---------|
-| AI 매칭 분석 | Free: 월 3회 / Pro: 무제한 | **모든 사용자 무제한** |
-| AI 시맨틱 검색 | 무제한 | 무제한 (유지) |
-| AI 지원서 작성 | Free: 불가 / Pro: 무제한 | Free: 불가 / Pro: 무제한 (유지) |
-
-**변경 이유:**
-- 사용자가 서비스 가치를 먼저 체험 → 자연스러운 결제 유도
-- "매칭률 확인 → 지원서 작성" 전환 퍼널 최적화
-- 지원서 작성(시간 절약)이 더 명확한 유료 가치
-
-**수정 파일:**
-- `lib/queries/dashboard.ts` - checkUsageLimit 로직 변경
-- `app/(dashboard)/dashboard/matching/page.tsx` - 사용량 표시 제거
-- `app/(dashboard)/dashboard/matching/matching-form.tsx` - canAnalyze 제한 제거
-- `app/(dashboard)/dashboard/billing/page.tsx` - 요금제 설명 업데이트
-- `app/page.tsx` - 랜딩 페이지 요금제 업데이트
-- `app/(auth)/about/page.tsx` - 서비스 소개 요금제 업데이트
 
 ### RAG 시맨틱 검색 엔진
 pgvector와 Gemini Embedding을 활용한 AI 시맨틱 공고 검색 기능:

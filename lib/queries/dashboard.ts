@@ -1,11 +1,11 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
-// 프로모션 설정: 2026년 6월 30일까지 모든 사용자 Pro 무료
+// 프로모션 설정 (비활성화됨)
 export const PROMOTION_CONFIG = {
-  enabled: true,
+  enabled: false,
   endDate: new Date('2026-06-30T23:59:59+09:00'), // KST
   name: '얼리버드 프로모션',
-  description: '2026년 6월 30일까지 모든 분들께 Pro 플랜을 무료로 제공합니다!',
+  description: '프로모션이 종료되었어요.',
 }
 
 // 프로모션 기간인지 확인
@@ -132,45 +132,125 @@ export async function getRecentMatches(
   return data || []
 }
 
-// 사용량 체크 (무료 플랜 제한)
-// 비즈니스 모델:
-// - 매칭 분석: 무료 (모든 사용자)
-// - 지원서 작성: 유료 (Pro 이상)
+// 플랜 타입 정의
+export type PlanType = 'free' | 'pro' | 'premium'
+
+// 플랜 정보
+export const PLAN_INFO = {
+  free: {
+    name: 'Free',
+    price: 0,
+    priceLabel: '무료',
+    tagline: '기본 기능 체험',
+    features: {
+      search: true,           // 공고 검색
+      semanticSearch: true,   // AI 시맨틱 검색
+      matching: true,         // AI 매칭 분석 (3~5순위만)
+      matchingFull: false,    // AI 매칭 전체 공개 (1~5순위)
+      application: false,     // AI 지원서 작성
+    },
+  },
+  pro: {
+    name: 'Pro',
+    price: 5000,
+    priceLabel: '₩5,000/월',
+    tagline: '커피 한 잔 가격으로 전체 매칭',
+    features: {
+      search: true,
+      semanticSearch: true,
+      matching: true,
+      matchingFull: true,     // AI 매칭 전체 공개 (1~5순위)
+      application: false,
+    },
+  },
+  premium: {
+    name: 'Premium',
+    price: 50000,
+    priceLabel: '₩50,000/월',
+    tagline: 'AI 지원서 작성까지 올인원',
+    features: {
+      search: true,
+      semanticSearch: true,
+      matching: true,
+      matchingFull: true,
+      application: true,      // AI 지원서 작성
+    },
+  },
+}
+
+// 사용자 플랜 조회
+export async function getUserPlan(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<PlanType> {
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('plan')
+    .eq('user_id', userId)
+    .single()
+
+  return (subscription?.plan as PlanType) || 'free'
+}
+
+// 기능 사용 가능 여부 체크
+export async function checkFeatureAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  feature: keyof typeof PLAN_INFO.free.features
+): Promise<{ allowed: boolean; plan: PlanType; requiredPlan?: PlanType }> {
+  const plan = await getUserPlan(supabase, userId)
+  const planInfo = PLAN_INFO[plan]
+  const allowed = planInfo.features[feature]
+
+  // 필요한 플랜 찾기
+  let requiredPlan: PlanType | undefined
+  if (!allowed) {
+    if (PLAN_INFO.pro.features[feature]) {
+      requiredPlan = 'pro'
+    } else if (PLAN_INFO.premium.features[feature]) {
+      requiredPlan = 'premium'
+    }
+  }
+
+  return { allowed, plan, requiredPlan }
+}
+
+// 사용량 체크 (하위 호환성 유지)
+// 새로운 비즈니스 모델:
+// - Free: 매칭 분석 (3~5순위만), 공고 검색
+// - Pro: 매칭 분석 전체 공개 (1~5순위)
+// - Premium: 지원서 작성
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
   companyId: string,
   featureType: 'matching' | 'application'
 ) {
-  // 매칭 분석은 모든 사용자에게 무료로 제공
+  const plan = await getUserPlan(supabase, userId)
+
+  // 매칭 분석은 모든 사용자에게 허용 (결과 공개 범위는 플랜에 따라 다름)
   if (featureType === 'matching') {
-    return { allowed: true, remaining: -1, limit: -1 }
+    return {
+      allowed: true,
+      remaining: -1,
+      limit: -1,
+      plan,
+      matchingFull: PLAN_INFO[plan].features.matchingFull,
+    }
   }
 
-  // 지원서 작성은 프로모션 기간 또는 유료 플랜만 가능
+  // 지원서 작성은 Premium만 가능
   if (featureType === 'application') {
-    // 프로모션 기간 중에는 모든 사용자 무제한
-    if (isPromotionActive()) {
-      return { allowed: true, remaining: -1, limit: -1, promotion: true }
+    const allowed = PLAN_INFO[plan].features.application
+
+    return {
+      allowed,
+      remaining: allowed ? -1 : 0,
+      limit: allowed ? -1 : 0,
+      plan,
+      promotion: isPromotionActive(),
     }
-
-    // 구독 정보 조회
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan')
-      .eq('user_id', userId)
-      .single()
-
-    const plan = subscription?.plan || 'free'
-
-    // Pro/Enterprise는 제한 없음
-    if (plan !== 'free') {
-      return { allowed: true, remaining: -1, limit: -1 }
-    }
-
-    // Free 플랜은 지원서 작성 불가
-    return { allowed: false, remaining: 0, limit: 0 }
   }
 
-  return { allowed: true, remaining: -1, limit: -1 }
+  return { allowed: true, remaining: -1, limit: -1, plan }
 }

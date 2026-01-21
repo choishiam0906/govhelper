@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { TrendingUp, Clock, Building2, ArrowRight, Sparkles } from 'lucide-react'
+import { TrendingUp, Clock, Building2, ArrowRight, Sparkles, Lock, Crown } from 'lucide-react'
 import { MatchingForm } from './matching-form'
+import { getUserPlan, PLAN_INFO } from '@/lib/queries/dashboard'
 
 interface SearchParams {
   announcementId?: string
@@ -39,7 +41,11 @@ export default async function MatchingPage({
     )
   }
 
-  // 최근 매칭 결과 조회
+  // 사용자 플랜 조회
+  const userPlan = await getUserPlan(supabase, user!.id)
+  const canViewFullMatching = PLAN_INFO[userPlan].features.matchingFull
+
+  // 최근 매칭 결과 조회 (점수순 정렬)
   const { data: recentMatches } = await supabase
     .from('matches')
     .select(`
@@ -55,7 +61,7 @@ export default async function MatchingPage({
       )
     `)
     .eq('company_id', company.id)
-    .order('created_at', { ascending: false })
+    .order('match_score', { ascending: false })
     .limit(10)
 
   // 선택된 공고가 있으면 조회
@@ -102,9 +108,24 @@ export default async function MatchingPage({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>최근 분석 결과</CardTitle>
-            <CardDescription>최근 진행한 AI 매칭 분석 결과입니다</CardDescription>
+            <CardTitle>매칭 분석 결과</CardTitle>
+            <CardDescription>
+              점수 순으로 정렬된 AI 매칭 분석 결과입니다
+              {!canViewFullMatching && (
+                <span className="text-amber-600 ml-2">
+                  (Free 플랜: 3~5순위만 공개)
+                </span>
+              )}
+            </CardDescription>
           </div>
+          {!canViewFullMatching && (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/billing" className="gap-2">
+                <Crown className="h-4 w-4" />
+                전체 공개
+              </Link>
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {!recentMatches || recentMatches.length === 0 ? (
@@ -115,42 +136,93 @@ export default async function MatchingPage({
             </div>
           ) : (
             <div className="space-y-4">
-              {recentMatches.map((match: any) => (
-                <Link
-                  key={match.id}
-                  href={`/dashboard/matching/${match.id}`}
-                  className="block"
-                >
-                  <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">
-                        {match.announcements?.title || '삭제된 공고'}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        {match.announcements?.organization && (
+              {recentMatches.map((match: any, index: number) => {
+                const rank = index + 1
+                const isBlurred = !canViewFullMatching && rank <= 2
+
+                if (isBlurred) {
+                  return (
+                    <div
+                      key={match.id}
+                      className="flex items-center justify-between p-4 border rounded-lg bg-muted/30 relative overflow-hidden"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            {rank}순위
+                          </Badge>
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <h3 className="font-medium truncate blur-sm select-none mt-2">
+                          ************ 지원사업
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1 blur-sm">
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
-                            {match.announcements.organization}
+                            ********
                           </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(match.created_at).toLocaleDateString('ko-KR')}
-                        </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 ml-4">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary blur-sm select-none">
+                            ??
+                            <span className="text-sm font-normal text-muted-foreground">점</span>
+                          </p>
+                        </div>
+                        <Button asChild size="sm">
+                          <Link href="/dashboard/billing" className="gap-1">
+                            <Crown className="h-3 w-3" />
+                            공개
+                          </Link>
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 ml-4">
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">
-                          {match.match_score}
-                          <span className="text-sm font-normal text-muted-foreground">점</span>
-                        </p>
+                  )
+                }
+
+                return (
+                  <Link
+                    key={match.id}
+                    href={`/dashboard/matching/${match.id}`}
+                    className="block"
+                  >
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline">
+                            {rank}순위
+                          </Badge>
+                        </div>
+                        <h3 className="font-medium truncate">
+                          {match.announcements?.title || '삭제된 공고'}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                          {match.announcements?.organization && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {match.announcements.organization}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(match.created_at).toLocaleDateString('ko-KR')}
+                          </span>
+                        </div>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex items-center gap-4 ml-4">
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">
+                            {match.match_score}
+                            <span className="text-sm font-normal text-muted-foreground">점</span>
+                          </p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </CardContent>

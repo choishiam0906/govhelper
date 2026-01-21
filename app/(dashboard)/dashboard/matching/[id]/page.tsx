@@ -3,14 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { ArrowLeft, Building2, Calendar, ExternalLink, FileText, Trash2 } from 'lucide-react'
-import { notFound } from 'next/navigation'
+import { ArrowLeft, Building2, Calendar, ExternalLink, FileText, Trash2, Crown, Lock } from 'lucide-react'
+import { notFound, redirect } from 'next/navigation'
 import { ScoreGauge } from '@/components/matching/score-gauge'
 import { AnalysisCard } from '@/components/matching/analysis-card'
 import { EligibilityCard } from '@/components/matching/eligibility-card'
 import { MatchAnalysis } from '@/types'
 import { DeleteMatchButton } from './delete-match-button'
 import { DownloadPDFButton } from './download-pdf-button'
+import { getUserPlan, PLAN_INFO } from '@/lib/queries/dashboard'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -34,6 +35,10 @@ export default async function MatchingDetailPage({ params }: PageProps) {
   if (!company) {
     notFound()
   }
+
+  // 사용자 플랜 조회
+  const userPlan = await getUserPlan(supabase, user!.id)
+  const canViewFullMatching = PLAN_INFO[userPlan].features.matchingFull
 
   // 매칭 결과 조회
   const { data: matchData, error } = await supabase
@@ -60,6 +65,25 @@ export default async function MatchingDetailPage({ params }: PageProps) {
 
   if (error || !matchData) {
     notFound()
+  }
+
+  // Free 플랜인 경우 이 매칭의 순위 확인
+  if (!canViewFullMatching) {
+    // 전체 매칭 중 이 매칭의 순위 확인 (점수순)
+    const { data: allMatches } = await supabase
+      .from('matches')
+      .select('id, match_score')
+      .eq('company_id', company.id)
+      .order('match_score', { ascending: false })
+      .limit(10)
+
+    if (allMatches) {
+      const rank = allMatches.findIndex((m: any) => m.id === id) + 1
+      if (rank > 0 && rank <= 2) {
+        // 1~2순위는 접근 불가 - 업그레이드 페이지로 리다이렉트
+        redirect('/dashboard/billing?upgrade=matching')
+      }
+    }
   }
 
   const match = matchData as {

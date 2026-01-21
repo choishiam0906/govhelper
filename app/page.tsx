@@ -6,42 +6,12 @@ import {
   Search,
   FileText,
   TrendingUp,
-  Zap,
-  Shield,
-  Users,
-  ArrowRight,
   CheckCircle,
-  Gift,
   Sparkles,
 } from "lucide-react";
-import { isPromotionActive, getPromotionDaysRemaining, PROMOTION_CONFIG } from "@/lib/queries/dashboard";
-
 export default function Home() {
-  const promotionActive = isPromotionActive()
-  const promotionDaysRemaining = getPromotionDaysRemaining()
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* 프로모션 배너 */}
-      {promotionActive && (
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground py-3">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-center gap-3 text-sm md:text-base">
-              <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="font-medium">{PROMOTION_CONFIG.name}</span>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                Pro 무료
-              </Badge>
-              <span className="hidden sm:inline">|</span>
-              <span className="hidden sm:inline">{PROMOTION_CONFIG.description}</span>
-              <Badge variant="outline" className="border-white/50 text-white">
-                D-{promotionDaysRemaining}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -77,21 +47,24 @@ export default function Home() {
       <section className="container mx-auto px-4 py-20 md:py-32">
         <div className="max-w-4xl mx-auto text-center">
           <Badge variant="secondary" className="mb-4">
-            AI 기반 정부지원사업 매칭
+            Google Gemini AI 기반
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-            정부지원사업,{" "}
-            <span className="text-primary">AI가 찾아드립니다</span>
+            평균 <span className="text-primary">3시간</span> 걸리던 공고 탐색,{" "}
+            <span className="text-primary">30초</span>로
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            수천 개의 정부지원사업 중 우리 기업에 딱 맞는 사업을 AI가 분석하고 매칭합니다.
-            복잡한 지원서 작성도 AI가 도와드립니다.
+          <p className="text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
+            수천 개의 정부지원사업 중 우리 기업에 딱 맞는 사업을 AI가 분석하고 매칭해요.
+          </p>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <span className="font-semibold text-foreground">연간 50조원</span>의 정부지원금,
+            놓치지 마세요.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/try">
               <Button size="lg" className="gap-2">
                 <Sparkles className="w-4 h-4" />
-                무료로 매칭 분석받기
+                30초 만에 무료 분석받기
               </Button>
             </Link>
             <Link href="/register">
@@ -100,6 +73,9 @@ export default function Home() {
               </Button>
             </Link>
           </div>
+          <p className="text-sm text-muted-foreground mt-4">
+            회원가입 없이 바로 분석받을 수 있어요
+          </p>
         </div>
       </section>
 
@@ -217,36 +193,48 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-4">요금제</h2>
           <p className="text-muted-foreground">무료로 시작하고, 필요할 때 업그레이드하세요</p>
         </div>
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {/* Free 플랜 */}
           <Card>
             <CardHeader>
               <CardTitle>Free</CardTitle>
-              <CardDescription>모든 분께 무료로</CardDescription>
+              <CardDescription>기본 기능 체험</CardDescription>
               <div className="text-3xl font-bold mt-4">무료</div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  AI 매칭 분석 무제한
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  AI 시맨틱 검색 무제한
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
                   공고 검색 무제한
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  AI 시맨틱 검색
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  AI 매칭 분석 (3~5순위)
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-4 h-4" />
+                  1~2순위 매칭 결과 잠금
                 </li>
               </ul>
             </CardContent>
           </Card>
-          <Card className="border-primary">
+
+          {/* Pro 플랜 */}
+          <Card className="border-primary relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <Badge className="bg-primary">추천</Badge>
+            </div>
             <CardHeader>
-              <Badge className="w-fit mb-2">인기</Badge>
               <CardTitle>Pro</CardTitle>
-              <CardDescription>AI 지원서 작성이 필요할 때</CardDescription>
-              <div className="text-3xl font-bold mt-4">₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span></div>
+              <CardDescription>커피 한 잔 가격으로 전체 매칭</CardDescription>
+              <div className="text-3xl font-bold mt-4">
+                ₩5,000<span className="text-sm font-normal text-muted-foreground">/월</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">커피 한 잔 가격이에요</p>
             </CardHeader>
             <CardContent>
               <ul className="space-y-3">
@@ -254,8 +242,39 @@ export default function Home() {
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   Free 플랜의 모든 기능
                 </li>
+                <li className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <CheckCircle className="w-4 h-4 text-primary" />
+                  AI 매칭 전체 공개 (1~5순위)
+                </li>
                 <li className="flex items-center gap-2 text-sm">
                   <CheckCircle className="w-4 h-4 text-green-500" />
+                  상세 분석 리포트
+                </li>
+                <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-4 h-4" />
+                  AI 지원서 작성 불가
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Premium 플랜 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Premium</CardTitle>
+              <CardDescription>AI 지원서 작성까지 올인원</CardDescription>
+              <div className="text-3xl font-bold mt-4">
+                ₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Pro 플랜의 모든 기능
+                </li>
+                <li className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <CheckCircle className="w-4 h-4 text-primary" />
                   AI 지원서 초안 작성
                 </li>
                 <li className="flex items-center gap-2 text-sm">
