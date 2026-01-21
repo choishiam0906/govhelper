@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import {
   Building2,
@@ -23,7 +24,9 @@ import {
   Sparkles,
   Search,
   FileText,
-  Shield
+  Shield,
+  Database,
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -78,6 +81,17 @@ const CERTIFICATIONS = [
   '녹색인증',
 ]
 
+// 직원수 범위 → 중간값 변환
+const EMPLOYEE_RANGE_MAP: Record<string, string> = {
+  '1-4명': '3',
+  '5-9명': '7',
+  '10-19명': '15',
+  '20-49명': '35',
+  '50-99명': '75',
+  '100-299명': '200',
+  '300명 이상': '500',
+}
+
 type Step = 1 | 2 | 3 | 4
 
 interface FormData {
@@ -92,12 +106,24 @@ interface FormData {
   email: string
 }
 
+// 조회 결과 타입
+interface LookupResult {
+  found: boolean
+  companyName?: string
+  address?: string
+  location?: string
+  subscriberCount?: number
+  employeeRange?: string
+  ntsStatus?: string
+  taxType?: string
+  dataYearMonth?: string
+}
+
 export default function TryPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
-  const [verifying, setVerifying] = useState(false)
-  const [businessVerified, setBusinessVerified] = useState(false)
+  const [lookingUp, setLookingUp] = useState(false)
   const [skipBusinessNumber, setSkipBusinessNumber] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({
@@ -112,12 +138,9 @@ export default function TryPage() {
     email: '',
   })
 
-  // 진위확인 결과 상태
-  const [verifyResult, setVerifyResult] = useState<{
-    isMatched: boolean
-    status: string
-    taxType: string
-  } | null>(null)
+  // 사업자번호 조회 결과
+  const [lookupResult, setLookupResult] = useState<LookupResult | null>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
 
   const progress = ((step - 1) / 3) * 100
 
@@ -134,62 +157,86 @@ export default function TryPage() {
     }))
   }
 
-  // 사업자번호 + 회사명 진위확인
-  const verifyBusinessNumber = async () => {
-    const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
+  // 사업자번호 조회 (debounce)
+  const lookupBusinessNumber = useCallback(async (bizNum: string) => {
+    const cleaned = bizNum.replace(/[^0-9]/g, '')
 
-    if (!bizNum || bizNum.length !== 10) {
-      toast.error('사업자번호 10자리를 입력해주세요')
+    if (cleaned.length !== 10) {
+      setLookupResult(null)
+      setLookupError(null)
       return
     }
 
-    if (!formData.companyName.trim()) {
-      toast.error('회사명을 입력해주세요')
-      return
-    }
+    setLookingUp(true)
+    setLookupError(null)
 
-    setVerifying(true)
     try {
-      const response = await fetch('/api/business/verify', {
+      const response = await fetch('/api/business/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessNumber: formData.businessNumber,
-          companyName: formData.companyName,
-          startDate: formData.foundedDate || undefined,
-        }),
+        body: JSON.stringify({ businessNumber: cleaned }),
       })
 
       const result = await response.json()
 
-      if (result.success && result.data?.isValid) {
-        setBusinessVerified(true)
-        setVerifyResult({
-          isMatched: result.data.isMatched,
-          status: result.data.status || '',
-          taxType: result.data.taxType || '',
-        })
+      if (result.success && result.data?.found) {
+        setLookupResult(result.data)
 
-        if (result.data.isMatched) {
-          toast.success('사업자 정보가 확인됐어요')
-        } else {
-          toast.warning('사업자번호는 유효하지만, 회사명이 일치하지 않아요. 정확한 상호명을 입력해주세요.')
+        // 폼 자동 채우기
+        if (result.data.companyName) {
+          updateFormData('companyName', result.data.companyName)
         }
-        setStep(2)
+        if (result.data.location) {
+          updateFormData('location', result.data.location)
+        }
+        if (result.data.employeeRange && EMPLOYEE_RANGE_MAP[result.data.employeeRange]) {
+          updateFormData('employeeCount', EMPLOYEE_RANGE_MAP[result.data.employeeRange])
+        }
+
+        toast.success('사업자 정보를 찾았어요!')
       } else {
-        toast.error(result.error || '유효하지 않은 사업자번호예요')
+        setLookupResult({ found: false })
+        setLookupError(result.error || '등록되지 않은 사업자번호예요')
       }
     } catch (error) {
-      console.error('Business verification error:', error)
-      toast.error('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.')
+      console.error('Business lookup error:', error)
+      setLookupError('조회 중 오류가 발생했어요')
     } finally {
-      setVerifying(false)
+      setLookingUp(false)
     }
+  }, [])
+
+  // 사업자번호 입력 시 debounce 조회
+  useEffect(() => {
+    const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
+
+    if (bizNum.length === 10) {
+      const timer = setTimeout(() => {
+        lookupBusinessNumber(formData.businessNumber)
+      }, 500)
+      return () => clearTimeout(timer)
+    } else {
+      setLookupResult(null)
+      setLookupError(null)
+    }
+  }, [formData.businessNumber, lookupBusinessNumber])
+
+  // 1단계 → 2단계
+  const handleStep1Next = () => {
+    const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
+
+    if (bizNum.length > 0 && bizNum.length !== 10) {
+      toast.error('사업자번호 10자리를 입력해주세요')
+      return
+    }
+
+    setStep(2)
   }
 
   // 사업자번호 없이 진행
   const handleSkipBusinessNumber = () => {
     setSkipBusinessNumber(true)
+    setLookupResult(null)
     setStep(2)
   }
 
@@ -282,7 +329,7 @@ export default function TryPage() {
         </div>
 
         <AnimatePresence mode="wait">
-          {/* 1단계: 사업자번호 + 회사명 입력 */}
+          {/* 1단계: 사업자번호 입력 */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -295,71 +342,110 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <Building2 className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">사업자 정보를 입력해주세요</CardTitle>
+                  <CardTitle className="text-2xl">사업자번호를 입력해주세요</CardTitle>
                   <CardDescription>
-                    국세청 데이터로 사업자 정보를 확인해요
+                    사업자번호만 입력하면 기업 정보를 자동으로 채워드려요
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* 사업자번호 */}
                   <div className="space-y-2">
-                    <Label htmlFor="businessNumber">사업자번호 *</Label>
-                    <Input
-                      id="businessNumber"
-                      placeholder="000-00-00000"
-                      value={formData.businessNumber}
-                      onChange={(e) => updateFormData('businessNumber', e.target.value)}
-                      className="text-lg"
-                    />
+                    <Label htmlFor="businessNumber">사업자번호</Label>
+                    <div className="relative">
+                      <Input
+                        id="businessNumber"
+                        placeholder="000-00-00000"
+                        value={formData.businessNumber}
+                        onChange={(e) => updateFormData('businessNumber', e.target.value)}
+                        className="text-lg pr-10"
+                      />
+                      {lookingUp && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       하이픈(-) 없이 숫자만 입력해도 돼요
                     </p>
                   </div>
 
-                  {/* 회사명 */}
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">회사명 (상호) *</Label>
-                    <Input
-                      id="companyName"
-                      placeholder="(주)회사명"
-                      value={formData.companyName}
-                      onChange={(e) => updateFormData('companyName', e.target.value)}
-                      className="text-lg"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      사업자등록증에 기재된 상호를 입력해주세요
-                    </p>
-                  </div>
+                  {/* 조회 결과 표시 */}
+                  {lookupResult && lookupResult.found && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <span className="font-medium text-green-700">사업자 정보를 찾았어요!</span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-green-600" />
+                          <span className="font-medium">{lookupResult.companyName}</span>
+                        </div>
+                        {lookupResult.address && (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span className="text-muted-foreground">{lookupResult.address}</span>
+                          </div>
+                        )}
+                        {lookupResult.employeeRange && (
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">
+                              국민연금 가입자 약 {lookupResult.subscriberCount}명 ({lookupResult.employeeRange})
+                            </span>
+                          </div>
+                        )}
+                        {lookupResult.ntsStatus && (
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">
+                              {lookupResult.ntsStatus} · {lookupResult.taxType}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Database className="h-3 w-3" />
+                        <span>국민연금 데이터 기준 ({lookupResult.dataYearMonth})</span>
+                      </div>
+                    </motion.div>
+                  )}
 
-                  {/* 설립일 (선택) */}
-                  <div className="space-y-2">
-                    <Label htmlFor="foundedDate">개업일 (선택)</Label>
-                    <Input
-                      id="foundedDate"
-                      type="date"
-                      value={formData.foundedDate}
-                      onChange={(e) => updateFormData('foundedDate', e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      입력하면 더 정확한 진위확인이 가능해요
-                    </p>
-                  </div>
+                  {/* 조회 실패 */}
+                  {lookupResult && !lookupResult.found && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-amber-50 border border-amber-200 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                        <span className="text-amber-700">{lookupError}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        기업 정보를 직접 입력해주세요
+                      </p>
+                    </motion.div>
+                  )}
 
                   <Button
-                    onClick={verifyBusinessNumber}
-                    disabled={verifying}
+                    onClick={handleStep1Next}
+                    disabled={lookingUp}
                     className="w-full"
                     size="lg"
                   >
-                    {verifying ? (
+                    {lookupResult?.found ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        확인 중...
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        정보 확인하고 계속하기
                       </>
                     ) : (
                       <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        국세청 진위확인
+                        다음 단계로
+                        <ArrowRight className="h-4 w-4 ml-2" />
                       </>
                     )}
                   </Button>
@@ -405,34 +491,29 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <FileText className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">기업 정보를 입력해주세요</CardTitle>
+                  <CardTitle className="text-2xl">기업 정보를 확인해주세요</CardTitle>
                   <CardDescription>
-                    더 정확한 매칭을 위해 기업 정보가 필요해요
+                    {lookupResult?.found
+                      ? '자동으로 채워진 정보를 확인하고 수정해주세요'
+                      : '더 정확한 매칭을 위해 기업 정보가 필요해요'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* 진위확인 결과 배지 */}
-                  {businessVerified && verifyResult && (
-                    <div className={`p-3 rounded-lg flex items-center gap-2 ${
-                      verifyResult.isMatched
-                        ? 'bg-green-50 border border-green-200'
-                        : 'bg-amber-50 border border-amber-200'
-                    }`}>
-                      {verifyResult.isMatched ? (
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <Shield className="h-5 w-5 text-amber-600" />
-                      )}
+                  {/* 자동 입력 안내 */}
+                  {lookupResult?.found && (
+                    <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
                       <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          verifyResult.isMatched ? 'text-green-700' : 'text-amber-700'
-                        }`}>
-                          {verifyResult.isMatched ? '국세청 진위확인 완료' : '사업자번호 확인됨'}
+                        <p className="text-sm font-medium text-green-700">
+                          사업자 정보로 자동 입력됨
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {verifyResult.status} · {verifyResult.taxType}
+                          필요시 수정할 수 있어요
                         </p>
                       </div>
+                      <Badge variant="secondary" className="text-xs">
+                        국민연금 데이터
+                      </Badge>
                     </div>
                   )}
 
@@ -444,12 +525,7 @@ export default function TryPage() {
                       placeholder="(주)회사명"
                       value={formData.companyName}
                       onChange={(e) => updateFormData('companyName', e.target.value)}
-                      disabled={businessVerified && verifyResult?.isMatched}
-                      className={businessVerified && verifyResult?.isMatched ? 'bg-muted' : ''}
                     />
-                    {businessVerified && verifyResult?.isMatched && (
-                      <p className="text-xs text-green-600">국세청 확인된 상호명이에요</p>
-                    )}
                   </div>
 
                   {/* 업종 */}
@@ -475,7 +551,14 @@ export default function TryPage() {
                   {/* 직원수 & 소재지 */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="employeeCount">직원수 *</Label>
+                      <Label htmlFor="employeeCount">
+                        직원수 *
+                        {lookupResult?.found && lookupResult.employeeRange && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (추정)
+                          </span>
+                        )}
+                      </Label>
                       <div className="relative">
                         <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input

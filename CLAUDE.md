@@ -411,6 +411,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 | 기업마당 (bizinfo) | 중기부 지원사업 | 01:00, 13:00 | ✅ 완료 |
 | K-Startup | 창업 지원사업 | 02:00, 14:00 | ✅ 완료 |
 | 국세청 사업자등록정보 | 사업자번호 검증 | - | ✅ 완료 |
+| 국민연금 사업장 내역 | 사업자 정보 자동 조회 | 월간 CSV | ✅ 완료 (2026-01-21) |
 | 나라장터 (G2B) | 조달청 입찰공고 | 03:00, 15:00 | ⚠️ 401 오류 (API 키 재발급 필요) |
 | HRD Korea | 고용노동부 훈련 | - | 📋 API 키 미설정 (`HRD_AUTH_KEY`) |
 
@@ -523,6 +524,39 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 **남은 작업 (선택):**
 - ~~이메일 결과 발송 기능 (Resend 연동)~~ (완료)
 - 결제 후 1~2순위 공개 기능
+
+### 국민연금 사업장 데이터 연동
+사업자번호만 입력하면 기업 정보를 자동으로 조회하는 기능:
+
+**데이터 소스:**
+- 국민연금공단 가입 사업장 내역 (공공데이터포털)
+- URL: https://www.data.go.kr/data/15083277/fileData.do
+- 업데이트: 월간 (매월 26일경)
+
+**제공 정보:**
+| 필드 | 설명 |
+|------|------|
+| 사업장명 | 회사명 |
+| 도로명주소 | 사업장 주소 |
+| 가입자수 | 국민연금 가입 직원 수 (직원수 추정) |
+| 사업자상태 | 국세청 API 병행 조회 |
+
+**수정/생성 파일:**
+- `supabase/migrations/006_nps_business_registry.sql` (신규)
+- `scripts/import-nps-data.ts` (신규) - CSV import 스크립트
+- `app/api/business/lookup/route.ts` (신규) - 사업자번호 조회 API
+- `app/try/page.tsx` (수정) - 자동 입력 연동
+
+**사용 방법:**
+```bash
+# 1. CSV 다운로드 후 scripts/data/nps_business.csv 저장
+# 2. import 스크립트 실행
+npx tsx scripts/import-nps-data.ts
+```
+
+**Supabase 설정 필요:**
+- 마이그레이션 실행: `006_nps_business_registry.sql`
+- pg_trgm 확장 활성화 (회사명 유사 검색용)
 
 ### 3단계 요금제 개편 (Free/Pro/Premium)
 기존 Free/Pro 2단계 → Free/Pro/Premium 3단계로 개편:
