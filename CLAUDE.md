@@ -81,7 +81,11 @@ govhelper-main/
 │   │   ├── applications/
 │   │   ├── payments/
 │   │   ├── subscriptions/
-│   │   └── business/             # 사업자 검증
+│   │   ├── business/             # 사업자 검증
+│   │   └── guest/                # 비회원 매칭
+│   ├── try/                      # 비회원 매칭 플로우
+│   │   ├── page.tsx              # 멀티스텝 폼
+│   │   └── result/[id]/          # 결과 페이지 (블러 처리)
 │   ├── layout.tsx
 │   └── page.tsx                  # 랜딩 페이지
 ├── components/                   # 공통 컴포넌트
@@ -169,6 +173,12 @@ govhelper-main/
 | `POST` | `/api/admin/approvals` | 미등록 사업자 승인/거절 처리 |
 | `GET` | `/api/admin/users` | 사용자 목록 조회 |
 | `GET` | `/api/admin/payments` | 결제 내역 조회 |
+
+### 비회원 매칭 (Guest Matching)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/guest/matching` | 비회원 AI 매칭 분석 (리드 저장 + 상위 5개 매칭) |
+| `GET` | `/api/guest/matching/[id]` | 매칭 결과 조회 (1~2순위 블러 처리) |
 
 ---
 
@@ -259,6 +269,8 @@ npm run lint
 - `applications`: 지원서
 - `payments`: 결제 내역
 - `subscriptions`: 구독 정보
+- `guest_leads`: 비회원 리드 정보 (2026-01-21 추가)
+- `guest_matches`: 비회원 매칭 결과 (2026-01-21 추가)
 
 ### companies 테이블 스키마
 ```sql
@@ -309,6 +321,63 @@ CREATE TABLE announcement_embeddings (
 -- IVFFlat 인덱스 (빠른 근사 검색)
 CREATE INDEX idx_embeddings_ivfflat ON announcement_embeddings
 USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+```
+
+### guest_leads 테이블 스키마 (2026-01-21 추가)
+```sql
+-- 비회원 매칭 리드 테이블
+CREATE TABLE IF NOT EXISTS guest_leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) NOT NULL,
+  business_number VARCHAR(20),
+  company_name VARCHAR(255),
+  industry VARCHAR(100),
+  employee_count INTEGER,
+  founded_date DATE,
+  location VARCHAR(100),
+  annual_revenue BIGINT,
+  certifications TEXT[],           -- 보유 인증 (벤처, 이노비즈 등)
+  description TEXT,
+
+  -- 메타 정보
+  ip_address VARCHAR(45),
+  user_agent TEXT,
+  utm_source VARCHAR(100),
+  utm_medium VARCHAR(100),
+  utm_campaign VARCHAR(100),
+
+  -- 전환 정보
+  converted_to_user BOOLEAN DEFAULT false,
+  converted_at TIMESTAMPTZ,
+  user_id UUID REFERENCES auth.users(id),
+
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### guest_matches 테이블 스키마 (2026-01-21 추가)
+```sql
+-- 비회원 매칭 결과 테이블
+CREATE TABLE IF NOT EXISTS guest_matches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id UUID NOT NULL REFERENCES guest_leads(id) ON DELETE CASCADE,
+
+  -- 매칭 결과 (JSON 배열로 상위 5개 저장)
+  matches JSONB NOT NULL DEFAULT '[]',
+  -- 예시: [{ "rank": 1, "announcement_id": "...", "score": 85, "summary": "..." }, ...]
+
+  -- 결제/공개 상태
+  top_revealed BOOLEAN DEFAULT false,  -- 1~2순위 공개 여부
+  payment_id UUID,
+  revealed_at TIMESTAMPTZ,
+
+  -- 이메일 발송
+  email_sent BOOLEAN DEFAULT false,
+  email_sent_at TIMESTAMPTZ,
+
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 ```
 
 ### RLS (Row Level Security)
@@ -408,6 +477,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
 - [x] DB 마이그레이션 실행: `supabase/migrations/004_pgvector_embeddings.sql`
+- [x] DB 마이그레이션 실행: `supabase/migrations/005_guest_matching.sql` (2026-01-21)
 - [x] pgvector 확장 활성화 및 announcement_embeddings 테이블 생성
 - [x] Storage 버킷 생성: `business-plans` (비공개)
 - [x] Storage RLS 정책 추가
@@ -418,7 +488,45 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
-## 최근 완료 작업 (2026-01-20)
+## 최근 완료 작업 (2026-01-21)
+
+### 비회원 매칭 플로우 (Phase 1)
+회원가입 없이 AI 매칭을 체험할 수 있는 프리미엄 플로우:
+
+**사용자 플로우:**
+1. `/try` 페이지 진입
+2. 사업자번호 입력 (선택) → 국세청 API 검증
+3. 기업정보 입력 (회사명, 업종, 직원수, 소재지 등)
+4. 이메일 입력 → 리드 저장
+5. AI 매칭 분석 (Gemini 2.5 Flash)
+6. 결과 페이지에서 3~5순위 공개, 1~2순위 블러 처리
+
+**기술 구현:**
+- 멀티스텝 폼: framer-motion 애니메이션
+- AI 매칭: 상위 20개 공고 분석 → 상위 5개 결과 반환
+- 블러 처리: 1~2순위는 제목, 기관명, 지원금액 마스킹
+
+**수정/생성 파일:**
+- `supabase/migrations/005_guest_matching.sql` (신규)
+- `app/api/guest/matching/route.ts` (신규)
+- `app/api/guest/matching/[id]/route.ts` (신규)
+- `app/try/page.tsx` (신규)
+- `app/try/result/[id]/page.tsx` (신규)
+- `app/page.tsx` (CTA 버튼 → /try 연결)
+- `package.json` (framer-motion 의존성 추가)
+
+**랜딩 페이지 CTA 변경:**
+- Hero: "무료로 매칭 분석받기" → `/try`
+- 하단 CTA: "30초 만에 무료 분석 받기" → `/try`
+- 헤더: "무료 분석받기" → `/try`
+
+**남은 작업 (선택):**
+- 이메일 결과 발송 기능 (Resend 연동)
+- 결제 후 1~2순위 공개 기능
+
+---
+
+## 완료 작업 (2026-01-20)
 
 ### HWPX 파일 다운로드 기능
 지원서를 한글(HWP) 형식으로 다운로드하는 기능:
