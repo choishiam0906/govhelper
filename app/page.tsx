@@ -66,8 +66,8 @@ export default function Home() {
             <Link href="/login">
               <Button variant="ghost" size="sm">로그인</Button>
             </Link>
-            <Link href="/register">
-              <Button size="sm">무료 시작하기</Button>
+            <Link href="/try">
+              <Button size="sm">무료 분석받기</Button>
             </Link>
           </div>
         </div>
@@ -88,15 +88,15 @@ export default function Home() {
             복잡한 지원서 작성도 AI가 도와드립니다.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
+            <Link href="/try">
               <Button size="lg" className="gap-2">
-                무료로 시작하기
-                <ArrowRight className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
+                무료로 매칭 분석받기
               </Button>
             </Link>
             <Link href="/register">
               <Button size="lg" variant="outline">
-                공고 둘러보기
+                회원가입
               </Button>
             </Link>
           </div>
@@ -275,16 +275,23 @@ export default function Home() {
       {/* CTA Section */}
       <section className="bg-primary text-primary-foreground py-20">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">지금 바로 시작하세요</h2>
+          <h2 className="text-3xl font-bold mb-4">30초 만에 무료 분석 받기</h2>
           <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto">
-            우리 기업에 맞는 정부지원사업을 AI가 찾아드립니다. 무료로 시작해보세요.
+            회원가입 없이 바로 우리 기업에 맞는 정부지원사업을 AI가 찾아드려요.
           </p>
-          <Link href="/register">
-            <Button size="lg" variant="secondary" className="gap-2">
-              무료로 시작하기
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/try">
+              <Button size="lg" variant="secondary" className="gap-2">
+                <Sparkles className="w-4 h-4" />
+                무료로 분석받기
+              </Button>
+            </Link>
+            <Link href="/about">
+              <Button size="lg" variant="outline" className="bg-transparent border-primary-foreground/30 hover:bg-primary-foreground/10">
+                서비스 소개
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
