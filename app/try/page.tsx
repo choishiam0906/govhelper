@@ -180,7 +180,8 @@ export default function TryPage() {
         toast.error(result.error || '유효하지 않은 사업자번호예요')
       }
     } catch (error) {
-      toast.error('검증 중 오류가 발생했어요')
+      console.error('Business verification error:', error)
+      toast.error('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.')
     } finally {
       setVerifying(false)
     }

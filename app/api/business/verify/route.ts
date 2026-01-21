@@ -164,8 +164,17 @@ async function handleStatus(body: any, apiKey: string) {
 
   if (!response.ok) {
     console.error('NTS API error:', response.status, responseText)
+    // 더 상세한 에러 메시지 제공
+    let errorMessage = '국세청 API 호출에 실패했어요'
+    if (response.status === 401 || response.status === 403) {
+      errorMessage = 'API 인증에 실패했어요. 관리자에게 문의해 주세요.'
+    } else if (response.status === 400) {
+      errorMessage = '잘못된 요청이에요. 입력 정보를 확인해 주세요.'
+    } else if (response.status === 429) {
+      errorMessage = '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'
+    }
     return NextResponse.json(
-      { success: false, error: '국세청 API 호출에 실패했어요' },
+      { success: false, error: errorMessage, detail: `Status: ${response.status}` },
       { status: 500 }
     )
   }
@@ -269,8 +278,17 @@ async function handleValidate(body: any, apiKey: string) {
 
   if (!response.ok) {
     console.error('NTS Validate API error:', response.status, responseText)
+    // 더 상세한 에러 메시지 제공
+    let errorMessage = '국세청 API 호출에 실패했어요'
+    if (response.status === 401 || response.status === 403) {
+      errorMessage = 'API 인증에 실패했어요. 관리자에게 문의해 주세요.'
+    } else if (response.status === 400) {
+      errorMessage = '잘못된 요청이에요. 입력 정보를 확인해 주세요.'
+    } else if (response.status === 429) {
+      errorMessage = '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'
+    }
     return NextResponse.json(
-      { success: false, error: '국세청 API 호출에 실패했어요' },
+      { success: false, error: errorMessage, detail: `Status: ${response.status}` },
       { status: 500 }
     )
   }
