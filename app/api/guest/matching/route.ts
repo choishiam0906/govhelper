@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { resend, FROM_EMAIL } from '@/lib/email/resend'
+import { renderGuestMatchingEmail } from '@/lib/email/templates'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
@@ -223,6 +225,48 @@ export async function POST(request: NextRequest) {
         { success: false, error: '매칭 결과 저장에 실패했어요' },
         { status: 500 }
       )
+    }
+
+    // 6. 이메일 발송 (비동기로 처리, 실패해도 결과 반환)
+    const resultUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://govhelpers.com'}/try/result/${matchData.id}`
+
+    if (resend) {
+      try {
+        const emailMatches = sortedResults.map((m, index) => ({
+          rank: m.rank,
+          title: index < 2 ? '****** 지원사업' : m.title,
+          organization: index < 2 ? '******' : (m.organization || ''),
+          score: m.score,
+          summary: index < 2 ? '회원가입 후 확인 가능' : m.summary,
+          blurred: index < 2,
+        }))
+
+        const emailHtml = renderGuestMatchingEmail({
+          companyName: validatedData.companyName,
+          email: validatedData.email,
+          resultUrl,
+          matches: emailMatches,
+        })
+
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: validatedData.email,
+          subject: `[GovHelper] ${validatedData.companyName}님의 AI 매칭 분석 결과`,
+          html: emailHtml,
+        })
+
+        // 이메일 발송 상태 업데이트
+        await (supabase as any)
+          .from('guest_matches')
+          .update({
+            email_sent: true,
+            email_sent_at: new Date().toISOString(),
+          })
+          .eq('id', matchData.id)
+      } catch (emailError) {
+        console.error('Email send error:', emailError)
+        // 이메일 실패해도 결과는 반환
+      }
     }
 
     return NextResponse.json({
