@@ -15,6 +15,7 @@ import {
   Clock,
   Award,
 } from "lucide-react";
+import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section";
 
 export default function Home() {
   return (
@@ -87,28 +88,7 @@ export default function Home() {
       </section>
 
       {/* Social Proof - Stats Section */}
-      <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-primary">3,000만원</div>
-              <div className="text-sm text-muted-foreground mt-1">평균 선정 지원금</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-primary">78%</div>
-              <div className="text-sm text-muted-foreground mt-1">매칭 후 선정률</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-primary">5,000+</div>
-              <div className="text-sm text-muted-foreground mt-1">분석 가능 공고</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-primary">30초</div>
-              <div className="text-sm text-muted-foreground mt-1">매칭 소요 시간</div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <StatsSection />
 
       {/* Pain Point Section */}
       <section className="container mx-auto px-4 py-20">
@@ -193,10 +173,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold mb-4">
                 단순 AI 래퍼가 아닙니다
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                GovHelper AI는 실제 <span className="font-semibold text-foreground">200건 이상의 합격 지원서</span>와
-                <span className="font-semibold text-foreground"> 5,000개 이상의 공고 데이터</span>를 분석하여 학습했습니다.
-              </p>
+              <AIExpertiseStats />
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="text-center">
