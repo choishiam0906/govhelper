@@ -202,7 +202,7 @@ export default function ResultPage() {
           </CardContent>
         </Card>
 
-        {/* 블러 처리된 상위 매칭 (1~2순위) */}
+        {/* 블러 처리된 상위 매칭 (1순위) */}
         {blurredMatches.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
@@ -263,7 +263,7 @@ export default function ResultPage() {
           </div>
         )}
 
-        {/* 공개된 매칭 (3~5순위) */}
+        {/* 공개된 매칭 (2~5순위) */}
         {visibleMatches.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-4">
@@ -372,7 +372,7 @@ export default function ResultPage() {
               모든 매칭 결과를 확인하고 싶으신가요?
             </h3>
             <p className="text-primary-foreground/80 mb-6">
-              회원가입하시면 1~2위 지원사업과 AI 지원서 작성까지 이용할 수 있어요
+              회원가입하시면 1위 지원사업까지 확인할 수 있어요
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button variant="secondary" size="lg" asChild>

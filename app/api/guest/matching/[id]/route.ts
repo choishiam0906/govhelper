@@ -52,10 +52,10 @@ export async function GET(
       } | null
     }
 
-    // 1~2순위 블러 처리 (결제 안 한 경우)
+    // 1순위만 블러 처리 (결제 안 한 경우)
     const matches = matchData.matches || []
     const processedMatches = matches.map((match, index) => {
-      const isBlurred = index < 2 && !matchData.top_revealed
+      const isBlurred = index < 1 && !matchData.top_revealed
 
       if (isBlurred) {
         return {

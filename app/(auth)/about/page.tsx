@@ -390,11 +390,11 @@ export default function AboutPage() {
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      AI 매칭 분석 (3~5순위)
+                      AI 매칭 분석 (2~5순위)
                     </li>
                     <li className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="w-4 h-4 flex items-center justify-center">-</span>
-                      매칭 1~2순위 블러 처리
+                      매칭 1순위 블러 처리
                     </li>
                   </ul>
                 </CardContent>
@@ -428,7 +428,7 @@ export default function AboutPage() {
                     </li>
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      매칭 결과 저장 무제한
+                      마감 알림 서비스
                     </li>
                   </ul>
                 </CardContent>
@@ -440,7 +440,7 @@ export default function AboutPage() {
                   <CardTitle>Premium</CardTitle>
                   <CardDescription>AI 지원서 작성까지</CardDescription>
                   <div className="text-3xl font-bold mt-4">
-                    ₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span>
+                    ₩49,000<span className="text-sm font-normal text-muted-foreground">/월</span>
                   </div>
                 </CardHeader>
                 <CardContent>

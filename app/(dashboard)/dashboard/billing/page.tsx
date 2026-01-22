@@ -108,9 +108,9 @@ export default async function BillingPage() {
           {currentPlan === 'free' ? (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                무료 플랜을 사용 중이에요. AI 매칭 분석은 3~5순위까지 무료로 확인할 수 있어요!
+                무료 플랜을 사용 중이에요. AI 매칭 분석은 2~5순위까지 무료로 확인할 수 있어요!
                 <br />
-                <span className="text-primary font-medium">Pro</span>로 업그레이드하면 1~5순위 전체 매칭 결과를 볼 수 있어요.
+                <span className="text-primary font-medium">Pro</span>로 업그레이드하면 1순위까지 전체 매칭 결과를 볼 수 있어요.
               </p>
               <Button asChild>
                 <Link href="/dashboard/billing/checkout?plan=pro">
@@ -184,13 +184,13 @@ export default async function BillingPage() {
         <div className="grid md:grid-cols-3 gap-4">
           <PricingCard
             name="Free"
-            description="기본 기능 체험"
+            description="서비스 체험"
             price={0}
             period="monthly"
             features={[
               '공고 검색 무제한',
               'AI 시맨틱 검색',
-              'AI 매칭 분석 (3~5순위)',
+              'AI 매칭 분석 (2~5순위)',
               '관심 공고 저장',
             ]}
             current={currentPlan === 'free'}
@@ -204,13 +204,14 @@ export default async function BillingPage() {
               'Free 플랜의 모든 기능',
               'AI 매칭 전체 공개 (1~5순위)',
               '상세 분석 리포트',
+              '마감 알림 서비스',
             ]}
             popular
             current={currentPlan === 'pro'}
           />
           <PricingCard
             name="Premium"
-            description="AI 지원서 작성까지 올인원"
+            description="AI 지원서 작성까지"
             price={PAYMENT_PRICES.premiumMonthly}
             period="monthly"
             features={[
@@ -281,7 +282,7 @@ export default async function BillingPage() {
             </Button>
             <Button asChild>
               <Link href="/dashboard/billing/checkout?plan=premium">
-                Premium 구독 (₩50,000/월)
+                Premium 구독 (₩49,000/월)
               </Link>
             </Button>
           </div>

@@ -79,8 +79,8 @@ export default async function MatchingDetailPage({ params }: PageProps) {
 
     if (allMatches) {
       const rank = allMatches.findIndex((m: any) => m.id === id) + 1
-      if (rank > 0 && rank <= 2) {
-        // 1~2순위는 접근 불가 - 업그레이드 페이지로 리다이렉트
+      if (rank > 0 && rank <= 1) {
+        // 1순위는 접근 불가 - 업그레이드 페이지로 리다이렉트
         redirect('/dashboard/billing?upgrade=matching')
       }
     }

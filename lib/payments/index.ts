@@ -7,8 +7,8 @@ import { PaymentMethod } from '@/types'
 export const PAYMENT_PRICES = {
   proMonthly: 5000,          // Pro 월 구독 (커피 한 잔 가격)
   proYearly: 50000,          // Pro 연 구독 (2개월 무료)
-  premiumMonthly: 50000,     // Premium 월 구독
-  premiumYearly: 500000,     // Premium 연 구독 (2개월 무료)
+  premiumMonthly: 49000,     // Premium 월 구독
+  premiumYearly: 490000,     // Premium 연 구독 (2개월 무료)
 } as const
 
 export function getPaymentMethodName(method: PaymentMethod): string {

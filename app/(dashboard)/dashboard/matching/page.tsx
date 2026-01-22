@@ -113,7 +113,7 @@ export default async function MatchingPage({
               점수 순으로 정렬된 AI 매칭 분석 결과입니다
               {!canViewFullMatching && (
                 <span className="text-amber-600 ml-2">
-                  (Free 플랜: 3~5순위만 공개)
+                  (Free 플랜: 2~5순위만 공개)
                 </span>
               )}
             </CardDescription>
@@ -138,7 +138,7 @@ export default async function MatchingPage({
             <div className="space-y-4">
               {recentMatches.map((match: any, index: number) => {
                 const rank = index + 1
-                const isBlurred = !canViewFullMatching && rank <= 2
+                const isBlurred = !canViewFullMatching && rank <= 1
 
                 if (isBlurred) {
                   return (

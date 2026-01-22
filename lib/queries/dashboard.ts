@@ -154,7 +154,7 @@ export const PLAN_INFO = {
     name: 'Pro',
     price: 5000,
     priceLabel: '₩5,000/월',
-    tagline: '커피 한 잔 가격으로 전체 매칭',
+    tagline: '전체 매칭 결과 확인',
     features: {
       search: true,
       semanticSearch: true,
@@ -165,9 +165,9 @@ export const PLAN_INFO = {
   },
   premium: {
     name: 'Premium',
-    price: 50000,
-    priceLabel: '₩50,000/월',
-    tagline: 'AI 지원서 작성까지 올인원',
+    price: 49000,
+    priceLabel: '₩49,000/월',
+    tagline: 'AI 지원서 작성까지',
     features: {
       search: true,
       semanticSearch: true,
@@ -217,7 +217,7 @@ export async function checkFeatureAccess(
 
 // 사용량 체크 (하위 호환성 유지)
 // 새로운 비즈니스 모델:
-// - Free: 매칭 분석 (3~5순위만), 공고 검색
+// - Free: 매칭 분석 (2~5순위만), 공고 검색
 // - Pro: 매칭 분석 전체 공개 (1~5순위)
 // - Premium: 지원서 작성
 export async function checkUsageLimit(
