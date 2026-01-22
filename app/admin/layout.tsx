@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3 } from "lucide-react"
+import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare } from "lucide-react"
 
 const ADMIN_EMAILS = ['choishiam@gmail.com']
 
@@ -64,6 +64,13 @@ export default async function AdminLayout({
             >
               <Users className="w-4 h-4" />
               사용자 관리
+            </Link>
+            <Link
+              href="/admin/feedback"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              피드백 관리
             </Link>
           </nav>
         </aside>

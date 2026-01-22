@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardNav } from "@/components/dashboard/nav"
 import { DashboardHeader } from "@/components/dashboard/header"
+import { FeedbackButton } from "@/components/feedback/feedback-button"
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['choishiam@gmail.com']
@@ -62,6 +63,7 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
+      <FeedbackButton />
     </div>
   )
 }
