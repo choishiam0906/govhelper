@@ -229,8 +229,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 국세청에서 미등록인지 확인
+    const isNtsRegistered = ntsData && !ntsData.tax_type?.includes('등록되지 않은')
+
     // 모든 데이터 소스에서 정보를 찾지 못한 경우
-    if (!npsData && !dartData && (!ntsData || ntsData.tax_type?.includes('등록되지 않은'))) {
+    if (!npsData && !dartData && !isNtsRegistered) {
       return NextResponse.json({
         success: false,
         error: '등록되지 않은 사업자번호예요',
@@ -241,20 +244,27 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 국세청에서 미등록이지만 NPS/DART에는 있는 경우
-    const isNtsRegistered = ntsData && !ntsData.tax_type?.includes('등록되지 않은')
-
     // 데이터 소스 기록
     const sources: string[] = []
+    if (isNtsRegistered) sources.push('nts')
     if (npsData) sources.push('nps')
     if (dartData) sources.push('dart')
-    if (isNtsRegistered) sources.push('nts')
 
     // 응답 데이터 구성 (NPS 우선, DART 보완, NTS 상태 추가)
     const responseData: Record<string, any> = {
       businessNumber,
       found: true,
       sources,
+    }
+
+    // 국세청 데이터 추가 (사업자 상태, 과세유형) - 가장 먼저 추가
+    if (isNtsRegistered && ntsData) {
+      responseData.ntsStatus = getStatusText(ntsData.b_stt_cd)
+      responseData.ntsStatusCode = ntsData.b_stt_cd
+      responseData.taxType = getTaxTypeText(ntsData.tax_type_cd)
+      responseData.taxTypeCode = ntsData.tax_type_cd
+      responseData.closedDate = ntsData.end_dt || null
+      responseData.isNtsOnly = !npsData && !dartData // NTS만 있는 경우 표시용
     }
 
     // 국민연금 데이터 (회사명, 주소, 직원수)
@@ -286,13 +296,10 @@ export async function POST(request: NextRequest) {
       responseData.corpCls = getCorpClsText(dartData.stock_market)
     }
 
-    // 국세청 데이터 추가 (사업자 상태, 과세유형)
-    if (isNtsRegistered && ntsData) {
-      responseData.ntsStatus = getStatusText(ntsData.b_stt_cd)
-      responseData.ntsStatusCode = ntsData.b_stt_cd
-      responseData.taxType = getTaxTypeText(ntsData.tax_type_cd)
-      responseData.taxTypeCode = ntsData.tax_type_cd
-      responseData.closedDate = ntsData.end_dt || null
+    // NTS만 있는 경우 안내 메시지 추가
+    if (responseData.isNtsOnly) {
+      responseData.message = '국세청에 등록된 사업자예요. 기업 정보를 직접 입력해주세요.'
+      responseData.hint = '5인 미만 사업장은 국민연금 가입 의무가 없어 자동 조회가 어려울 수 있어요.'
     }
 
     return NextResponse.json({

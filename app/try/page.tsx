@@ -118,6 +118,10 @@ interface LookupResult {
   ntsStatus?: string
   taxType?: string
   dataYearMonth?: string
+  isNtsOnly?: boolean // NTS 정보만 있는 경우
+  message?: string
+  hint?: string
+  sources?: string[]
 }
 
 export default function TryPage() {
@@ -370,8 +374,8 @@ export default function TryPage() {
                     </p>
                   </div>
 
-                  {/* 조회 결과 표시 */}
-                  {lookupResult && lookupResult.found && (
+                  {/* 조회 결과 표시 - NPS 데이터가 있는 경우 */}
+                  {lookupResult && lookupResult.found && !lookupResult.isNtsOnly && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -412,6 +416,34 @@ export default function TryPage() {
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Database className="h-3 w-3" />
                         <span>국민연금 데이터 기준 ({lookupResult.dataYearMonth})</span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* 조회 결과 표시 - NTS만 있는 경우 (국민연금 미가입 사업장) */}
+                  {lookupResult && lookupResult.found && lookupResult.isNtsOnly && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                        <span className="font-medium text-blue-700">국세청에 등록된 사업자예요</span>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        {lookupResult.ntsStatus && (
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-blue-600" />
+                            <span className="text-muted-foreground">
+                              {lookupResult.ntsStatus} · {lookupResult.taxType}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground bg-blue-100/50 p-2 rounded">
+                        <p className="font-medium text-blue-700">{lookupResult.message}</p>
+                        <p className="mt-1 text-blue-600/80">{lookupResult.hint}</p>
                       </div>
                     </motion.div>
                   )}
