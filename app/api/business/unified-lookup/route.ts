@@ -179,7 +179,7 @@ async function lookupFromNPS(
   businessNumber: string
 ): Promise<NPSResult | null> {
   const { data, error } = await supabase
-    .from('nps_companies')
+    .from('nps_business_registry')
     .select('*')
     .eq('business_number', formatBusinessNumber(businessNumber))
     .single()
@@ -405,7 +405,7 @@ export async function GET(request: NextRequest) {
 
     // NPS에서 검색
     const { data: rawNpsData } = await supabase
-      .from('nps_companies')
+      .from('nps_business_registry')
       .select('*')
       .ilike('company_name', `%${name}%`)
       .limit(limit)

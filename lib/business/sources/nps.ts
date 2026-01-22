@@ -30,7 +30,7 @@ export async function lookupFromNPS(
     }
 
     const { data, error } = await supabase
-      .from('nps_companies')
+      .from('nps_business_registry')
       .select('*')
       .eq('business_number', formatted)
       .single()
@@ -69,7 +69,7 @@ export async function searchNPSByCompanyName(
     const supabase = createClient()
 
     const { data, error } = await supabase
-      .from('nps_companies')
+      .from('nps_business_registry')
       .select('*')
       .ilike('company_name', `%${companyName}%`)
       .limit(limit)
@@ -101,7 +101,7 @@ export async function getNPSStatsByLocation(): Promise<
     const supabase = createClient()
 
     const { data, error } = await supabase
-      .from('nps_companies')
+      .from('nps_business_registry')
       .select('location')
 
     if (error || !data) {

@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
 
     // 1. 국민연금 데이터에서 사업장 정보 조회 (사업자번호 기반)
     const { data: npsData } = await supabase
-      .from('nps_companies')
+      .from('nps_business_registry')
       .select('*')
       .eq('business_number', businessNumber)
       .single()

@@ -16,8 +16,9 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as readline from 'readline'
 
-// 환경변수 로드
-import 'dotenv/config'
+// 환경변수 로드 (.env.local 사용)
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -78,10 +79,15 @@ function parseCSVLine(line: string): string[] {
 }
 
 /**
- * 사업자번호 정규화 (하이픈 제거, 10자리)
+ * 사업자번호 정규화 (하이픈 제거, 10자리 패딩)
  */
 function normalizeBusinessNumber(bizNum: string): string | null {
   const cleaned = bizNum.replace(/[^0-9]/g, '')
+  if (cleaned.length === 0) return null
+  // 10자리 미만이면 앞에 0을 패딩
+  if (cleaned.length < 10) {
+    return cleaned.padStart(10, '0')
+  }
   if (cleaned.length !== 10) return null
   return cleaned
 }
@@ -228,11 +234,16 @@ async function importCSV() {
 
     // 배치 크기에 도달하면 DB에 저장
     if (batch.length >= BATCH_SIZE) {
+      // 배치 내 중복 제거 (마지막 레코드 유지)
+      const uniqueBatch = Array.from(
+        new Map(batch.map(r => [r.business_number, r])).values()
+      )
+
       const { error } = await supabase
         .from('nps_business_registry')
-        .upsert(batch, {
+        .upsert(uniqueBatch, {
           onConflict: 'business_number',
-          ignoreDuplicates: false,
+          ignoreDuplicates: true,
         })
 
       if (error) {
