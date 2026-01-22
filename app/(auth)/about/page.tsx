@@ -363,42 +363,82 @@ export default function AboutPage() {
       {/* Pricing Preview */}
       <section className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
               합리적인 요금제
             </h2>
             <p className="text-center text-muted-foreground mb-12">
               무료로 시작하고, 필요할 때 업그레이드하세요
             </p>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Free */}
               <Card>
                 <CardHeader>
                   <CardTitle>Free</CardTitle>
-                  <CardDescription>모든 분께 무료로</CardDescription>
+                  <CardDescription>서비스 체험하기</CardDescription>
                   <div className="text-3xl font-bold mt-4">무료</div>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      AI 매칭 분석 무제한
-                    </li>
-                    <li className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      AI 시맨틱 검색 무제한
-                    </li>
-                    <li className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
                       공고 검색 무제한
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      AI 시맨틱 검색
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      AI 매칭 분석 (3~5순위)
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="w-4 h-4 flex items-center justify-center">-</span>
+                      매칭 1~2순위 블러 처리
                     </li>
                   </ul>
                 </CardContent>
               </Card>
-              <Card className="border-primary">
+
+              {/* Pro */}
+              <Card className="border-primary relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge>추천</Badge>
+                </div>
                 <CardHeader>
-                  <Badge className="w-fit mb-2">추천</Badge>
                   <CardTitle>Pro</CardTitle>
-                  <CardDescription>AI 지원서 작성이 필요할 때</CardDescription>
+                  <CardDescription>커피 한 잔 가격으로</CardDescription>
+                  <div className="text-3xl font-bold mt-4">
+                    ₩5,000<span className="text-sm font-normal text-muted-foreground">/월</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      Free의 모든 기능
+                    </li>
+                    <li className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      AI 매칭 전체 공개 (1~5순위)
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      상세 분석 리포트
+                    </li>
+                    <li className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      매칭 결과 저장 무제한
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              {/* Premium */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Premium</CardTitle>
+                  <CardDescription>AI 지원서 작성까지</CardDescription>
                   <div className="text-3xl font-bold mt-4">
                     ₩50,000<span className="text-sm font-normal text-muted-foreground">/월</span>
                   </div>
@@ -407,9 +447,9 @@ export default function AboutPage() {
                   <ul className="space-y-3">
                     <li className="flex items-center gap-2 text-sm">
                       <CheckCircle className="w-4 h-4 text-green-500" />
-                      Free 플랜의 모든 기능
+                      Pro의 모든 기능
                     </li>
-                    <li className="flex items-center gap-2 text-sm">
+                    <li className="flex items-center gap-2 text-sm font-medium text-primary">
                       <CheckCircle className="w-4 h-4 text-green-500" />
                       AI 지원서 초안 작성
                     </li>

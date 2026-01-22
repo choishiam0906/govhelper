@@ -55,16 +55,16 @@ function getTaxTypeText(code: string): string {
   return taxTypeMap[code] || '알 수 없음'
 }
 
-// 직원수 범위 추정 (국민연금 가입자수 기반)
-function estimateEmployeeRange(subscriberCount: number): string {
-  if (subscriberCount === 0) return ''
-  if (subscriberCount <= 4) return '1-4명'
-  if (subscriberCount <= 9) return '5-9명'
-  if (subscriberCount <= 19) return '10-19명'
-  if (subscriberCount <= 49) return '20-49명'
-  if (subscriberCount <= 99) return '50-99명'
-  if (subscriberCount <= 299) return '100-299명'
-  return '300명 이상'
+// 법인구분 코드 → 한글
+function getCorpClsText(code: string | null): string {
+  if (!code) return ''
+  const corpClsMap: Record<string, string> = {
+    'Y': '유가증권시장',
+    'K': '코스닥',
+    'N': '코넥스',
+    'E': '기타',
+  }
+  return corpClsMap[code] || ''
 }
 
 // 지역 추출 (주소에서 시/도 추출)
@@ -168,14 +168,14 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // 1. 국민연금 데이터에서 사업장 정보 조회
-    const { data: npsData, error: npsError } = await supabase
-      .from('nps_business_registry')
+    // 1. DART 기업 데이터에서 사업장 정보 조회
+    const { data: dartData } = await supabase
+      .from('dart_companies')
       .select('*')
       .eq('business_number', businessNumber)
       .single()
 
-    // 2. 국세청 상태조회 API 호출 (병렬)
+    // 2. 국세청 상태조회 API 호출
     const ntsApiKey = process.env.NTS_API_KEY
     let ntsData: NTSStatusResponse['data'][0] | null = null
 
@@ -207,8 +207,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 국민연금 데이터가 없고 국세청에서도 미등록인 경우
-    if (!npsData && (!ntsData || ntsData.tax_type?.includes('등록되지 않은'))) {
+    // DART 데이터가 없고 국세청에서도 미등록인 경우
+    if (!dartData && (!ntsData || ntsData.tax_type?.includes('등록되지 않은'))) {
       return NextResponse.json({
         success: false,
         error: '등록되지 않은 사업자번호예요',
@@ -219,25 +219,29 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 국세청에서 미등록이지만 국민연금에는 있는 경우 (드문 케이스)
+    // 국세청에서 미등록이지만 DART에는 있는 경우 (드문 케이스)
     const isNtsRegistered = ntsData && !ntsData.tax_type?.includes('등록되지 않은')
 
     // 응답 데이터 구성
     const responseData: Record<string, any> = {
       businessNumber,
       found: true,
-      source: npsData ? 'nps' : 'nts',
+      source: dartData ? 'dart' : 'nts',
     }
 
-    // 국민연금 데이터가 있는 경우
-    if (npsData) {
-      responseData.companyName = npsData.company_name
-      responseData.address = npsData.road_address || npsData.jibun_address || null
-      responseData.postalCode = npsData.postal_code
-      responseData.subscriberCount = npsData.subscriber_count
-      responseData.employeeRange = estimateEmployeeRange(npsData.subscriber_count)
-      responseData.location = extractRegion(npsData.road_address || npsData.jibun_address)
-      responseData.dataYearMonth = npsData.data_year_month
+    // DART 데이터가 있는 경우
+    if (dartData) {
+      responseData.companyName = dartData.corp_name
+      responseData.companyNameEng = dartData.corp_name_eng || null
+      responseData.address = dartData.address || null
+      responseData.ceoName = dartData.ceo_name || null
+      responseData.location = extractRegion(dartData.address)
+      responseData.homepage = dartData.homepage || null
+      responseData.phone = dartData.phone || null
+      responseData.industryCode = dartData.industry_code || null
+      responseData.establishedDate = dartData.established_date || null
+      responseData.stockCode = dartData.stock_code || null
+      responseData.corpCls = getCorpClsText(dartData.corp_cls)
     }
 
     // 국세청 데이터 추가
