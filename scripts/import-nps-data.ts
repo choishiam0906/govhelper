@@ -30,8 +30,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-// CSV 파일 경로
-const CSV_FILE_PATH = path.join(__dirname, 'data', 'nps_business.csv')
+// CSV 파일 경로 (UTF-8 변환된 파일 사용)
+const CSV_FILE_PATH = path.join(__dirname, 'data', 'nps_business_utf8.csv')
 
 // 배치 크기 (한 번에 insert할 행 수)
 const BATCH_SIZE = 1000

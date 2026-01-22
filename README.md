@@ -60,9 +60,9 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 
 | 플랜 | 가격 | 기능 |
 |------|------|------|
-| **Free** | ₩0 | 공고 검색 무제한, AI 매칭 월 3회 |
-| **Pro 월간** | ₩50,000/월 | 무제한 매칭, 월 10회 지원서 |
-| **Pro 연간** | ₩500,000/년 | 무제한 매칭, 무제한 지원서, 우선 지원 |
+| **Free** | ₩0 | 공고 검색, AI 시맨틱 검색, AI 매칭 분석 (3~5순위만 공개) |
+| **Pro** | ₩5,000/월 | Free + AI 매칭 전체 공개 (1~5순위), 상세 분석 리포트 |
+| **Premium** | ₩50,000/월 | Pro + AI 지원서 작성, AI 섹션별 개선, 우선 고객 지원 |
 
 ### 4. Target Users
 
@@ -102,7 +102,7 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 | 이메일/비밀번호 로그인 | P0 | ✅ 완료 |
 | Google OAuth | P0 | ✅ 완료 |
 | 카카오 로그인 | P1 | ✅ 완료 |
-| 비밀번호 재설정 | P1 | ⏳ 예정 |
+| 비밀번호 재설정 | P1 | ✅ 완료 |
 | 네이버 로그인 | P2 | ⏳ 예정 |
 
 #### 2.2 기업 프로필 (Company Profile)
@@ -170,7 +170,7 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 | 섹션별 편집기 | P0 | ✅ 완료 |
 | AI 섹션 개선 | P1 | ✅ 완료 |
 | 지원서 목록 관리 | P0 | ✅ 완료 |
-| HWP 파일 다운로드 | P2 | ⏳ 예정 |
+| HWP 파일 다운로드 | P2 | ✅ 완료 |
 
 **지원서 섹션:**
 1. 사업 개요 (Executive Summary)
@@ -360,10 +360,19 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 
 | 서비스 | 용도 | 상태 |
 |--------|------|------|
-| Google Gemini | AI 분석/생성 | ✅ 연동 완료 |
-| 중소벤처24 API | 공고 데이터 | ✅ 연동 완료 |
+| Google Gemini 2.5 Flash | AI 분석/생성 | ✅ 연동 완료 |
+| Gemini text-embedding-004 | RAG 시맨틱 검색 (768차원) | ✅ 연동 완료 |
+| 중소벤처24 (SMES) API | 공고 데이터 | ✅ 연동 완료 |
+| 기업마당 (bizinfo) API | 중기부 지원사업 | ✅ 연동 완료 |
+| K-Startup API | 창업 지원사업 | ✅ 연동 완료 |
+| 나라장터 (G2B) API | 조달청 입찰공고 | ⚠️ API 키 재발급 필요 |
+| HRD Korea API | 직업훈련 과정 | ⚠️ API 키 필요 |
+| 국세청 API | 사업자등록정보 검증 | ✅ 연동 완료 |
+| 국민연금공단 | 기업정보 자동 조회 | ✅ 연동 완료 |
 | Toss Payments | 카드/계좌이체 결제 | ✅ 연동 완료 |
-| Supabase | DB + Auth | ✅ 연동 완료 |
+| Supabase | DB + Auth + pgvector | ✅ 연동 완료 |
+| Upstash Redis | Rate Limiting | ✅ 연동 완료 |
+| Resend | 이메일 알림 | ✅ 연동 완료 |
 | Vercel | 호스팅 + Cron | ✅ 연동 완료 |
 
 ### 7. Environment Variables
@@ -389,10 +398,10 @@ SMES_API_TOKEN=
 
 ## Project Progress
 
-### Overall Progress: 90%
+### Overall Progress: 95%
 
 ```
-██████████████████░░ 90%
+███████████████████░ 95%
 ```
 
 ### Feature Completion Status

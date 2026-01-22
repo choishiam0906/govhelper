@@ -19,6 +19,10 @@ const guestMatchingSchema = z.object({
   annualRevenue: z.number().optional(),
   certifications: z.array(z.string()).optional(),
   description: z.string().optional(),
+  // UTM 파라미터
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
 })
 
 // 빠른 매칭 점수 계산 (Gemini 사용)
@@ -126,6 +130,10 @@ export async function POST(request: NextRequest) {
         description: validatedData.description || null,
         ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
         user_agent: request.headers.get('user-agent'),
+        // UTM 파라미터
+        utm_source: validatedData.utm_source || null,
+        utm_medium: validatedData.utm_medium || null,
+        utm_campaign: validatedData.utm_campaign || null,
       })
       .select()
       .single()

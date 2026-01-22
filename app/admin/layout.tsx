@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare } from "lucide-react"
+import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, Target } from "lucide-react"
 
 const ADMIN_EMAILS = ['choishiam@gmail.com']
 

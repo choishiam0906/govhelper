@@ -29,6 +29,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import { useUTM } from '@/lib/hooks/use-utm'
 
 // 업종 목록
 const INDUSTRIES = [
@@ -121,6 +122,7 @@ interface LookupResult {
 
 export default function TryPage() {
   const router = useRouter()
+  const { utmForAPI } = useUTM()
   const [step, setStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)

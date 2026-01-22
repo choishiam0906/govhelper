@@ -41,3 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# 대용량 데이터 파일
+scripts/data/*.csv
+scripts/data/*.xml
+scripts/data/*.zip
