@@ -21,13 +21,37 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 
-// 사업자 검증 결과 타입
-interface BusinessVerifyResult {
+// 통합 기업정보 조회 결과 타입
+interface UnifiedBusinessInfo {
   businessNumber: string
-  isValid: boolean
-  status?: string
-  statusCode?: string
-  taxType?: string
+  companyName: string | null
+  companyNameEng: string | null
+  ceoName: string | null
+  address: string | null
+  location: string | null
+  industryCode: string | null
+  employeeCount: number | null
+  establishedDate: string | null
+  businessType: string | null
+  industryName: string | null
+  companySize: string | null
+  corporationType: string | null
+  homepage: string | null
+  phone: string | null
+  ntsStatus: string | null
+  ntsStatusCode: string | null
+  taxType: string | null
+  taxTypeCode: string | null
+  closedDate: string | null
+  stockCode: string | null
+  stockMarket: string | null
+  sources: string[]
+}
+
+interface BusinessLookupResult {
+  success: boolean
+  data: UnifiedBusinessInfo | null
+  error?: string
 }
 
 // 폼 스키마
@@ -92,11 +116,104 @@ const certificationOptions = [
   { value: 'researchInstitute', label: '기업부설연구소' },
 ]
 
+// 지역명 → 영문 코드 매핑
+const locationMapping: Record<string, string> = {
+  '서울특별시': 'seoul',
+  '서울': 'seoul',
+  '경기도': 'gyeonggi',
+  '경기': 'gyeonggi',
+  '인천광역시': 'incheon',
+  '인천': 'incheon',
+  '부산광역시': 'busan',
+  '부산': 'busan',
+  '대구광역시': 'daegu',
+  '대구': 'daegu',
+  '대전광역시': 'daejeon',
+  '대전': 'daejeon',
+  '광주광역시': 'gwangju',
+  '광주': 'gwangju',
+  '울산광역시': 'ulsan',
+  '울산': 'ulsan',
+  '세종특별자치시': 'sejong',
+  '세종': 'sejong',
+  '강원도': 'gangwon',
+  '강원': 'gangwon',
+  '충청북도': 'chungbuk',
+  '충북': 'chungbuk',
+  '충청남도': 'chungnam',
+  '충남': 'chungnam',
+  '전라북도': 'jeonbuk',
+  '전북': 'jeonbuk',
+  '전라남도': 'jeonnam',
+  '전남': 'jeonnam',
+  '경상북도': 'gyeongbuk',
+  '경북': 'gyeongbuk',
+  '경상남도': 'gyeongnam',
+  '경남': 'gyeongnam',
+  '제주특별자치도': 'jeju',
+  '제주': 'jeju',
+}
+
+// 업종(KSIC 대분류) → 영문 코드 매핑
+const industryMapping: Record<string, string> = {
+  // 정보통신업 계열
+  '정보통신업': 'software',
+  '출판업': 'software',
+  '컴퓨터 프로그래밍, 시스템 통합 및 관리업': 'software',
+  '정보서비스업': 'ai',
+  // 제조업 계열
+  '제조업': 'manufacturing',
+  '전자부품, 컴퓨터, 영상, 음향 및 통신장비 제조업': 'manufacturing',
+  // 금융업 계열
+  '금융 및 보험업': 'fintech',
+  // 바이오/의료 계열
+  '보건업 및 사회복지 서비스업': 'biotech',
+  // 유통/커머스
+  '도매 및 소매업': 'commerce',
+  // 교육
+  '교육 서비스업': 'education',
+  // 콘텐츠/미디어
+  '영상ㆍ오디오 기록물 제작 및 배급업': 'contents',
+  '방송업': 'contents',
+  '예술, 스포츠 및 여가관련 서비스업': 'contents',
+  // 에너지/환경
+  '전기, 가스, 증기 및 공기 조절 공급업': 'energy',
+  '수도, 하수 및 폐기물 처리, 원료 재생업': 'energy',
+}
+
+// 지역명에서 매핑된 코드 찾기
+function getLocationCode(location: string | null): string | null {
+  if (!location) return null
+  // 정확히 매칭되는 경우
+  if (locationMapping[location]) return locationMapping[location]
+  // 부분 문자열 매칭 시도
+  for (const [key, value] of Object.entries(locationMapping)) {
+    if (location.includes(key) || key.includes(location)) {
+      return value
+    }
+  }
+  return null
+}
+
+// 업종명에서 매핑된 코드 찾기
+function getIndustryCode(businessType: string | null, industryName: string | null): string | null {
+  // 먼저 industryName으로 시도
+  if (industryName && industryMapping[industryName]) {
+    return industryMapping[industryName]
+  }
+  // businessType으로 시도
+  if (businessType && industryMapping[businessType]) {
+    return industryMapping[businessType]
+  }
+  return null
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [verifyResult, setVerifyResult] = useState<BusinessVerifyResult | null>(null)
+  const [lookupResult, setLookupResult] = useState<UnifiedBusinessInfo | null>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>([])
   const [uploadedFile, setUploadedFile] = useState<{ name: string; url: string } | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -135,7 +252,7 @@ export default function OnboardingPage() {
     setValue('certifications', updated)
   }
 
-  // 사업자번호 검증
+  // 사업자번호 조회 및 자동 입력
   const verifyBusinessNumber = async () => {
     const businessNumber = watch('businessNumber')
     if (!businessNumber || businessNumber.replace(/[^0-9]/g, '').length < 10) {
@@ -144,34 +261,67 @@ export default function OnboardingPage() {
     }
 
     setVerifying(true)
-    setVerifyResult(null)
+    setLookupResult(null)
+    setLookupError(null)
 
     try {
-      const response = await fetch('/api/business/verify', {
+      const response = await fetch('/api/business/unified-lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessNumber }),
       })
 
-      const result = await response.json()
+      const result: BusinessLookupResult = await response.json()
 
       if (result.success && result.data) {
-        setVerifyResult(result.data)
-        if (result.data.isValid) {
-          if (result.data.statusCode === '03') {
-            toast.warning('폐업한 사업자예요')
-          } else if (result.data.statusCode === '02') {
-            toast.warning('휴업 중인 사업자예요')
-          } else {
-            toast.success('유효한 사업자번호예요')
+        setLookupResult(result.data)
+
+        // 사업자 상태 확인
+        if (result.data.ntsStatusCode === '03') {
+          toast.warning('폐업한 사업자예요')
+        } else if (result.data.ntsStatusCode === '02') {
+          toast.warning('휴업 중인 사업자예요')
+        } else {
+          toast.success('기업 정보를 자동으로 입력했어요')
+        }
+
+        // 기업명 자동 입력
+        if (result.data.companyName) {
+          setValue('name', result.data.companyName)
+        }
+
+        // 직원수 자동 입력
+        if (result.data.employeeCount) {
+          setValue('employeeCount', String(result.data.employeeCount))
+        }
+
+        // 설립일 자동 입력
+        if (result.data.establishedDate) {
+          const dateStr = result.data.establishedDate.replace(/[^0-9]/g, '')
+          if (dateStr.length === 8) {
+            const formatted = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
+            setValue('foundedDate', formatted)
           }
         }
+
+        // 지역 자동 입력
+        const locationCode = getLocationCode(result.data.location)
+        if (locationCode) {
+          setValue('location', locationCode)
+        }
+
+        // 업종 자동 입력
+        const industryCode = getIndustryCode(result.data.businessType, result.data.industryName)
+        if (industryCode) {
+          setValue('industry', industryCode)
+        }
       } else {
-        setVerifyResult({ businessNumber, isValid: false })
-        toast.error(result.error || '사업자번호를 확인할 수 없어요')
+        setLookupError(result.error || '기업 정보를 찾을 수 없어요')
+        toast.error(result.error || '기업 정보를 찾을 수 없어요')
       }
     } catch {
-      toast.error('검증 중 오류가 발생했어요')
+      setLookupError('조회 중 오류가 발생했어요')
+      toast.error('조회 중 오류가 발생했어요')
     } finally {
       setVerifying(false)
     }
@@ -380,28 +530,57 @@ export default function OnboardingPage() {
                       <span className="ml-1">조회</span>
                     </Button>
                   </div>
-                  {verifyResult && (
-                    <div className="flex items-center gap-2 mt-2">
-                      {verifyResult.isValid ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">
-                            {verifyResult.status}
-                          </span>
-                          {verifyResult.taxType && (
-                            <Badge variant="outline" className="text-xs">
-                              {verifyResult.taxType}
+                  {lookupResult && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">
+                          {lookupResult.companyName || '기업 정보 확인됨'}
+                        </span>
+                        {lookupResult.corporationType && lookupResult.corporationType !== '알 수 없음' && (
+                          <Badge variant="outline" className="text-xs bg-white">
+                            {lookupResult.corporationType}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
+                        {lookupResult.ceoName && (
+                          <div>대표자: {lookupResult.ceoName}</div>
+                        )}
+                        {lookupResult.businessType && (
+                          <div>업태: {lookupResult.businessType}</div>
+                        )}
+                        {lookupResult.industryName && (
+                          <div>종목: {lookupResult.industryName}</div>
+                        )}
+                        {lookupResult.companySize && lookupResult.companySize !== '알 수 없음' && (
+                          <div>규모: {lookupResult.companySize}</div>
+                        )}
+                        {lookupResult.ntsStatus && (
+                          <div>상태: {lookupResult.ntsStatus}</div>
+                        )}
+                        {lookupResult.taxType && (
+                          <div>과세유형: {lookupResult.taxType}</div>
+                        )}
+                      </div>
+                      {lookupResult.sources && lookupResult.sources.length > 0 && (
+                        <div className="flex items-center gap-1 pt-1 border-t border-green-200">
+                          <span className="text-xs text-green-600">출처:</span>
+                          {lookupResult.sources.map((source) => (
+                            <Badge key={source} variant="secondary" className="text-xs">
+                              {source.toUpperCase()}
                             </Badge>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-4 w-4 text-red-500" />
-                          <span className="text-sm text-red-500">
-                            등록되지 않은 사업자번호
-                          </span>
-                        </>
+                          ))}
+                        </div>
                       )}
+                    </div>
+                  )}
+                  {lookupError && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-500">
+                        {lookupError}
+                      </span>
                     </div>
                   )}
                 </div>

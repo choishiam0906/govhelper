@@ -26,7 +26,10 @@ import {
   FileText,
   Shield,
   Database,
-  AlertCircle
+  AlertCircle,
+  Briefcase,
+  Calendar,
+  Building
 } from 'lucide-react'
 import Link from 'next/link'
 import { useUTM } from '@/lib/hooks/use-utm'
@@ -46,6 +49,10 @@ const INDUSTRIES = [
   '농업, 임업 및 어업',
   '예술, 스포츠 및 여가관련 서비스업',
   '부동산업',
+  '사업시설 관리, 사업 지원 및 임대 서비스업',
+  '전기, 가스, 증기 및 공기 조절 공급업',
+  '수도, 하수 및 폐기물 처리, 원료 재생업',
+  '광업',
   '기타',
 ]
 
@@ -82,17 +89,6 @@ const CERTIFICATIONS = [
   '녹색인증',
 ]
 
-// 직원수 범위 → 중간값 변환
-const EMPLOYEE_RANGE_MAP: Record<string, string> = {
-  '1-4명': '3',
-  '5-9명': '7',
-  '10-19명': '15',
-  '20-49명': '35',
-  '50-99명': '75',
-  '100-299명': '200',
-  '300명 이상': '500',
-}
-
 type Step = 1 | 2 | 3 | 4
 
 interface FormData {
@@ -107,21 +103,32 @@ interface FormData {
   email: string
 }
 
-// 조회 결과 타입
-interface LookupResult {
-  found: boolean
-  companyName?: string
-  address?: string
-  location?: string
-  subscriberCount?: number
-  employeeRange?: string
-  ntsStatus?: string
-  taxType?: string
-  dataYearMonth?: string
-  isNtsOnly?: boolean // NTS 정보만 있는 경우
-  message?: string
-  hint?: string
-  sources?: string[]
+// 통합 조회 결과 타입 (unified-lookup API 응답)
+interface UnifiedLookupResult {
+  success: boolean
+  data?: {
+    businessNumber: string
+    companyName: string
+    companyNameEng: string | null
+    ceoName: string | null
+    address: string | null
+    location: string
+    industryCode: string | null
+    employeeCount: number | null
+    establishedDate: string | null
+    businessType: string | null      // 업태 (대분류)
+    industryName: string | null      // 종목 (세세분류)
+    companySize: string              // 기업규모
+    corporationType: string          // 법인형태
+    homepage: string | null
+    phone: string | null
+    ntsStatus: string | null
+    taxType: string | null
+    stockCode: string | null
+    stockMarket: string
+    sources: string[]
+  }
+  error?: string
 }
 
 export default function TryPage() {
@@ -145,7 +152,7 @@ export default function TryPage() {
   })
 
   // 사업자번호 조회 결과
-  const [lookupResult, setLookupResult] = useState<LookupResult | null>(null)
+  const [lookupResult, setLookupResult] = useState<UnifiedLookupResult | null>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
 
   const progress = ((step - 1) / 3) * 100
@@ -163,7 +170,7 @@ export default function TryPage() {
     }))
   }
 
-  // 사업자번호 조회 (debounce)
+  // 사업자번호 조회 (통합 API 사용)
   const lookupBusinessNumber = useCallback(async (bizNum: string) => {
     const cleaned = bizNum.replace(/[^0-9]/g, '')
 
@@ -177,16 +184,16 @@ export default function TryPage() {
     setLookupError(null)
 
     try {
-      const response = await fetch('/api/business/lookup', {
+      const response = await fetch('/api/business/unified-lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ businessNumber: cleaned }),
       })
 
-      const result = await response.json()
+      const result: UnifiedLookupResult = await response.json()
 
-      if (result.success && result.data?.found) {
-        setLookupResult(result.data)
+      if (result.success && result.data) {
+        setLookupResult(result)
 
         // 폼 자동 채우기
         if (result.data.companyName) {
@@ -195,14 +202,27 @@ export default function TryPage() {
         if (result.data.location) {
           updateFormData('location', result.data.location)
         }
-        if (result.data.employeeRange && EMPLOYEE_RANGE_MAP[result.data.employeeRange]) {
-          updateFormData('employeeCount', EMPLOYEE_RANGE_MAP[result.data.employeeRange])
+        if (result.data.employeeCount) {
+          updateFormData('employeeCount', result.data.employeeCount.toString())
+        }
+        // 업종 자동 채우기 (businessType = 업태)
+        if (result.data.businessType && INDUSTRIES.includes(result.data.businessType)) {
+          updateFormData('industry', result.data.businessType)
+        }
+        // 설립일 자동 채우기
+        if (result.data.establishedDate) {
+          // YYYYMMDD → YYYY-MM-DD 변환
+          const dateStr = result.data.establishedDate.replace(/[^0-9]/g, '')
+          if (dateStr.length === 8) {
+            const formatted = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
+            updateFormData('foundedDate', formatted)
+          }
         }
 
         toast.success('사업자 정보를 찾았어요!')
       } else {
-        setLookupResult({ found: false })
-        setLookupError(result.error || '등록되지 않은 사업자번호예요')
+        setLookupResult({ success: false, error: result.error })
+        setLookupError(result.error || '기업 정보를 찾을 수 없어요')
       }
     } catch (error) {
       console.error('Business lookup error:', error)
@@ -374,8 +394,8 @@ export default function TryPage() {
                     </p>
                   </div>
 
-                  {/* 조회 결과 표시 - NPS 데이터가 있는 경우 */}
-                  {lookupResult && lookupResult.found && !lookupResult.isNtsOnly && (
+                  {/* 조회 결과 표시 - 기업정보를 찾은 경우 */}
+                  {lookupResult?.success && lookupResult.data && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -386,70 +406,88 @@ export default function TryPage() {
                         <span className="font-medium text-green-700">사업자 정보를 찾았어요!</span>
                       </div>
                       <div className="space-y-2 text-sm">
+                        {/* 회사명 */}
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-green-600" />
-                          <span className="font-medium">{lookupResult.companyName}</span>
+                          <span className="font-medium">{lookupResult.data.companyName}</span>
+                          {lookupResult.data.corporationType && lookupResult.data.corporationType !== '알 수 없음' && (
+                            <Badge variant="outline" className="text-xs">
+                              {lookupResult.data.corporationType}
+                            </Badge>
+                          )}
                         </div>
-                        {lookupResult.address && (
-                          <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
-                            <span className="text-muted-foreground">{lookupResult.address}</span>
+                        {/* 대표자 */}
+                        {lookupResult.data.ceoName && (
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">대표: {lookupResult.data.ceoName}</span>
                           </div>
                         )}
-                        {lookupResult.employeeRange && (
+                        {/* 업종 */}
+                        {lookupResult.data.businessType && (
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">
+                              {lookupResult.data.businessType}
+                              {lookupResult.data.industryName && lookupResult.data.industryName !== '기타' && (
+                                <span className="text-xs ml-1">({lookupResult.data.industryName})</span>
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {/* 주소 */}
+                        {lookupResult.data.address && (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
+                            <span className="text-muted-foreground">{lookupResult.data.address}</span>
+                          </div>
+                        )}
+                        {/* 직원수 */}
+                        {lookupResult.data.employeeCount && (
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-green-600" />
                             <span className="text-muted-foreground">
-                              국민연금 가입자 약 {lookupResult.subscriberCount}명 ({lookupResult.employeeRange})
+                              직원 약 {lookupResult.data.employeeCount}명
+                              {lookupResult.data.companySize && lookupResult.data.companySize !== '알 수 없음' && (
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  {lookupResult.data.companySize}
+                                </Badge>
+                              )}
                             </span>
                           </div>
                         )}
-                        {lookupResult.ntsStatus && (
+                        {/* 설립일 */}
+                        {lookupResult.data.establishedDate && (
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-green-600" />
+                            <span className="text-muted-foreground">
+                              설립: {lookupResult.data.establishedDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1년 $2월 $3일')}
+                            </span>
+                          </div>
+                        )}
+                        {/* 사업자 상태 */}
+                        {lookupResult.data.ntsStatus && (
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-green-600" />
                             <span className="text-muted-foreground">
-                              {lookupResult.ntsStatus} · {lookupResult.taxType}
+                              {lookupResult.data.ntsStatus}
+                              {lookupResult.data.taxType && ` · ${lookupResult.data.taxType}`}
                             </span>
                           </div>
                         )}
                       </div>
+                      {/* 데이터 소스 */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Database className="h-3 w-3" />
-                        <span>국민연금 데이터 기준 ({lookupResult.dataYearMonth})</span>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* 조회 결과 표시 - NTS만 있는 경우 (국민연금 미가입 사업장) */}
-                  {lookupResult && lookupResult.found && lookupResult.isNtsOnly && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-blue-600" />
-                        <span className="font-medium text-blue-700">국세청에 등록된 사업자예요</span>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        {lookupResult.ntsStatus && (
-                          <div className="flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-blue-600" />
-                            <span className="text-muted-foreground">
-                              {lookupResult.ntsStatus} · {lookupResult.taxType}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground bg-blue-100/50 p-2 rounded">
-                        <p className="font-medium text-blue-700">{lookupResult.message}</p>
-                        <p className="mt-1 text-blue-600/80">{lookupResult.hint}</p>
+                        <span>
+                          데이터 소스: {lookupResult.data.sources?.join(', ').toUpperCase() || 'NTS, NPS, DART'}
+                        </span>
                       </div>
                     </motion.div>
                   )}
 
                   {/* 조회 실패 */}
-                  {lookupResult && !lookupResult.found && (
+                  {lookupResult && !lookupResult.success && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -471,7 +509,7 @@ export default function TryPage() {
                     className="w-full"
                     size="lg"
                   >
-                    {lookupResult?.found ? (
+                    {lookupResult?.success ? (
                       <>
                         <CheckCircle className="h-4 w-4 mr-2" />
                         정보 확인하고 계속하기
@@ -527,14 +565,14 @@ export default function TryPage() {
                   </div>
                   <CardTitle className="text-2xl">기업 정보를 확인해주세요</CardTitle>
                   <CardDescription>
-                    {lookupResult?.found
+                    {lookupResult?.success
                       ? '자동으로 채워진 정보를 확인하고 수정해주세요'
                       : '더 정확한 매칭을 위해 기업 정보가 필요해요'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* 자동 입력 안내 */}
-                  {lookupResult?.found && (
+                  {lookupResult?.success && (
                     <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
                       <div className="flex-1">
@@ -546,7 +584,7 @@ export default function TryPage() {
                         </p>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        국민연금 데이터
+                        {lookupResult.data?.sources?.length || 0}개 소스
                       </Badge>
                     </div>
                   )}
@@ -564,7 +602,12 @@ export default function TryPage() {
 
                   {/* 업종 */}
                   <div className="space-y-2">
-                    <Label>업종 *</Label>
+                    <Label>
+                      업종 *
+                      {lookupResult?.success && lookupResult.data?.businessType && (
+                        <span className="text-xs text-green-600 ml-1">(자동 입력됨)</span>
+                      )}
+                    </Label>
                     <Select
                       value={formData.industry}
                       onValueChange={(value) => updateFormData('industry', value)}
@@ -587,10 +630,8 @@ export default function TryPage() {
                     <div className="space-y-2">
                       <Label htmlFor="employeeCount">
                         직원수 *
-                        {lookupResult?.found && lookupResult.employeeRange && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            (추정)
-                          </span>
+                        {lookupResult?.success && lookupResult.data?.employeeCount && (
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
                         )}
                       </Label>
                       <div className="relative">
@@ -607,7 +648,12 @@ export default function TryPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>소재지 *</Label>
+                      <Label>
+                        소재지 *
+                        {lookupResult?.success && lookupResult.data?.location && (
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
+                        )}
+                      </Label>
                       <Select
                         value={formData.location}
                         onValueChange={(value) => updateFormData('location', value)}
@@ -647,7 +693,12 @@ export default function TryPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="foundedDate">설립일 (선택)</Label>
+                      <Label htmlFor="foundedDate">
+                        설립일 (선택)
+                        {lookupResult?.success && lookupResult.data?.establishedDate && (
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
+                        )}
+                      </Label>
                       <Input
                         id="foundedDate"
                         type="date"
@@ -741,6 +792,7 @@ export default function TryPage() {
                       <p>업종: {formData.industry}</p>
                       <p>직원수: {formData.employeeCount}명</p>
                       <p>소재지: {formData.location}</p>
+                      {formData.foundedDate && <p>설립일: {formData.foundedDate}</p>}
                       {formData.annualRevenue && <p>연매출: {formData.annualRevenue}억원</p>}
                       {formData.certifications.length > 0 && (
                         <p>인증: {formData.certifications.join(', ')}</p>
