@@ -490,7 +490,38 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
-## 최근 완료 작업 (2026-01-21)
+## 최근 완료 작업 (2026-01-23)
+
+### 관리자 사용자 관리 페이지 기능 개선
+관리자가 사용자의 구독 플랜을 더 유연하게 관리할 수 있도록 개선:
+
+**기존 문제:**
+- Pro 사용자를 Premium으로 업그레이드하는 버튼 없음
+- Premium 사용자를 Pro로 다운그레이드하는 기능 없음
+- 구독 취소 시 올바르게 Free로 변경되지 않음
+
+**수정 내용:**
+- Pro 사용자: "Premium 업그레이드" + "구독 취소" 버튼 표시
+- Premium 사용자: "Pro 다운그레이드" + "구독 취소" 버튼 표시
+- Free 사용자: "구독 부여" 버튼만 표시
+- 업그레이드/다운그레이드 시 기존 구독 기간 유지 (`keepPeriod` 파라미터)
+- API에서 Admin Client 사용하여 RLS 우회
+
+**수정 파일:**
+- `app/admin/users/page.tsx` - UI 전면 개편
+  - `DialogMode` 타입 추가 ("grant" | "upgrade" | "downgrade")
+  - `isProUser()`, `isPremiumUser()`, `isFreeUser()` 헬퍼 함수
+  - `renderUserActions()` 함수로 사용자별 버튼 렌더링
+  - 모드별 다이얼로그 UI 분기
+- `app/api/admin/users/route.ts` - POST API 개선
+  - `keepPeriod` 파라미터 추가
+  - 기존 구독 기간 조회 후 유지 로직
+- `app/api/admin/users/[id]/route.ts` - DELETE API 개선
+  - Admin Client 사용으로 RLS 우회
+
+---
+
+## 완료 작업 (2026-01-21)
 
 ### 비회원 매칭 플로우 (Phase 1)
 회원가입 없이 AI 매칭을 체험할 수 있는 프리미엄 플로우:
