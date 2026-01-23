@@ -142,6 +142,11 @@ govhelper-main/
 | `POST` | `/api/matching` | AI 매칭 분석 요청 |
 | `GET/DELETE` | `/api/matching/[id]` | 매칭 결과 조회/삭제 |
 
+### 맞춤 추천 (Recommendations)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/recommendations` | 기업 정보 기반 맞춤 공고 추천 (Pro/Premium 전용) |
+
 ### 지원서 (Applications)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -537,6 +542,58 @@ const industryMapping = {
   // ...
 }
 ```
+
+---
+
+### Pro/Premium 맞춤 추천 공고 기능
+매칭 페이지 상단에 기업 정보 기반으로 자격조건이 맞는 공고를 자동 추천하는 기능:
+
+**대상 사용자:**
+- Pro/Premium: 추천 공고 표시
+- Free: 업그레이드 안내 카드 표시
+
+**추천 알고리즘 (100점 만점):**
+| 기준 | 배점 | 설명 |
+|------|------|------|
+| 업종 | 30점 | 회사 업종과 공고 대상 업종 매칭 |
+| 지역 | 20점 | 회사 소재지와 공고 대상 지역 매칭 (전국은 자동 통과) |
+| 직원수 | 15점 | 공고 요구 직원수 범위 충족 여부 |
+| 매출 | 15점 | 공고 요구 매출 범위 충족 여부 |
+| 업력 | 10점 | 설립일 기준 업력 조건 충족 여부 |
+| 인증 | 10점 | 벤처, 이노비즈 등 필수 인증 보유 여부 |
+| 가산점 | +5점 | 마감 7일 이내 공고 |
+
+**필터링 로직:**
+- eligibility_criteria가 있는 활성 공고만 대상
+- 제외 업종/지역에 해당하면 완전 제외
+- 최소 점수 50점 이상만 추천
+- 점수 높은 순으로 상위 5개 표시
+
+**API 엔드포인트:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/recommendations` | 맞춤 추천 공고 조회 |
+
+**Query Parameters:**
+- `limit`: 최대 개수 (기본: 10)
+- `minScore`: 최소 점수 (기본: 50)
+
+**생성 파일:**
+- `lib/recommendations/types.ts` - 타입 정의 (CompanyInfo, RecommendationResult, ScoreBreakdown 등)
+- `lib/recommendations/mappings.ts` - 업종/지역/인증 한글↔영문 매핑 및 매칭 함수
+- `lib/recommendations/filter.ts` - 점수 계산 및 필터링 로직
+- `app/api/recommendations/route.ts` - API 엔드포인트
+- `components/recommendations/recommended-announcements.tsx` - UI 컴포넌트
+
+**수정 파일:**
+- `app/(dashboard)/dashboard/matching/page.tsx` - 상단에 추천 공고 컴포넌트 추가
+
+**UI 표시 정보:**
+- 공고 제목, 기관명
+- D-day (마감일까지 남은 일수, 7일 이내는 빨간색)
+- 지원금액
+- 일치 조건 뱃지 (업종, 지역, 직원수 등)
+- 적합도 점수 (색상: 90+ 초록, 75+ 파랑, 60+ 노랑)
 
 ---
 
