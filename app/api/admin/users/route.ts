@@ -150,21 +150,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Service Role Client 사용 (RLS 우회)
+    const adminClient = getSupabaseAdmin()
+
     const periodStart = new Date()
     const periodEnd = new Date()
     periodEnd.setMonth(periodEnd.getMonth() + (months || 1))
 
     // 기존 구독 확인
-    const { data: existingSub } = await (supabase
-      .from('subscriptions') as any)
+    const { data: existingSub } = await (adminClient
+      .from('subscriptions') )
       .select('id')
       .eq('user_id', userId)
       .single()
 
     if (existingSub?.id) {
       // 기존 구독 업데이트
-      const { error: updateError } = await (supabase
-        .from('subscriptions') as any)
+      const { error: updateError } = await (adminClient
+        .from('subscriptions') )
         .update({
           plan: plan || 'pro',
           status: 'active',
@@ -183,8 +186,8 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // 새 구독 생성
-      const { error: insertError } = await (supabase
-        .from('subscriptions') as any)
+      const { error: insertError } = await (adminClient
+        .from('subscriptions') )
         .insert({
           user_id: userId,
           plan: plan || 'pro',
