@@ -1,11 +1,5 @@
 import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
-
-// Upstash Redis 클라이언트 (Vercel KV 또는 직접 Upstash 지원)
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
-})
+import redis from './redis'
 
 // Rate Limiter 설정
 // AI 관련 API (매칭, 지원서 개선) - 분당 10회
