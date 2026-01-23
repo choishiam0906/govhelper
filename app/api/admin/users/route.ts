@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
 
     const authUsers = authData?.users || []
 
-    // 구독 정보 조회
-    const { data: subscriptions, error: subError } = await supabase
+    // 구독 정보 조회 (Admin Client 사용 - RLS 우회)
+    const { data: subscriptions, error: subError } = await adminClient
       .from('subscriptions')
       .select('*')
       .order('created_at', { ascending: false })
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
       console.error('Subscriptions fetch error:', subError)
     }
 
-    // 회사 정보 조회
-    const { data: companies, error: compError } = await supabase
+    // 회사 정보 조회 (Admin Client 사용 - RLS 우회)
+    const { data: companies, error: compError } = await adminClient
       .from('companies')
       .select('id, user_id, name, created_at')
       .order('created_at', { ascending: false })
