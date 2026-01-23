@@ -154,6 +154,7 @@ export interface BusinessLookupResult {
     dart?: DARTResult | null
     ksic?: KSICResult | null
   }
+  fromCache?: boolean // 캐시에서 조회된 결과인지 여부
 }
 
 // API 요청 타입

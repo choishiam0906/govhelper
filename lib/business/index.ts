@@ -25,6 +25,7 @@ import {
 } from './sources/dart'
 import { lookupFromKSIC, getBusinessTypeFromCode, getIndustryNameFromCode } from './sources/ksic'
 import { estimateCompanySize } from './utils/company-size'
+import { getBusinessCache, setBusinessCache } from '@/lib/cache'
 import { inferCorporationType } from './utils/corporation-type'
 
 // 기본 옵션
@@ -71,6 +72,24 @@ export async function lookupBusiness(
       success: false,
       data: null,
       error: '유효하지 않은 사업자등록번호입니다.',
+    }
+  }
+
+  // 캐시 조회 (useCache가 true인 경우)
+  if (opts.useCache) {
+    try {
+      const cached = await getBusinessCache(formatted)
+      if (cached) {
+        return {
+          success: true,
+          data: cached,
+          partialResults: {},
+          fromCache: true,
+        }
+      }
+    } catch (error) {
+      // 캐시 조회 실패 시 기존 로직으로 fallback
+      console.error("[Cache] Failed to get business cache:", error)
     }
   }
 
@@ -141,6 +160,16 @@ export async function lookupBusiness(
       data: null,
       error: '기업 정보를 찾을 수 없습니다.',
       partialResults,
+    }
+  }
+
+  // 성공 시 캐시 저장 (useCache가 true인 경우)
+  if (opts.useCache && unifiedInfo) {
+    try {
+      await setBusinessCache(formatted, unifiedInfo)
+    } catch (error) {
+      // 캐시 저장 실패 시 조용히 무시
+      console.error("[Cache] Failed to set business cache:", error)
     }
   }
 
