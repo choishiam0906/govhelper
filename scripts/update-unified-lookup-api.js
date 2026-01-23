@@ -1,4 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+const fs = require('fs');
+const path = require('path');
+
+const apiPath = path.join(__dirname, '..', 'app', 'api', 'business', 'unified-lookup', 'route.ts');
+
+const newContent = `import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type {
   BusinessLookupOptions,
@@ -196,7 +201,7 @@ async function lookupFromNTS(businessNumber: string): Promise<NTSResult | null> 
 
   try {
     const response = await fetch(
-      `https://api.odcloud.kr/api/nts-businessman/v1/status?serviceKey=${encodeURIComponent(key)}`,
+      \`https://api.odcloud.kr/api/nts-businessman/v1/status?serviceKey=\${encodeURIComponent(key)}\`,
       {
         method: 'POST',
         headers: {
@@ -500,14 +505,14 @@ export async function GET(request: NextRequest) {
     const { data: rawNpsData } = await supabase
       .from('nps_business_registry')
       .select('*')
-      .ilike('company_name', `%${name}%`)
+      .ilike('company_name', \`%\${name}%\`)
       .limit(limit)
 
     // DART에서 검색
     const { data: rawDartData } = await supabase
       .from('dart_companies')
       .select('*')
-      .ilike('corp_name', `%${name}%`)
+      .ilike('corp_name', \`%\${name}%\`)
       .limit(limit)
 
     const npsData = (rawNpsData || []) as NPSCompanyRow[]
@@ -612,3 +617,7 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+`;
+
+fs.writeFileSync(apiPath, newContent, 'utf8');
+console.log('unified-lookup/route.ts 파일이 업데이트되었습니다.');

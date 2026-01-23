@@ -1,4 +1,9 @@
-// 통합 기업정보 조회 시스템 타입 정의
+const fs = require('fs');
+const path = require('path');
+
+const typesPath = path.join(__dirname, '..', 'lib', 'business', 'types.ts');
+
+const newContent = `// 통합 기업정보 조회 시스템 타입 정의
 
 // 데이터 소스 타입
 export type BusinessDataSource = 'nts' | 'nps' | 'dart' | 'ksic'
@@ -169,3 +174,7 @@ export interface BusinessLookupResponse {
   error?: string
   sources?: BusinessDataSource[]
 }
+`;
+
+fs.writeFileSync(typesPath, newContent, 'utf8');
+console.log('types.ts 파일이 업데이트되었습니다.');

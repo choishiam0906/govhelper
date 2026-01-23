@@ -1,4 +1,9 @@
-// 통합 기업정보 조회 시스템
+const fs = require('fs');
+const path = require('path');
+
+const indexPath = path.join(__dirname, '..', 'lib', 'business', 'index.ts');
+
+const newContent = `// 통합 기업정보 조회 시스템
 
 import type {
   BusinessDataSource,
@@ -450,3 +455,7 @@ function extractLocation(address: string | null | undefined): string {
 
   return ''
 }
+`;
+
+fs.writeFileSync(indexPath, newContent, 'utf8');
+console.log('index.ts 파일이 업데이트되었습니다.');
