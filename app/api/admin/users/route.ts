@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: 사용자에게 직접 Pro 권한 부여
+// POST: 사용자에게 구독 권한 부여/업그레이드/다운그레이드
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { userId, plan, months } = body
+    const { userId, plan, months, keepPeriod } = body
 
     if (!userId) {
       return NextResponse.json(
@@ -153,26 +153,39 @@ export async function POST(request: NextRequest) {
     // Service Role Client 사용 (RLS 우회)
     const adminClient = getSupabaseAdmin()
 
-    const periodStart = new Date()
-    const periodEnd = new Date()
-    periodEnd.setMonth(periodEnd.getMonth() + (months || 1))
-
     // 기존 구독 확인
-    const { data: existingSub } = await (adminClient
-      .from('subscriptions') )
-      .select('id')
+    const { data: existingSub } = await adminClient
+      .from('subscriptions')
+      .select('id, current_period_start, current_period_end')
       .eq('user_id', userId)
       .single()
 
+    // 기간 설정: keepPeriod가 true면 기존 기간 유지 (업그레이드/다운그레이드)
+    let periodStart: string
+    let periodEnd: string
+
+    if (keepPeriod && existingSub?.current_period_end) {
+      // 업그레이드/다운그레이드: 기존 기간 유지
+      periodStart = existingSub.current_period_start
+      periodEnd = existingSub.current_period_end
+    } else {
+      // 새 구독 부여: 새 기간 설정
+      const now = new Date()
+      const end = new Date()
+      end.setMonth(end.getMonth() + (months || 1))
+      periodStart = now.toISOString()
+      periodEnd = end.toISOString()
+    }
+
     if (existingSub?.id) {
       // 기존 구독 업데이트
-      const { error: updateError } = await (adminClient
-        .from('subscriptions') )
+      const { error: updateError } = await adminClient
+        .from('subscriptions')
         .update({
           plan: plan || 'pro',
           status: 'active',
-          current_period_start: periodStart.toISOString(),
-          current_period_end: periodEnd.toISOString(),
+          current_period_start: periodStart,
+          current_period_end: periodEnd,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existingSub.id)
@@ -186,14 +199,14 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // 새 구독 생성
-      const { error: insertError } = await (adminClient
-        .from('subscriptions') )
+      const { error: insertError } = await adminClient
+        .from('subscriptions')
         .insert({
           user_id: userId,
           plan: plan || 'pro',
           status: 'active',
-          current_period_start: periodStart.toISOString(),
-          current_period_end: periodEnd.toISOString(),
+          current_period_start: periodStart,
+          current_period_end: periodEnd,
         })
 
       if (insertError) {
@@ -205,17 +218,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const planLabel = plan === 'premium' ? 'Premium' : 'Pro'
     return NextResponse.json({
       success: true,
-      message: 'Pro 권한이 부여되었습니다.',
+      message: planLabel + ' 권한이 부여되었습니다.',
       data: {
         userId,
         plan: plan || 'pro',
-        periodEnd: periodEnd.toISOString(),
+        periodEnd,
       },
     })
   } catch (error) {
-    console.error('Admin grant pro error:', error)
+    console.error('Admin grant subscription error:', error)
     return NextResponse.json(
       { success: false, error: '서버 오류가 발생했습니다' },
       { status: 500 }

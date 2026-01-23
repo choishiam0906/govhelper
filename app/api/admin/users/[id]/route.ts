@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['choishiam@gmail.com']
+
+// Supabase Admin Client (RLS 우회용)
+function getSupabaseAdmin() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  )
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -34,9 +49,12 @@ export async function DELETE(
       )
     }
 
+    // Service Role Client 사용 (RLS 우회)
+    const adminClient = getSupabaseAdmin()
+
     // 구독을 free로 다운그레이드
-    const { error: updateError } = await (supabase
-      .from('subscriptions') as any)
+    const { error: updateError } = await adminClient
+      .from('subscriptions')
       .update({
         plan: 'free',
         status: 'cancelled',
