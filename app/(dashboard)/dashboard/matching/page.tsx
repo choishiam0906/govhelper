@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { TrendingUp, Clock, Building2, ArrowRight, Sparkles, Lock, Crown } from 'lucide-react'
 import { MatchingForm } from './matching-form'
 import { getUserPlan, PLAN_INFO } from '@/lib/queries/dashboard'
+import { RecommendedAnnouncements } from '@/components/recommendations/recommended-announcements'
 
 interface SearchParams {
   announcementId?: string
@@ -83,6 +84,9 @@ export default async function MatchingPage({
           AI가 우리 기업에 맞는 지원사업인지 분석해요
         </p>
       </div>
+
+      {/* 맞춤 추천 공고 (Pro/Premium만) */}
+      <RecommendedAnnouncements />
 
       {/* 새 분석 카드 */}
       <Card>
