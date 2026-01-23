@@ -492,6 +492,54 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 최근 완료 작업 (2026-01-23)
 
+### 사업자번호 조회 시 폼 필드 자동 입력 기능
+사업자번호 입력 후 조회 버튼 클릭 시 기업 정보를 자동으로 폼에 입력하는 기능:
+
+**적용 페이지:**
+- `/try` - 비회원 매칭 플로우
+- `/onboarding` - 회원가입 후 온보딩
+- `/dashboard/profile` - 기업 프로필 수정 (CompanyForm 컴포넌트)
+
+**자동 입력 필드:**
+| 필드 | 소스 | 매핑 |
+|------|------|------|
+| 기업명 | NPS/DART | 직접 입력 |
+| 직원수 | NPS | 직접 입력 |
+| 설립일 | DART | YYYYMMDD → YYYY-MM-DD 변환 |
+| 지역 | NPS/DART | 한글 → 영문 코드 (서울특별시 → seoul) |
+| 업종 | KSIC | 대분류 → 영문 코드 (정보통신업 → software) |
+
+**조회 결과 UI 표시 정보:**
+- 기업명, 법인형태 (주식회사, 유한회사 등)
+- 대표자, 업태, 종목, 기업규모
+- 사업자 상태, 과세유형
+- 데이터 출처 (NTS, NPS, DART, KSIC 뱃지)
+
+**수정 파일:**
+- `app/try/page.tsx` - unified-lookup API 연동
+- `app/(dashboard)/onboarding/page.tsx` - unified-lookup API 연동, 자동 입력 로직 추가
+- `components/forms/company-form.tsx` - unified-lookup API 연동, 자동 입력 로직 추가
+
+**매핑 테이블:**
+```typescript
+// 지역 매핑 (17개 시도)
+const locationMapping = {
+  '서울특별시': 'seoul',
+  '경기도': 'gyeonggi',
+  // ...
+}
+
+// 업종 매핑 (KSIC 대분류 → 앱 업종 코드)
+const industryMapping = {
+  '정보통신업': 'software',
+  '제조업': 'manufacturing',
+  '금융 및 보험업': 'fintech',
+  // ...
+}
+```
+
+---
+
 ### 관리자 사용자 관리 페이지 기능 개선
 관리자가 사용자의 구독 플랜을 더 유연하게 관리할 수 있도록 개선:
 
