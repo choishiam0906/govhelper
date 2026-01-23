@@ -120,6 +120,14 @@ export default function AdminPaymentsPage() {
         return "Pro 월간"
       case "proYearly":
         return "Pro 연간"
+      case "premiumMonthly":
+        return "Premium 월간"
+      case "premiumYearly":
+        return "Premium 연간"
+      case "premium":
+        return "Premium"
+      case "pro":
+        return "Pro 연간"
       default:
         return plan || "-"
     }

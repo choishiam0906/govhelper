@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
-const ADMIN_EMAILS = ['choishiam@gmail.com']
+import { ADMIN_EMAILS, isAdmin } from '@/lib/admin'
 
 export async function GET() {
   try {

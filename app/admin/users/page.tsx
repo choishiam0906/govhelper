@@ -28,7 +28,8 @@ import {
   UserCheck,
   UserX,
   Building2,
-  Calendar
+  Calendar,
+  Sparkles
 } from "lucide-react"
 import { format } from "date-fns"
 import { ko } from "date-fns/locale"
@@ -53,6 +54,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [grantDialogOpen, setGrantDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
+  const [grantPlan, setGrantPlan] = useState("pro")
   const [grantMonths, setGrantMonths] = useState("1")
   const [processing, setProcessing] = useState(false)
   const [activeTab, setActiveTab] = useState("all")

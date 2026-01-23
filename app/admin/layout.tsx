@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, Target } from "lucide-react"
+import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, LineChart } from "lucide-react"
 
-const ADMIN_EMAILS = ['choishiam@gmail.com']
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'choishiam@gmail.com').split(',').map(e => e.trim())
 
 export default async function AdminLayout({
   children,
@@ -71,6 +71,13 @@ export default async function AdminLayout({
             >
               <MessageSquare className="w-4 h-4" />
               피드백 관리
+            </Link>
+            <Link
+              href="/admin/utm"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <LineChart className="w-4 h-4" />
+              UTM 분석
             </Link>
           </nav>
         </aside>
