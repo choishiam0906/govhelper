@@ -220,34 +220,49 @@ function mergeResults(
 
   // 우선순위: NPS(회사명, 주소) > DART(상세정보) > NTS(사업자상태)
   return {
-    // 기본 정보
+    // --- 기본 정보 ---
     businessNumber: formatBusinessNumber(businessNumber),
+    // 회사명: 국민연금(NPS) 데이터를 우선 사용하고, 없으면 DART 데이터 사용
     companyName: nps?.companyName || dart?.corpName || '',
+    // 영문 회사명: DART만 제공
     companyNameEng: dart?.corpNameEng || null,
+    // 대표자명: DART만 제공
     ceoName: dart?.ceoName || null,
 
-    // 위치 정보
+    // --- 위치 정보 ---
+    // 주소: 국민연금(NPS) 데이터를 우선 사용하고, 없으면 DART 데이터 사용
     address: nps?.address || dart?.address || null,
+    // 소재지(시/도): NPS 데이터를 우선 사용하고, 없으면 주소에서 추출
     location: nps?.location || extractLocation(nps?.address || dart?.address) || '',
 
-    // 사업 정보
+    // --- 사업 정보 ---
+    // 업종 코드: DART만 제공
     industryCode: dart?.industryCode || null,
+    // 직원 수: 국민연금(NPS)만 제공
     employeeCount: nps?.employeeCount || null,
+    // 설립일: DART만 제공
     establishedDate: dart?.establishedDate || null,
 
-    // 연락처
+    // --- 연락처 ---
+    // 홈페이지: DART만 제공
     homepage: dart?.homepage || null,
+    // 전화번호: DART만 제공
     phone: dart?.phone || null,
 
-    // 국세청 정보
+    // --- 국세청 정보 ---
+    // 사업자 상태: 국세청(NTS)만 제공
     ntsStatus: nts?.status || null,
     ntsStatusCode: nts?.statusCode || null,
+    // 과세 유형: 국세청(NTS)만 제공
     taxType: nts?.taxType || null,
     taxTypeCode: nts?.taxTypeCode || null,
+    // 폐업일: 국세청(NTS)만 제공
     closedDate: nts?.closedDate || null,
 
-    // 상장 정보 (DART)
+    // --- 상장 정보 (DART) ---
+    // 종목 코드: DART만 제공
     stockCode: dart?.stockCode || null,
+    // 상장 시장: DART만 제공
     stockMarket: dart?.stockMarket || '',
 
     // 메타 정보

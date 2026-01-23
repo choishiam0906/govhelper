@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { ArrowLeft, Loader2, Crown, AlertTriangle, Copy, Check, Building2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Crown, AlertTriangle, Copy, Check, Building2, Sparkles } from 'lucide-react'
 import { PAYMENT_PRICES } from '@/lib/payments'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-type Plan = 'proMonthly' | 'proYearly'
+type Plan = 'proMonthly' | 'proYearly' | 'premiumMonthly' | 'premiumYearly'
 
 const BANK_ACCOUNT = {
   bankName: '신한은행',
@@ -34,8 +34,12 @@ function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isCancel = searchParams.get('cancel') === 'true'
+  const planParam = searchParams.get('plan') // 'pro' or 'premium'
+  const isPremium = planParam === 'premium'
 
-  const [plan, setPlan] = useState<Plan>('proMonthly')
+  // URL 파라미터에 따라 기본값 설정
+  const defaultPlan: Plan = isPremium ? 'premiumMonthly' : 'proMonthly'
+  const [plan, setPlan] = useState<Plan>(defaultPlan)
   const [depositorName, setDepositorName] = useState('')
   const [loading, setLoading] = useState(false)
   const [cancelDialogOpen, setCancelDialogOpen] = useState(isCancel)
@@ -43,6 +47,9 @@ function CheckoutContent() {
   const [isCompleted, setIsCompleted] = useState(false)
   const [paymentInfo, setPaymentInfo] = useState<any>(null)
   const [copied, setCopied] = useState(false)
+
+  // 현재 선택된 플랜이 Premium인지 확인
+  const isCurrentPlanPremium = plan === 'premiumMonthly' || plan === 'premiumYearly'
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount)
@@ -262,10 +269,19 @@ function CheckoutContent() {
       </div>
 
       <div className="text-center">
-        <Crown className="h-12 w-12 mx-auto mb-4 text-primary" />
-        <h1 className="text-2xl font-bold">Pro 업그레이드</h1>
+        {isCurrentPlanPremium ? (
+          <Sparkles className="h-12 w-12 mx-auto mb-4 text-purple-500" />
+        ) : (
+          <Crown className="h-12 w-12 mx-auto mb-4 text-primary" />
+        )}
+        <h1 className="text-2xl font-bold">
+          {isCurrentPlanPremium ? 'Premium 업그레이드' : 'Pro 업그레이드'}
+        </h1>
         <p className="text-muted-foreground mt-1">
-          무제한 AI 매칭과 지원서 작성 기능을 이용하세요
+          {isCurrentPlanPremium
+            ? 'AI 지원서 작성과 우선 고객 지원을 이용하세요'
+            : '무제한 AI 매칭과 상세 분석 리포트를 이용하세요'
+          }
         </p>
       </div>
 
@@ -281,38 +297,94 @@ function CheckoutContent() {
             onValueChange={(value) => setPlan(value as Plan)}
             className="grid gap-4"
           >
-            <Label
-              htmlFor="proMonthly"
-              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'proMonthly' ? 'border-primary bg-primary/5' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <RadioGroupItem value="proMonthly" id="proMonthly" />
-                <div>
-                  <p className="font-medium">월간 구독</p>
-                  <p className="text-sm text-muted-foreground">매월 결제</p>
-                </div>
+            {/* Pro 섹션 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-primary" />
+                <span className="font-semibold text-sm text-muted-foreground">Pro 플랜</span>
               </div>
-              <p className="font-bold">{formatPrice(PAYMENT_PRICES.proMonthly)}원/월</p>
-            </Label>
 
-            <Label
-              htmlFor="proYearly"
-              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'proYearly' ? 'border-primary bg-primary/5' : 'border-green-500'}`}
-            >
-              <div className="flex items-center gap-3">
-                <RadioGroupItem value="proYearly" id="proYearly" />
-                <div>
-                  <p className="font-medium">연간 구독</p>
-                  <p className="text-sm text-green-600 font-medium">2개월 무료! 17% 절약</p>
+              <Label
+                htmlFor="proMonthly"
+                className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'proMonthly' ? 'border-primary bg-primary/5' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="proMonthly" id="proMonthly" />
+                  <div>
+                    <p className="font-medium">월간 구독</p>
+                    <p className="text-sm text-muted-foreground">매월 결제</p>
+                  </div>
                 </div>
+                <p className="font-bold">{formatPrice(PAYMENT_PRICES.proMonthly)}원/월</p>
+              </Label>
+
+              <Label
+                htmlFor="proYearly"
+                className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'proYearly' ? 'border-primary bg-primary/5' : 'border-green-500'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="proYearly" id="proYearly" />
+                  <div>
+                    <p className="font-medium">연간 구독</p>
+                    <p className="text-sm text-green-600 font-medium">2개월 무료! 17% 절약</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{formatPrice(PAYMENT_PRICES.proYearly)}원/년</p>
+                  <p className="text-sm text-muted-foreground">
+                    월 {formatPrice(Math.round(PAYMENT_PRICES.proYearly / 12))}원
+                  </p>
+                </div>
+              </Label>
+            </div>
+
+            {/* 구분선 */}
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
               </div>
-              <div className="text-right">
-                <p className="font-bold">{formatPrice(PAYMENT_PRICES.proYearly)}원/년</p>
-                <p className="text-sm text-muted-foreground">
-                  월 {formatPrice(Math.round(PAYMENT_PRICES.proYearly / 12))}원
-                </p>
+            </div>
+
+            {/* Premium 섹션 */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span className="font-semibold text-sm text-muted-foreground">Premium 플랜</span>
               </div>
-            </Label>
+
+              <Label
+                htmlFor="premiumMonthly"
+                className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'premiumMonthly' ? 'border-purple-500 bg-purple-50' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="premiumMonthly" id="premiumMonthly" />
+                  <div>
+                    <p className="font-medium">월간 구독</p>
+                    <p className="text-sm text-muted-foreground">매월 결제</p>
+                  </div>
+                </div>
+                <p className="font-bold">{formatPrice(PAYMENT_PRICES.premiumMonthly)}원/월</p>
+              </Label>
+
+              <Label
+                htmlFor="premiumYearly"
+                className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${plan === 'premiumYearly' ? 'border-purple-500 bg-purple-50' : 'border-green-500'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <RadioGroupItem value="premiumYearly" id="premiumYearly" />
+                  <div>
+                    <p className="font-medium">연간 구독</p>
+                    <p className="text-sm text-green-600 font-medium">2개월 무료! 17% 절약</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{formatPrice(PAYMENT_PRICES.premiumYearly)}원/년</p>
+                  <p className="text-sm text-muted-foreground">
+                    월 {formatPrice(Math.round(PAYMENT_PRICES.premiumYearly / 12))}원
+                  </p>
+                </div>
+              </Label>
+            </div>
           </RadioGroup>
         </CardContent>
       </Card>

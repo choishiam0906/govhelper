@@ -38,6 +38,12 @@
     },
     "app/api/announcements/scrape-attachments/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/cron/queue-dart-jobs/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cron/process-dart-queue/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -100,6 +106,14 @@
     {
       "path": "/api/announcements/parse-eligibility",
       "schedule": "30 17 * * *"
+    },
+    {
+      "path": "/api/cron/queue-dart-jobs",
+      "schedule": "0 20 * * 0"
+    },
+    {
+      "path": "/api/cron/process-dart-queue",
+      "schedule": "* * * * *"
     }
   ]
 }
