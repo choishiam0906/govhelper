@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
     fetchUsers()
   }, [])
 
-  const handleGrantPro = async () => {
+  const handleGrantSubscription = async () => {
     if (!selectedUser) return
 
     setProcessing(true)
@@ -91,14 +91,15 @@ export default function AdminUsersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: selectedUser.user_id,
-          plan: "pro",
+          plan: grantPlan,
           months: parseInt(grantMonths),
         }),
       })
       const result = await response.json()
 
       if (result.success) {
-        toast.success(`Pro 권한을 ${grantMonths}개월간 부여했어요!`)
+        const planLabel = grantPlan === "premium" ? "Premium" : "Pro"
+        toast.success(`${planLabel} 권한을 ${grantMonths}개월간 부여했어요!`)
         setGrantDialogOpen(false)
         fetchUsers()
       } else {
@@ -136,6 +137,15 @@ export default function AdminUsersPage() {
       return <Badge variant="outline">Free</Badge>
     }
 
+    if (subscription.plan === "premium" && subscription.status === "active") {
+      return (
+        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+          <Sparkles className="w-3 h-3 mr-1" />
+          Premium
+        </Badge>
+      )
+    }
+
     if (subscription.plan === "pro" && subscription.status === "active") {
       return (
         <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
@@ -152,12 +162,21 @@ export default function AdminUsersPage() {
     return <Badge variant="outline">{subscription.plan}</Badge>
   }
 
+  const isPaidUser = (user: UserData) => {
+    return user.subscription &&
+      (user.subscription.plan === "pro" || user.subscription.plan === "premium") &&
+      user.subscription.status === "active"
+  }
+
+  const premiumUsers = users.filter(u => u.subscription?.plan === "premium" && u.subscription?.status === "active")
   const proUsers = users.filter(u => u.subscription?.plan === "pro" && u.subscription?.status === "active")
   const freeUsers = users.filter(u => !u.subscription || u.subscription?.plan === "free" || u.subscription?.status === "cancelled")
 
   // 탭에 따라 표시할 사용자 필터링
   const getFilteredUsers = () => {
     switch (activeTab) {
+      case "premium":
+        return premiumUsers
       case "pro":
         return proUsers
       case "free":
@@ -177,7 +196,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">전체 사용자</CardTitle>
@@ -191,12 +210,23 @@ export default function AdminUsersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Premium 구독자</CardTitle>
+            <Sparkles className="w-4 h-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{premiumUsers.length}명</div>
+            <p className="text-xs text-muted-foreground">프리미엄 구독 중</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Pro 구독자</CardTitle>
             <Crown className="w-4 h-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{proUsers.length}명</div>
-            <p className="text-xs text-muted-foreground">유료 구독 중</p>
+            <p className="text-xs text-muted-foreground">프로 구독 중</p>
           </CardContent>
         </Card>
 
@@ -218,7 +248,7 @@ export default function AdminUsersPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>사용자 목록</CardTitle>
-              <CardDescription>사용자에게 직접 Pro 권한을 부여하거나 취소할 수 있습니다</CardDescription>
+              <CardDescription>사용자에게 직접 구독 권한을 부여하거나 취소할 수 있습니다</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchUsers}>
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -231,6 +261,10 @@ export default function AdminUsersPage() {
             <TabsList className="mb-4">
               <TabsTrigger value="all">
                 전체 ({users.length})
+              </TabsTrigger>
+              <TabsTrigger value="premium">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Premium ({premiumUsers.length})
               </TabsTrigger>
               <TabsTrigger value="pro">
                 <Crown className="w-3 h-3 mr-1" />
@@ -250,7 +284,8 @@ export default function AdminUsersPage() {
                 <div className="text-center py-12 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>
-                    {activeTab === "pro" ? "Pro 구독자가 없습니다" :
+                    {activeTab === "premium" ? "Premium 구독자가 없습니다" :
+                     activeTab === "pro" ? "Pro 구독자가 없습니다" :
                      activeTab === "free" ? "Free 사용자가 없습니다" :
                      "등록된 사용자가 없습니다"}
                   </p>
@@ -297,7 +332,7 @@ export default function AdminUsersPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {(!userData.subscription || userData.subscription.plan !== "pro" || userData.subscription.status !== "active") ? (
+                    {!isPaidUser(userData) ? (
                       <Button
                         size="sm"
                         onClick={() => {
@@ -306,7 +341,7 @@ export default function AdminUsersPage() {
                         }}
                       >
                         <Crown className="w-4 h-4 mr-2" />
-                        Pro 부여
+                        구독 부여
                       </Button>
                     ) : (
                       <Button
@@ -329,36 +364,51 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Pro 권한 부여 다이얼로그 */}
+      {/* 구독 권한 부여 다이얼로그 */}
       <Dialog open={grantDialogOpen} onOpenChange={setGrantDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Pro 권한 부여</DialogTitle>
+            <DialogTitle>구독 권한 부여</DialogTitle>
             <DialogDescription>
-              {selectedUser?.company_name || "기업 미등록"} 사용자에게 Pro 권한을 부여합니다.
+              {selectedUser?.company_name || "기업 미등록"} 사용자에게 구독 권한을 부여합니다.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            <label className="text-sm font-medium mb-2 block">기간 선택</label>
-            <Select value={grantMonths} onValueChange={setGrantMonths}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1개월</SelectItem>
-                <SelectItem value="3">3개월</SelectItem>
-                <SelectItem value="6">6개월</SelectItem>
-                <SelectItem value="12">12개월 (1년)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="py-4 space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">플랜 선택</label>
+              <Select value={grantPlan} onValueChange={setGrantPlan}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">기간 선택</label>
+              <Select value={grantMonths} onValueChange={setGrantMonths}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1개월</SelectItem>
+                  <SelectItem value="3">3개월</SelectItem>
+                  <SelectItem value="6">6개월</SelectItem>
+                  <SelectItem value="12">12개월 (1년)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setGrantDialogOpen(false)}>
               취소
             </Button>
-            <Button onClick={handleGrantPro} disabled={processing}>
+            <Button onClick={handleGrantSubscription} disabled={processing}>
               {processing ? (
                 <RefreshCw className="w-4 h-4 animate-spin mr-2" />
               ) : (
