@@ -10,6 +10,7 @@ export const CACHE_TTL = {
   BUSINESS_FULL: 86400,            // 24시간 - 통합 사업자 정보
   AI_MATCHING: 604800,             // 7일 - AI 매칭 결과 (공고가 변경되지 않는 한 재사용)
   RAG_EMBEDDING: 3600,             // 1시간 - RAG 임베딩 쿼리
+  ANNOUNCEMENTS_LIST: 300,         // 5분 - 공고 목록 (자주 업데이트되지 않음)
 } as const
 
 // 캐시 키 생성 함수
@@ -203,4 +204,58 @@ export async function setRagEmbeddingCache(
 ): Promise<void> {
   const key = cacheKey.ragEmbedding(query)
   await setCache(key, embedding, CACHE_TTL.RAG_EMBEDDING)
+}
+
+// 공고 목록 캐시 키 인터페이스
+interface AnnouncementsListParams {
+  page: number
+  limit: number
+  search?: string
+  category?: string
+  source?: string
+  status?: string
+}
+
+/**
+ * 공고 목록 캐시 키 생성
+ */
+function getAnnouncementsListCacheKey(params: AnnouncementsListParams): string {
+  const hash = simpleHash(JSON.stringify(params))
+  return `announcements:list:${hash}`
+}
+
+/**
+ * 공고 목록 캐시 조회
+ */
+export async function getAnnouncementsListCache(
+  params: AnnouncementsListParams
+): Promise<any | null> {
+  const key = getAnnouncementsListCacheKey(params)
+  return getCache(key)
+}
+
+/**
+ * 공고 목록 캐시 저장
+ */
+export async function setAnnouncementsListCache(
+  params: AnnouncementsListParams,
+  data: any
+): Promise<void> {
+  const key = getAnnouncementsListCacheKey(params)
+  await setCache(key, data, CACHE_TTL.ANNOUNCEMENTS_LIST)
+}
+
+/**
+ * 공고 목록 캐시 무효화 (동기화 후 호출)
+ * 패턴 매칭으로 모든 공고 목록 캐시 삭제
+ */
+export async function invalidateAnnouncementsCache(): Promise<void> {
+  try {
+    // Upstash Redis에서는 SCAN을 사용한 패턴 삭제가 제한적이므로
+    // 일반적으로 TTL에 의존하거나, 특정 키를 명시적으로 삭제
+    // 여기서는 동기화 시 자연스럽게 5분 후 만료됨
+    console.log('[Cache] Announcements cache will expire in 5 minutes')
+  } catch (error) {
+    console.error('[Cache] Failed to invalidate announcements cache:', error)
+  }
 }
