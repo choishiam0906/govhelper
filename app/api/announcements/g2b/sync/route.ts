@@ -131,19 +131,14 @@ export async function POST(request: NextRequest) {
     const inqryBgnDt = getDateStr(7) + '0000'
     const inqryEndDt = getDateStr(0) + '2359'
 
-    console.log('📡 나라장터 동기화 시작', { inqryBgnDt, inqryEndDt, hasApiKey: !!G2B_API_KEY })
+    console.log('📡 나라장터 동기화 시작')
 
     const allBids: (G2BBidItem & { bidType: string })[] = []
-    const apiResults: Record<string, any> = {}
 
     // 각 유형별로 API 호출
-    const endpoints = Object.entries(BID_ENDPOINTS)
-    apiResults['_endpoints'] = endpoints.map(([k]) => k)
-
-    for (const [type, endpoint] of endpoints) {
+    for (const [type, endpoint] of Object.entries(BID_ENDPOINTS)) {
       let page = 1
       let hasMore = true
-      apiResults[type] = { started: true }
 
       while (hasMore && page <= 3) { // 최대 3페이지
         const params = new URLSearchParams({
@@ -157,7 +152,6 @@ export async function POST(request: NextRequest) {
         })
 
         const apiUrl = `${G2B_API_URL}${endpoint}?${params.toString()}`
-        console.log(`🔍 G2B API 호출: ${type} page ${page}`)
 
         try {
           const response = await fetch(apiUrl, {
@@ -165,32 +159,12 @@ export async function POST(request: NextRequest) {
             headers: { 'Accept': 'application/json' },
           })
 
-          console.log(`📥 G2B API 응답: ${type} status ${response.status}`)
-
           if (!response.ok) {
-            const errorText = await response.text()
-            console.error(`G2B API error (${type}):`, response.status, errorText.slice(0, 200))
-            apiResults[type] = {
-              status: response.status,
-              error: errorText.slice(0, 500)
-            }
+            console.error(`G2B API error (${type}):`, response.status)
             break
           }
 
           const result: G2BResponse = await response.json()
-          const itemCount = Array.isArray(result.response?.body?.items)
-            ? result.response.body.items.length
-            : (result.response?.body?.items ? 1 : 0)
-          const totalCount = result.response?.body?.totalCount ?? 0
-          console.log(`📊 G2B 결과: ${type} items=${itemCount} total=${totalCount}`)
-
-          apiResults[type] = {
-            status: response.status,
-            items: itemCount,
-            total: totalCount,
-            resultCode: result.response?.header?.resultCode,
-            resultMsg: result.response?.header?.resultMsg
-          }
 
           if (result.response?.body?.items) {
             const items = Array.isArray(result.response.body.items)
@@ -211,9 +185,6 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error(`G2B fetch error (${type}):`, error)
-          apiResults[type] = {
-            error: error instanceof Error ? error.message : String(error)
-          }
           break
         }
       }
@@ -305,13 +276,6 @@ export async function POST(request: NextRequest) {
         upserted: count,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
-      },
-      debug: {
-        inqryBgnDt,
-        inqryEndDt,
-        hasApiKey: !!G2B_API_KEY,
-        apiKeyLength: G2B_API_KEY?.length || 0,
-        apiResults
       }
     })
 
