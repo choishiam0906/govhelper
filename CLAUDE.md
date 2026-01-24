@@ -496,6 +496,76 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 최근 완료 작업 (2026-01-24)
 
+### API 통합 테스트 확대 ✅
+
+API 엔드포인트 통합 테스트 125개 추가로 테스트 커버리지 강화.
+
+**추가된 테스트 파일:**
+
+| 파일 | 테스트 수 | 테스트 대상 |
+|------|----------|------------|
+| `__tests__/api/tracking.test.ts` | 29개 | 지원 이력 추적 API (CRUD, 상태 전환) |
+| `__tests__/api/chat.test.ts` | 28개 | AI 챗봇 API (SSE, 컨텍스트, 보안) |
+| `__tests__/api/announcements.test.ts` | 35개 | 공고 API (검색, 필터, 시맨틱) |
+| `__tests__/api/matching.test.ts` | 33개 | AI 매칭 API (점수, 적격성, 캐싱) |
+
+**전체 테스트 현황:**
+```bash
+npm test
+# Test Files  12 passed (12)
+# Tests  324 passed | 1 skipped (325)
+```
+
+### 지원 이력 추적 기능 ✅
+
+사용자가 관심 공고의 지원 진행 상황을 추적할 수 있는 기능 구현.
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/016_application_tracking.sql` | DB 테이블 (application_tracking, history) |
+| `app/api/tracking/route.ts` | 목록 조회/생성 API |
+| `app/api/tracking/[id]/route.ts` | 개별 조회/수정/삭제 API |
+| `app/(dashboard)/dashboard/tracking/page.tsx` | 지원 이력 관리 페이지 |
+
+**지원 상태 흐름:**
+```
+interested → preparing → submitted → under_review → passed_initial → passed_final
+                                   ↘ rejected
+            ↘ cancelled
+```
+
+**기능:**
+- 관심 공고 등록 및 상태 관리
+- D-day 계산 (마감일까지 남은 일수)
+- 마감/결과 알림 설정
+- 상태 변경 히스토리 자동 기록
+
+### AI 챗봇 API ✅
+
+공고 관련 질문에 답변하는 AI 챗봇 API 구현.
+
+**파일:** `app/api/chat/route.ts`, `components/chat/ai-chatbot.tsx`
+
+**기능:**
+- SSE 스트리밍 응답
+- 공고/기업 컨텍스트 자동 포함
+- 질문 유형 자동 분류 (자격, 마감일, 금액, 서류, 절차)
+- 프롬프트 인젝션 방지
+
+### Supabase 인증 이메일 템플릿 ✅
+
+GovHelper 브랜딩에 맞게 Supabase 인증 이메일 커스터마이징.
+
+**적용 템플릿:**
+| 템플릿 | 제목 |
+|--------|------|
+| Confirm signup | `[GovHelper] 이메일 인증을 완료해 주세요` |
+| Reset Password | `[GovHelper] 비밀번호 재설정 안내` |
+| Magic Link | `[GovHelper] 로그인 링크가 도착했어요` |
+
+**설정 위치:** Supabase Dashboard > Authentication > Email Templates
+
 ### 보안 감사 및 취약점 수정 ✅
 
 코드베이스 전체 보안 감사 수행 및 발견된 취약점 수정.
