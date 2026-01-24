@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, LogOut, User as UserIcon, Settings, CreditCard } from "lucide-react"
 import { MobileNav } from "./mobile-nav"
+import { NotificationCenter } from "@/components/notifications/notification-center"
 
 interface DashboardHeaderProps {
   user: User
@@ -57,7 +58,8 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           <span className="font-bold text-xl hidden sm:inline">GovHelper</span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-4">
+        <div className="ml-auto flex items-center gap-2">
+          <NotificationCenter />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full">
