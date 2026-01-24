@@ -39,11 +39,22 @@ export interface CachedAnnouncementsResponse {
 
 // TTL 정책 상수 (초 단위)
 export const CACHE_TTL = {
+  // 사업자 정보
   BUSINESS_NTS: 3600,              // 1시간 - 사업자 상태는 자주 변경될 수 있음
   BUSINESS_FULL: 86400,            // 24시간 - 통합 사업자 정보
+
+  // AI 관련
   AI_MATCHING: 604800,             // 7일 - AI 매칭 결과 (공고가 변경되지 않는 한 재사용)
   RAG_EMBEDDING: 3600,             // 1시간 - RAG 임베딩 쿼리
+
+  // 공고
   ANNOUNCEMENTS_LIST: 300,         // 5분 - 공고 목록 (자주 업데이트되지 않음)
+  ANNOUNCEMENT_DETAIL: 1800,       // 30분 - 공고 상세 (개별 공고)
+  RECOMMENDATIONS: 3600,           // 1시간 - 맞춤 추천 공고
+
+  // 사용자
+  USER_SUBSCRIPTION: 300,          // 5분 - 구독 정보 (결제 후 빠른 반영)
+  USER_NOTIFICATIONS_COUNT: 60,    // 1분 - 읽지 않은 알림 수
 } as const
 
 // 캐시 키 생성 함수
@@ -291,4 +302,138 @@ export async function invalidateAnnouncementsCache(): Promise<void> {
   } catch (error) {
     console.error('[Cache] Failed to invalidate announcements cache:', error)
   }
+}
+
+// ============================================
+// 맞춤 추천 공고 캐시
+// ============================================
+
+export interface CachedRecommendation {
+  announcementId: string
+  title: string
+  organization: string
+  score: number
+  matchedCriteria: string[]
+}
+
+/**
+ * 맞춤 추천 공고 캐시 키 생성
+ */
+function getRecommendationsCacheKey(userId: string): string {
+  return `recommendations:${userId}`
+}
+
+/**
+ * 맞춤 추천 공고 캐시 조회
+ */
+export async function getRecommendationsCache(
+  userId: string
+): Promise<CachedRecommendation[] | null> {
+  const key = getRecommendationsCacheKey(userId)
+  return getCache<CachedRecommendation[]>(key)
+}
+
+/**
+ * 맞춤 추천 공고 캐시 저장
+ */
+export async function setRecommendationsCache(
+  userId: string,
+  data: CachedRecommendation[]
+): Promise<void> {
+  const key = getRecommendationsCacheKey(userId)
+  await setCache(key, data, CACHE_TTL.RECOMMENDATIONS)
+}
+
+/**
+ * 맞춤 추천 공고 캐시 삭제 (기업 정보 변경 시)
+ */
+export async function invalidateRecommendationsCache(userId: string): Promise<void> {
+  const key = getRecommendationsCacheKey(userId)
+  await deleteCache(key)
+}
+
+// ============================================
+// 알림 수 캐시
+// ============================================
+
+/**
+ * 읽지 않은 알림 수 캐시 키 생성
+ */
+function getUnreadNotificationsCountKey(userId: string): string {
+  return `notifications:unread:${userId}`
+}
+
+/**
+ * 읽지 않은 알림 수 캐시 조회
+ */
+export async function getUnreadNotificationsCountCache(
+  userId: string
+): Promise<number | null> {
+  const key = getUnreadNotificationsCountKey(userId)
+  return getCache<number>(key)
+}
+
+/**
+ * 읽지 않은 알림 수 캐시 저장
+ */
+export async function setUnreadNotificationsCountCache(
+  userId: string,
+  count: number
+): Promise<void> {
+  const key = getUnreadNotificationsCountKey(userId)
+  await setCache(key, count, CACHE_TTL.USER_NOTIFICATIONS_COUNT)
+}
+
+/**
+ * 읽지 않은 알림 수 캐시 삭제 (알림 읽음/생성 시)
+ */
+export async function invalidateUnreadNotificationsCountCache(userId: string): Promise<void> {
+  const key = getUnreadNotificationsCountKey(userId)
+  await deleteCache(key)
+}
+
+// ============================================
+// 구독 정보 캐시
+// ============================================
+
+export interface CachedSubscription {
+  plan: 'free' | 'pro' | 'premium'
+  status: string
+  expiresAt: string | null
+}
+
+/**
+ * 구독 정보 캐시 키 생성
+ */
+function getSubscriptionCacheKey(userId: string): string {
+  return `subscription:${userId}`
+}
+
+/**
+ * 구독 정보 캐시 조회
+ */
+export async function getSubscriptionCache(
+  userId: string
+): Promise<CachedSubscription | null> {
+  const key = getSubscriptionCacheKey(userId)
+  return getCache<CachedSubscription>(key)
+}
+
+/**
+ * 구독 정보 캐시 저장
+ */
+export async function setSubscriptionCache(
+  userId: string,
+  data: CachedSubscription
+): Promise<void> {
+  const key = getSubscriptionCacheKey(userId)
+  await setCache(key, data, CACHE_TTL.USER_SUBSCRIPTION)
+}
+
+/**
+ * 구독 정보 캐시 삭제 (결제/취소 시)
+ */
+export async function invalidateSubscriptionCache(userId: string): Promise<void> {
+  const key = getSubscriptionCacheKey(userId)
+  await deleteCache(key)
 }
