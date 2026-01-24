@@ -118,9 +118,9 @@ describe("캐시 TTL 정책 검증", () => {
     expect(CACHE_TTL.AI_MATCHING).toBeGreaterThan(CACHE_TTL.BUSINESS_FULL);
   });
 
-  it("ANNOUNCEMENTS_LIST TTL이 가장 짧아야 한다", () => {
+  it("USER_NOTIFICATIONS_COUNT TTL이 가장 짧아야 한다", () => {
     const allTTLs = Object.values(CACHE_TTL);
     const minTTL = Math.min(...allTTLs);
-    expect(CACHE_TTL.ANNOUNCEMENTS_LIST).toBe(minTTL);
+    expect(CACHE_TTL.USER_NOTIFICATIONS_COUNT).toBe(minTTL);
   });
 });

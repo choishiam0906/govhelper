@@ -12,6 +12,7 @@ import {
   CreditCard,
   Settings,
   Shield,
+  ClipboardList,
 } from "lucide-react"
 
 const navItems = [
@@ -29,6 +30,11 @@ const navItems = [
     title: "AI 매칭",
     href: "/dashboard/matching",
     icon: TrendingUp,
+  },
+  {
+    title: "지원 이력",
+    href: "/dashboard/tracking",
+    icon: ClipboardList,
   },
   {
     title: "지원서 관리",

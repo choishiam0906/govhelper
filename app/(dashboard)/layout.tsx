@@ -5,6 +5,7 @@ import { DashboardNav } from "@/components/dashboard/nav"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { FeedbackButton } from "@/components/feedback/feedback-button"
 import { CompareBar } from "@/components/compare/compare-bar"
+import { AIChatbot } from "@/components/chat/ai-chatbot"
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['choishiam@gmail.com']
@@ -66,6 +67,7 @@ export default async function DashboardLayout({
       </div>
       <FeedbackButton />
       <CompareBar />
+      <AIChatbot />
     </div>
   )
 }
