@@ -106,9 +106,12 @@ export default function ResultPage() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 h-16 flex items-center">
-            <Link href="/" className="text-xl font-bold text-primary">
-              GovHelper
-            </Link>
+            <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">G</span>
+            </div>
+            <span className="font-bold text-xl">GovHelper</span>
+          </Link>
           </div>
         </header>
         <main className="container mx-auto px-4 py-8 max-w-3xl">
@@ -128,9 +131,12 @@ export default function ResultPage() {
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
         <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="container mx-auto px-4 h-16 flex items-center">
-            <Link href="/" className="text-xl font-bold text-primary">
-              GovHelper
-            </Link>
+            <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">G</span>
+            </div>
+            <span className="font-bold text-xl">GovHelper</span>
+          </Link>
           </div>
         </header>
         <main className="container mx-auto px-4 py-8 max-w-3xl">
@@ -158,8 +164,11 @@ export default function ResultPage() {
       {/* 헤더 */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-primary">
-            정부지원사업도우미
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">G</span>
+            </div>
+            <span className="font-bold text-xl">GovHelper</span>
           </Link>
           <Button size="sm" asChild>
             <Link href="/register">회원가입</Link>
