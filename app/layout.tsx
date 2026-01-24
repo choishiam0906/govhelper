@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,6 +19,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'GovHelper',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   metadataBase: new URL('https://govhelpers.com'),
   title: {
     default: "GovHelper - AI 기반 정부지원사업 매칭 플랫폼",
@@ -80,6 +90,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GovHelper" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <JsonLd />
       </head>
       <body
@@ -90,6 +105,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <GoogleAnalytics />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
