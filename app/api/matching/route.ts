@@ -131,13 +131,25 @@ async function handlePost(request: NextRequest) {
       businessPlanContent
     )
 
+    // overallScore 유효성 검사 및 정규화
+    let validScore = 0
+    if (typeof analysis.overallScore === 'number' && !isNaN(analysis.overallScore)) {
+      validScore = Math.max(0, Math.min(100, Math.round(analysis.overallScore)))
+    } else if (typeof analysis.overallScore === 'string') {
+      const numMatch = String(analysis.overallScore).match(/\d+/)
+      if (numMatch) {
+        validScore = Math.max(0, Math.min(100, parseInt(numMatch[0], 10)))
+      }
+    }
+    analysis.overallScore = validScore
+
     // 7. Save match result (Service Client로 RLS 우회)
     const serviceClient = await createServiceClient()
     const matchInsert = {
       company_id: companyId,
       announcement_id: announcementId,
       business_plan_id: businessPlanId || null,
-      match_score: analysis.overallScore,
+      match_score: validScore,
       analysis: analysis,
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

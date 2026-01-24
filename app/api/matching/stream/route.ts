@@ -252,6 +252,19 @@ ${businessPlanContent}
 
           const analysis: MatchAnalysis = JSON.parse(jsonMatch[0])
 
+          // overallScore 유효성 검사 및 정규화
+          let validScore = 0
+          if (typeof analysis.overallScore === 'number' && !isNaN(analysis.overallScore)) {
+            validScore = Math.max(0, Math.min(100, Math.round(analysis.overallScore)))
+          } else if (typeof analysis.overallScore === 'string') {
+            // 문자열에서 숫자 추출 시도
+            const numMatch = String(analysis.overallScore).match(/\d+/)
+            if (numMatch) {
+              validScore = Math.max(0, Math.min(100, parseInt(numMatch[0], 10)))
+            }
+          }
+          analysis.overallScore = validScore
+
           // DB에 매칭 결과 저장 (Service Client로 RLS 우회)
           const serviceClient = await createServiceClient()
           const matchInsert = {
