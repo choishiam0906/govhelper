@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { AnnouncementListSkeleton } from '@/components/ui/skeleton'
 import { Calendar, Building2, RefreshCw, AlertCircle, ChevronRight, Bookmark, TrendingUp, Gavel } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -79,21 +79,7 @@ export function G2BAnnouncementList() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-full" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    )
+    return <AnnouncementListSkeleton count={5} />
   }
 
   if (error) {

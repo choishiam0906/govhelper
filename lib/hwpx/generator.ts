@@ -48,7 +48,7 @@ function generateContentHpf(): string {
 <opf:package version="1.0" xmlns:opf="http://www.idpf.org/2007/opf" unique-identifier="book-id">
   <opf:metadata>
     <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">지원서</dc:title>
-    <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">정부지원사업도우미</dc:creator>
+    <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">GovHelper</dc:creator>
     <dc:date xmlns:dc="http://purl.org/dc/elements/1.1/">${new Date().toISOString()}</dc:date>
   </opf:metadata>
   <opf:manifest>
@@ -181,7 +181,7 @@ function generateSectionXml(doc: HwpxDocument): string {
 
   // 푸터
   content += generateParagraph('─'.repeat(40), 0, 0)
-  const footer = `정부지원사업도우미 | govhelpers.com | ${new Date().toLocaleDateString('ko-KR')} 생성`
+  const footer = `GovHelper | govhelpers.com | ${new Date().toLocaleDateString('ko-KR')} 생성`
   content += generateParagraph(footer, 0, 1)
 
   return `<?xml version="1.0" encoding="UTF-8"?>

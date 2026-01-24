@@ -64,7 +64,7 @@ export function DownloadHwpxButton({ application }: DownloadHwpxButtonProps) {
           content: s.content,
         })),
         metadata: {
-          author: '정부지원사업도우미',
+          author: 'GovHelper',
           createdAt: application.created_at,
           matchScore: application.matches?.match_score,
           category: announcement?.category || undefined,

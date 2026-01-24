@@ -289,7 +289,7 @@ export function DownloadPDFButton({ match, announcement }: DownloadPDFButtonProp
         {/* 푸터 */}
         <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', textAlign: 'center' }}>
           <p style={{ fontSize: '11px', color: '#9ca3af' }}>
-            정부지원사업도우미 | govhelpers.com | {new Date().toLocaleDateString('ko-KR')} 생성
+            GovHelper | govhelpers.com | {new Date().toLocaleDateString('ko-KR')} 생성
           </p>
         </div>
       </div>

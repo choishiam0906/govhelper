@@ -336,7 +336,7 @@ export default function TryPage() {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold text-primary">
-            정부지원사업도우미
+            GovHelper
           </Link>
           <Button variant="outline" size="sm" asChild>
             <Link href="/login">로그인</Link>
