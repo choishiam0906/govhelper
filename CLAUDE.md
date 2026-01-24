@@ -460,10 +460,10 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 서비스 소개 페이지 (완료 - 2026-01-20)
 
 ### P2 - 중기 (남은 작업)
-- [ ] 나라장터 API 연동 (G2B) - 401 오류, API 키 재발급 필요
 - [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
 
 ### P2 - 중기 (완료)
+- [x] 나라장터 API 연동 (G2B) (완료 - 2026-01-24)
 - [x] Google 로그인 (완료 - Supabase OAuth)
 - [x] 카카오 로그인 (완료 - Supabase OAuth)
 - [x] RAG 시맨틱 검색 엔진 (완료 - 2026-01-20)
@@ -472,10 +472,10 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ### P3 - 장기 (남은 작업)
 - [ ] 모바일 앱 (React Native/Expo)
 - [ ] 공고 알림 푸시 (FCM)
-- [ ] 사용자 피드백 수집 기능
 - [ ] A/B 테스트 인프라
 
 ### P3 - 장기 (완료)
+- [x] 사용자 피드백 수집 기능 (완료 - 2026-01-24)
 - [x] 관리자 대시보드 통계 차트 (완료 - 2026-01-20)
 
 ### P9 - 사업자 등록 후 진행
@@ -525,6 +525,35 @@ npm test -- __tests__/lib   # lib 테스트만 실행
 | `lib/business/utils/company-name.ts` | 95.89% |
 | `lib/recommendations/filter.ts` | 94.17% |
 | `lib/rate-limit.ts` | 88.23% |
+
+### 사용자 피드백 수집 기능 ✅
+
+사용자가 버그 신고, 기능 요청, 일반 의견을 제출할 수 있는 피드백 시스템 구현.
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/008_user_feedback.sql` | DB 테이블 (feedbacks) |
+| `app/api/feedback/route.ts` | 피드백 제출 API |
+| `app/api/admin/feedback/route.ts` | 관리자 조회/수정 API |
+| `components/feedback/feedback-button.tsx` | 플로팅 피드백 버튼 |
+| `app/admin/feedback/page.tsx` | 관리자 피드백 조회 페이지 |
+
+**피드백 유형:**
+- `bug` - 버그 신고
+- `feature` - 기능 요청
+- `general` - 일반 의견
+- `other` - 기타
+
+**처리 상태:**
+- `pending` - 대기
+- `reviewing` - 검토 중
+- `resolved` - 해결
+- `closed` - 종료
+
+**UI 위치:**
+- 대시보드 우측 하단 플로팅 버튼 (메시지 아이콘)
+- 관리자: `/admin/feedback`
 
 ### 나라장터 (G2B) API 연동 완료 ✅
 
