@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     const inqryBgnDt = getDateStr(7) + '0000'
     const inqryEndDt = getDateStr(0) + '2359'
 
-    console.log('📡 나라장터 동기화 시작')
+    console.log('📡 나라장터 동기화 시작', { inqryBgnDt, inqryEndDt, hasApiKey: !!G2B_API_KEY })
 
     const allBids: (G2BBidItem & { bidType: string })[] = []
 
@@ -152,6 +152,7 @@ export async function POST(request: NextRequest) {
         })
 
         const apiUrl = `${G2B_API_URL}${endpoint}?${params.toString()}`
+        console.log(`🔍 G2B API 호출: ${type} page ${page}`)
 
         try {
           const response = await fetch(apiUrl, {
@@ -159,12 +160,16 @@ export async function POST(request: NextRequest) {
             headers: { 'Accept': 'application/json' },
           })
 
+          console.log(`📥 G2B API 응답: ${type} status ${response.status}`)
+
           if (!response.ok) {
-            console.error(`G2B API error (${type}):`, response.status)
+            const errorText = await response.text()
+            console.error(`G2B API error (${type}):`, response.status, errorText.slice(0, 200))
             break
           }
 
           const result: G2BResponse = await response.json()
+          console.log(`📊 G2B 결과: ${type} items=${result.response?.body?.items?.length ?? 0} total=${result.response?.body?.totalCount ?? 0}`)
 
           if (result.response?.body?.items) {
             const items = Array.isArray(result.response.body.items)
