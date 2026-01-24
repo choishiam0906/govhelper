@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, LineChart } from "lucide-react"
+import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, LineChart, Mail } from "lucide-react"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'choishiam@gmail.com').split(',').map(e => e.trim())
 
@@ -78,6 +78,13 @@ export default async function AdminLayout({
             >
               <LineChart className="w-4 h-4" />
               UTM 분석
+            </Link>
+            <Link
+              href="/admin/newsletter"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              뉴스레터
             </Link>
           </nav>
         </aside>
