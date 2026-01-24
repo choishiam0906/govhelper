@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
     console.log('📡 나라장터 동기화 시작', { inqryBgnDt, inqryEndDt, hasApiKey: !!G2B_API_KEY })
 
     const allBids: (G2BBidItem & { bidType: string })[] = []
+    const apiResults: Record<string, any> = {}
 
     // 각 유형별로 API 호출
     for (const [type, endpoint] of Object.entries(BID_ENDPOINTS)) {
@@ -169,7 +170,19 @@ export async function POST(request: NextRequest) {
           }
 
           const result: G2BResponse = await response.json()
-          console.log(`📊 G2B 결과: ${type} items=${result.response?.body?.items?.length ?? 0} total=${result.response?.body?.totalCount ?? 0}`)
+          const itemCount = Array.isArray(result.response?.body?.items)
+            ? result.response.body.items.length
+            : (result.response?.body?.items ? 1 : 0)
+          const totalCount = result.response?.body?.totalCount ?? 0
+          console.log(`📊 G2B 결과: ${type} items=${itemCount} total=${totalCount}`)
+
+          apiResults[type] = {
+            status: response.status,
+            items: itemCount,
+            total: totalCount,
+            resultCode: result.response?.header?.resultCode,
+            resultMsg: result.response?.header?.resultMsg
+          }
 
           if (result.response?.body?.items) {
             const items = Array.isArray(result.response.body.items)
@@ -286,7 +299,8 @@ export async function POST(request: NextRequest) {
         inqryBgnDt,
         inqryEndDt,
         hasApiKey: !!G2B_API_KEY,
-        apiKeyLength: G2B_API_KEY?.length || 0
+        apiKeyLength: G2B_API_KEY?.length || 0,
+        apiResults
       }
     })
 
