@@ -60,7 +60,8 @@ interface G2BResponse {
 
 function formatDate(dateStr: string): string | null {
   if (!dateStr) return null
-  const match = dateStr.match(/(\d{4})\/(\d{2})\/(\d{2})/)
+  // "2025-01-06 08:19:02" 또는 "2025/01/06 08:19" 형식 처리
+  const match = dateStr.match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/)
   if (match) {
     return `${match[1]}-${match[2]}-${match[3]}`
   }

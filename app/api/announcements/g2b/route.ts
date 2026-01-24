@@ -51,11 +51,11 @@ interface G2BResponse {
   }
 }
 
-// 날짜 포맷 변환 (YYYY/MM/DD HH:MM -> YYYY-MM-DD)
+// 날짜 포맷 변환 (YYYY-MM-DD HH:MM:SS 또는 YYYY/MM/DD HH:MM -> YYYY-MM-DD)
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
-  // "2025/01/17 10:00" 형식 처리
-  const match = dateStr.match(/(\d{4})\/(\d{2})\/(\d{2})/)
+  // "2025-01-06 08:19:02" 또는 "2025/01/17 10:00" 형식 처리
+  const match = dateStr.match(/(\d{4})[-\/](\d{2})[-\/](\d{2})/)
   if (match) {
     return `${match[1]}-${match[2]}-${match[3]}`
   }
