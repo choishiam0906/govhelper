@@ -178,6 +178,14 @@ govhelper-main/
 | `POST` | `/api/admin/approvals` | 미등록 사업자 승인/거절 처리 |
 | `GET` | `/api/admin/users` | 사용자 목록 조회 |
 | `GET` | `/api/admin/payments` | 결제 내역 조회 |
+| `POST` | `/api/admin/newsletter/send` | 뉴스레터 발송 (관리자 전용) |
+
+### 뉴스레터 (Newsletter)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/newsletter/subscribe` | 뉴스레터 구독 신청 (Double Opt-in) |
+| `GET` | `/api/newsletter/confirm` | 구독 이메일 인증 |
+| `GET/POST` | `/api/newsletter/unsubscribe` | 수신 거부 처리 |
 
 ### 비회원 매칭 (Guest Matching)
 | Method | Endpoint | Description |
@@ -276,6 +284,9 @@ npm run lint
 - `subscriptions`: 구독 정보
 - `guest_leads`: 비회원 리드 정보 (2026-01-21 추가)
 - `guest_matches`: 비회원 매칭 결과 (2026-01-21 추가)
+- `newsletter_subscribers`: 뉴스레터 구독자 (2026-01-24 추가)
+- `newsletter_campaigns`: 뉴스레터 캠페인 (2026-01-24 추가)
+- `newsletter_sends`: 뉴스레터 발송 로그 (2026-01-24 추가)
 
 ### companies 테이블 스키마
 ```sql
@@ -714,6 +725,56 @@ trackConversion('AW-XXXXX/YYYYY', 100)
 - 오프라인 시 캐시된 페이지 표시
 - 앱 바로가기 (공고 검색, AI 매칭)
 - 푸시 알림 준비 (FCM 연동 예정)
+
+### 뉴스레터 구독 및 발송 시스템 ✅
+
+이메일 뉴스레터 구독 및 관리자 발송 기능 구현.
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/018_newsletter_subscribers.sql` | DB 테이블 (subscribers, campaigns, sends) |
+| `app/api/newsletter/subscribe/route.ts` | 구독 신청 API (Double Opt-in) |
+| `app/api/newsletter/confirm/route.ts` | 구독 확인 API |
+| `app/api/newsletter/unsubscribe/route.ts` | 수신 거부 API |
+| `app/api/admin/newsletter/send/route.ts` | 관리자 발송 API |
+| `scripts/examples/newsletter-send-example.ts` | 발송 예시 스크립트 |
+
+**데이터베이스 테이블:**
+| 테이블 | 설명 |
+|--------|------|
+| `newsletter_subscribers` | 구독자 정보 (이메일, 상태, 통계) |
+| `newsletter_campaigns` | 캠페인 정보 (제목, 내용, 발송 통계) |
+| `newsletter_sends` | 개별 발송 로그 (구독자별 상태) |
+
+**구독 플로우:**
+1. 사용자가 이메일 입력 → `/api/newsletter/subscribe`
+2. 인증 이메일 발송 (Resend)
+3. 인증 링크 클릭 → `/api/newsletter/confirm`
+4. `confirmed = true`로 활성화
+
+**관리자 발송 플로우:**
+```typescript
+// POST /api/admin/newsletter/send
+{
+  subject: "뉴스레터 제목",
+  previewText: "미리보기 텍스트",
+  htmlContent: "<html>...</html>",
+  testEmail: "test@example.com"  // 선택: 테스트 발송
+}
+```
+
+**템플릿 변수:**
+| 변수 | 설명 |
+|------|------|
+| `{{unsubscribe_url}}` | 수신 거부 링크 |
+| `{{email}}` | 구독자 이메일 |
+| `{{name}}` | 구독자 이름 |
+
+**발송 예시 스크립트 실행:**
+```bash
+npx tsx scripts/examples/newsletter-send-example.ts
+```
 
 ### Core Web Vitals 최적화 ✅
 
