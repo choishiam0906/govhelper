@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   confirmed_at TIMESTAMPTZ,
 
   -- 수신거부
-  unsubscribe_token VARCHAR(64) NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  unsubscribe_token VARCHAR(64) NOT NULL DEFAULT replace(gen_random_uuid()::text, '-', ''),
   unsubscribed_at TIMESTAMPTZ,
   unsubscribe_reason TEXT,
 
