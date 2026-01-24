@@ -29,7 +29,7 @@ async function runMigration() {
       console.log('  Table already exists, skipping creation.')
     } else {
       console.log('  Table does not exist. Please run the SQL manually in Supabase Dashboard.')
-      console.log('  Go to: https://supabase.com/dashboard/project/kjjsyzgyvtwfnuxozxad/sql/new')
+      console.log('  Go to: Supabase Dashboard > SQL Editor')
       console.log('\n  Copy and paste the SQL from:')
       console.log('  supabase/migrations/007_public_statistics.sql')
       return

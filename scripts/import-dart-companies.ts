@@ -18,13 +18,18 @@ import { XMLParser } from 'fast-xml-parser'
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-const DART_API_KEY = process.env.DART_API_KEY || '49986e0049fff1bb81cf56d4747bb585a1e0c276'
-const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kjjsyzgyvtwfnuxozxad.supabase.co').trim()
-const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim()
+const DART_API_KEY = process.env.DART_API_KEY
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
 if (!DART_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('환경변수가 설정되지 않았습니다.')
-  console.error('DART_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY 필요')
+  console.error('필수 환경변수:')
+  console.error('  - DART_API_KEY: DART API 키 (https://opendart.fss.or.kr 에서 발급)')
+  console.error('  - NEXT_PUBLIC_SUPABASE_URL: Supabase 프로젝트 URL')
+  console.error('  - SUPABASE_SERVICE_ROLE_KEY: Supabase 서비스 역할 키')
+  console.error('')
+  console.error('.env.local 파일에 위 환경변수를 설정하세요.')
   process.exit(1)
 }
 
