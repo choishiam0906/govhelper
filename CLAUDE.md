@@ -497,6 +497,49 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 최근 완료 작업 (2026-01-24)
 
+### 테스트 커버리지 확대 ✅
+
+테스트 커버리지를 76%로 확대하기 위해 4개의 테스트 파일 추가.
+
+**추가된 테스트 파일:**
+
+| 파일 | 테스트 수 | 테스트 대상 |
+|------|----------|------------|
+| `__tests__/lib/cache.test.ts` | 18개 | TTL 정책, 캐시 키 생성 로직 |
+| `__tests__/lib/recommendations.test.ts` | 41개 | 업종/지역 매핑, 점수 계산, 필터링 |
+| `__tests__/lib/rate-limit.test.ts` | 16개 | IP 추출, 헤더 생성, 활성화 체크 |
+| `__tests__/lib/dashboard.test.ts` | 31개 | 플랜 정보, 프로모션, 기능 정책 |
+
+**테스트 실행:**
+```bash
+npm test                    # 전체 테스트 실행
+npm run test:coverage       # 커버리지 포함 실행
+npm test -- __tests__/lib   # lib 테스트만 실행
+```
+
+**모듈별 커버리지:**
+| 모듈 | 커버리지 |
+|------|---------|
+| `lib/payments/toss.ts` | 100% |
+| `lib/recommendations/mappings.ts` | 100% |
+| `lib/business/utils/company-name.ts` | 95.89% |
+| `lib/recommendations/filter.ts` | 94.17% |
+| `lib/rate-limit.ts` | 88.23% |
+
+### 나라장터 (G2B) API 연동 완료 ✅
+
+나라장터 조달청 입찰공고 동기화 기능 구현 완료.
+
+**API 설정:**
+- 공공데이터포털 발급 API 키 사용
+- 환경변수: `G2B_API_KEY`
+- Cron: 03:00, 15:00 UTC
+
+**동기화 통계:**
+- 물품/용역/공사 3개 유형 동시 조회
+- 최근 7일 데이터 동기화
+- 513건 이상 공고 수집
+
 ### 시스템 고도화 4주 계획 완료
 
 GovHelper 매칭 알고리즘 및 사업자 조회 시스템 고도화 작업 완료.
