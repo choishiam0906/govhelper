@@ -496,6 +496,27 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 최근 완료 작업 (2026-01-24)
 
+### 보안 감사 및 취약점 수정 ✅
+
+코드베이스 전체 보안 감사 수행 및 발견된 취약점 수정.
+
+**발견 및 수정된 취약점:**
+
+| 심각도 | 파일 | 문제 | 조치 |
+|--------|------|------|------|
+| **Critical** | `scripts/import-dart-companies.ts` | DART API 키 하드코딩 | 환경변수로 변경, 에러 메시지 개선 |
+| **Medium** | `scripts/run-migration-007.ts` | Supabase 프로젝트 ID 노출 | URL에서 ID 제거 |
+| **Medium** | `supabase/.temp/` | 민감 정보 Git 추적 | `.gitignore` 추가, Git 추적 해제 |
+
+**안전 확인된 영역:**
+- 클라이언트 컴포넌트: `process.env` 사용 없음
+- `NEXT_PUBLIC_*` 변수: Supabase URL/Anon Key만 노출 (정상)
+- `.env*` 파일: `.gitignore`로 보호됨
+
+**필수 조치 (관리자):**
+- DART API 키가 Git 히스토리에 노출됨
+- https://opendart.fss.or.kr 에서 새 API 키 발급 후 `.env.local` 업데이트 필요
+
 ### 테스트 커버리지 확대 ✅
 
 테스트 커버리지를 76%로 확대하기 위해 4개의 테스트 파일 추가.

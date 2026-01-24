@@ -15,6 +15,13 @@ GovHelper 프로젝트의 모든 주요 변경사항을 기록합니다.
   - 플로팅 피드백 버튼 (대시보드 우측 하단)
   - 관리자 피드백 관리 페이지 (`/admin/feedback`)
 
+### Security
+- **보안 감사 및 취약점 수정**: 코드베이스 전체 보안 점검
+  - [Critical] DART API 키 하드코딩 제거 (`scripts/import-dart-companies.ts`)
+  - [Medium] Supabase 프로젝트 ID 노출 제거 (`scripts/run-migration-007.ts`)
+  - [Medium] `supabase/.temp/` 폴더 Git 추적 해제 및 `.gitignore` 추가
+  - 클라이언트 코드 민감 정보 노출 없음 확인
+
 ### Removed
 - **HRD Korea API 제거**: 개인 직업훈련 대상으로 창업자 플랫폼에 부적합
   - `app/api/announcements/hrd/*` 삭제
