@@ -132,11 +132,11 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 | 중소벤처24 API 연동 | P0 | ✅ 완료 |
 | 자동 동기화 (Vercel Cron) | P1 | ✅ 완료 |
 
-**데이터 소스:**
-- 중소벤처24 (SMES)
-- 나라장터
-- 기업마당
-- K-Startup
+**데이터 소스 (총 4개):**
+- 중소벤처24 (SMES) - 정부지원사업 통합 정보
+- 기업마당 (bizinfo) - 중기부 지원사업
+- K-Startup - 창업 지원사업
+- 나라장터 (G2B) - 조달청 입찰공고
 
 #### 2.4 AI 매칭 분석 (AI Matching)
 
@@ -365,13 +365,13 @@ GovHelper는 수천 개의 정부지원사업 중 기업에 맞는 사업을 AI�
 | 중소벤처24 (SMES) API | 공고 데이터 | ✅ 연동 완료 |
 | 기업마당 (bizinfo) API | 중기부 지원사업 | ✅ 연동 완료 |
 | K-Startup API | 창업 지원사업 | ✅ 연동 완료 |
-| 나라장터 (G2B) API | 조달청 입찰공고 | ⚠️ API 키 재발급 필요 |
-| HRD Korea API | 직업훈련 과정 | ⚠️ API 키 필요 |
+| 나라장터 (G2B) API | 조달청 입찰공고 | ✅ 연동 완료 |
 | 국세청 API | 사업자등록정보 검증 | ✅ 연동 완료 |
 | 국민연금공단 | 기업정보 자동 조회 | ✅ 연동 완료 |
+| DART (전자공시) | 기업정보 자동 조회 | ✅ 연동 완료 |
 | Toss Payments | 카드/계좌이체 결제 | ✅ 연동 완료 |
 | Supabase | DB + Auth + pgvector | ✅ 연동 완료 |
-| Upstash Redis | Rate Limiting | ✅ 연동 완료 |
+| Upstash Redis | Rate Limiting + 캐싱 | ✅ 연동 완료 |
 | Resend | 이메일 알림 | ✅ 연동 완료 |
 | Vercel | 호스팅 + Cron | ✅ 연동 완료 |
 
