@@ -1,11 +1,13 @@
 /**
  * 통합 AI 모듈
  *
- * 우선순위:
+ * 텍스트 생성 우선순위:
  * 1. Groq (무료, 빠름, Llama 3.3 70B)
  * 2. Gemini (유료/무료 제한, 폴백)
  *
- * 임베딩은 Gemini만 지원 (Groq는 임베딩 미지원)
+ * 임베딩 우선순위:
+ * 1. Gemini (text-embedding-004, 768차원)
+ * 2. Voyage AI (voyage-multilingual-2, 1024→768 조정, 폴백)
  */
 
 import { MatchAnalysis, EligibilityCriteria } from '@/types'
@@ -25,12 +27,18 @@ import {
 import {
   streamWithGemini,
   analyzeMatchWithGemini,
-  generateEmbedding,
+  generateEmbedding as generateEmbeddingGemini,
   parseEligibilityCriteria as parseEligibilityCriteriaGemini,
   streamApplicationSection as streamApplicationSectionGemini,
   streamSectionImprovement as streamSectionImprovementGemini,
   parseEligibilityCriteriaBatch as parseEligibilityCriteriaBatchGemini,
 } from './gemini'
+
+// Voyage AI 함수들 (임베딩 폴백용)
+import {
+  isVoyageAvailable,
+  generateEmbeddingWithVoyage,
+} from './voyage'
 
 // AI 프로바이더 타입
 export type AIProvider = 'groq' | 'gemini'
@@ -191,9 +199,31 @@ export async function parseEligibilityCriteriaBatch(
 }
 
 /**
- * 임베딩 생성 (Gemini 전용 - Groq는 임베딩 미지원)
+ * 임베딩 생성 (Gemini 우선, Voyage 폴백)
+ * Groq는 임베딩 미지원
  */
-export { generateEmbedding } from './gemini'
+export async function generateEmbedding(text: string): Promise<number[]> {
+  // 1. Gemini 시도
+  try {
+    console.log('[AI] generateEmbedding using GEMINI')
+    return await generateEmbeddingGemini(text)
+  } catch (geminiError) {
+    console.warn('[AI] Gemini embedding failed:', geminiError)
+  }
+
+  // 2. Voyage 폴백
+  if (isVoyageAvailable()) {
+    try {
+      console.log('[AI] generateEmbedding falling back to VOYAGE')
+      return await generateEmbeddingWithVoyage(text)
+    } catch (voyageError) {
+      console.error('[AI] Voyage embedding also failed:', voyageError)
+    }
+  }
+
+  // 모두 실패
+  throw new Error('All embedding providers failed (Gemini, Voyage)')
+}
 
 // 기존 Gemini 함수들도 직접 export (하위 호환성)
 export {
@@ -213,3 +243,9 @@ export {
   streamApplicationSectionWithGroq,
   streamSectionImprovementWithGroq,
 } from './groq'
+
+// Voyage 함수들도 직접 export (임베딩 백업용)
+export {
+  isVoyageAvailable,
+  generateEmbeddingWithVoyage,
+} from './voyage'
