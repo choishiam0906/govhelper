@@ -16,6 +16,7 @@ import {
   Award,
 } from "lucide-react";
 import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section";
+import { NewsletterForm } from "@/components/newsletter/newsletter-form";
 
 export default function Home() {
   return (
@@ -510,6 +511,15 @@ export default function Home() {
                 <li><Link href="/terms" className="hover:text-foreground">이용약관</Link></li>
                 <li><Link href="/privacy" className="hover:text-foreground">개인정보처리방침</Link></li>
               </ul>
+            </div>
+          </div>
+          <div className="border-t mt-8 pt-8">
+            <div className="max-w-md mx-auto text-center">
+              <h4 className="font-semibold mb-2">뉴스레터 구독</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                매주 엄선된 정부지원사업 정보를 받아보세요
+              </p>
+              <NewsletterForm source="footer" variant="inline" />
             </div>
           </div>
           <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">

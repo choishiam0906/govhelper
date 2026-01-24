@@ -410,6 +410,87 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_subscribers: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          status: string | null
+          preferences: Json | null
+          source: string | null
+          utm_source: string | null
+          utm_medium: string | null
+          utm_campaign: string | null
+          confirmed: boolean | null
+          confirm_token: string | null
+          confirm_sent_at: string | null
+          confirmed_at: string | null
+          unsubscribe_token: string
+          unsubscribed_at: string | null
+          unsubscribe_reason: string | null
+          emails_sent: number | null
+          emails_opened: number | null
+          emails_clicked: number | null
+          last_email_at: string | null
+          last_opened_at: string | null
+          last_clicked_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          email: string
+          name?: string | null
+          status?: string | null
+          preferences?: Json | null
+          source?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          confirmed?: boolean | null
+          confirm_token?: string | null
+          confirm_sent_at?: string | null
+          confirmed_at?: string | null
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          emails_sent?: number | null
+          emails_opened?: number | null
+          emails_clicked?: number | null
+          last_email_at?: string | null
+          last_opened_at?: string | null
+          last_clicked_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          email?: string
+          name?: string | null
+          status?: string | null
+          preferences?: Json | null
+          source?: string | null
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          confirmed?: boolean | null
+          confirm_token?: string | null
+          confirm_sent_at?: string | null
+          confirmed_at?: string | null
+          unsubscribe_token?: string
+          unsubscribed_at?: string | null
+          unsubscribe_reason?: string | null
+          emails_sent?: number | null
+          emails_opened?: number | null
+          emails_clicked?: number | null
+          last_email_at?: string | null
+          last_opened_at?: string | null
+          last_clicked_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       feedbacks: {
         Row: {
           admin_notes: string | null
