@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Building2, Clock, Bookmark, TrendingUp, ChevronRight } from 'lucide-react'
+import { CompareButton } from '@/components/compare/compare-button'
 
 interface Announcement {
   id: string
@@ -150,6 +151,18 @@ export function AnnouncementList({ announcements }: AnnouncementListProps) {
                   <Bookmark className="h-4 w-4 mr-1" />
                   관심 등록
                 </Button>
+                <CompareButton
+                  announcement={{
+                    id: announcement.id,
+                    title: announcement.title,
+                    organization: announcement.organization,
+                    category: announcement.category,
+                    support_type: announcement.support_type,
+                    support_amount: announcement.support_amount,
+                    application_end: announcement.application_end,
+                    source: announcement.source,
+                  }}
+                />
                 <Link href={`/dashboard/matching?announcementId=${announcement.id}`}>
                   <Button variant="outline" size="sm">
                     <TrendingUp className="h-4 w-4 mr-1" />
