@@ -495,6 +495,136 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
+## 최근 완료 작업 (2026-01-24)
+
+### 시스템 고도화 4주 계획 완료
+
+GovHelper 매칭 알고리즘 및 사업자 조회 시스템 고도화 작업 완료.
+
+#### Week 1: Redis 캐싱 인프라 구축 ✅
+**파일:** `lib/cache/index.ts`
+
+| 캐시 유형 | TTL | 캐시 키 패턴 |
+|----------|-----|-------------|
+| 사업자 정보 (NTS) | 1시간 | `business:nts:{번호}` |
+| 사업자 정보 (통합) | 24시간 | `business:{번호}` |
+| AI 매칭 결과 | 7일 | `matching:{회사ID}:{공고ID}` |
+| RAG 임베딩 | 1시간 | `rag:embedding:{MD5해시}` |
+
+**사용법:**
+```typescript
+import { getBusinessCache, setBusinessCache, getMatchingCache } from '@/lib/cache'
+
+// 캐시 조회/저장
+const cached = await getBusinessCache('123-45-67890')
+await setBusinessCache('123-45-67890', businessInfo)
+```
+
+#### Week 2: RAG 검색 최적화 ✅
+**수정 파일:**
+- `app/api/announcements/search/route.ts` - 임베딩 캐싱 적용
+- `app/api/matching/route.ts` - AI 매칭 결과 캐싱 (7일 TTL)
+- `supabase/migrations/012_performance_indexes.sql` - DB 성능 인덱스
+
+**응답 헤더:**
+- `X-Embedding-Cache: HIT/MISS` - 임베딩 캐시 상태
+- `X-Matching-Cache: HIT/MISS` - 매칭 캐시 상태
+
+**DB 인덱스 추가:**
+```sql
+-- NPS 테이블
+CREATE INDEX idx_nps_business_number ON nps_business_registry(business_number);
+CREATE INDEX idx_nps_company_name_trgm ON nps_business_registry USING gin (company_name gin_trgm_ops);
+
+-- DART 테이블
+CREATE INDEX idx_dart_corp_name_trgm ON dart_companies USING gin (corp_name gin_trgm_ops);
+
+-- 공고 테이블
+CREATE INDEX idx_announcements_status_end ON announcements(status, application_end) WHERE status = 'active';
+```
+
+#### Week 3: 매칭 정확도 개선 ✅
+
+**1. Few-shot 프롬프트 개선**
+`lib/ai/gemini.ts`의 `parseEligibilityCriteria` 함수에 3개 예시 추가:
+- 일반 R&D 지원사업 예시
+- 스타트업 창업 지원사업 예시
+- 지역 특화 사업 예시
+
+**파싱 정확도 향상 규칙:**
+- "300인 미만" → `max: 299` (미만은 해당 숫자 -1)
+- "100억 이하" → `max: 10000000000` (원 단위 변환)
+- "우대" 조건은 필수가 아님 명시
+
+**2. 회사명 정규화 유틸리티**
+**파일:** `lib/business/utils/company-name.ts`
+
+```typescript
+import { normalizeCompanyName, compareCompanyNames, extractCompanyNameVariants } from '@/lib/business'
+
+// 법인 표기 정규화
+normalizeCompanyName("(주) 삼성전자")     // "삼성전자"
+normalizeCompanyName("주식회사 카카오")   // "카카오"
+
+// 유사도 비교 (0-1)
+compareCompanyNames("주식회사 카카오", "카카오(주)")  // 1.0
+
+// 검색용 변형 생성
+extractCompanyNameVariants("카카오")
+// ["카카오", "주식회사 카카오", "(주)카카오", "카카오(주)", ...]
+```
+
+#### Week 4: 데이터 소스 확장 ✅
+
+**1. 고용보험 데이터 소스**
+**파일:** `lib/business/sources/employment-insurance.ts`
+
+```typescript
+import { lookupEmploymentInsuranceFromDB } from '@/lib/business'
+
+const result = await lookupEmploymentInsuranceFromDB(supabase, '123-45-67890')
+// { companyName, totalInsured, businessType, status, ... }
+```
+
+**마이그레이션:** `supabase/migrations/013_employment_insurance.sql`
+
+**2. 벤처인증 데이터 소스**
+**파일:** `lib/business/sources/certifications.ts`
+
+```typescript
+import { lookupCertifications, hasCertification } from '@/lib/business'
+
+// 인증 정보 조회
+const certs = await lookupCertifications(supabase, '123-45-67890')
+
+// 특정 인증 보유 여부
+const hasVenture = await hasCertification(supabase, '123-45-67890', 'venture')
+```
+
+**지원 인증 유형:**
+| 타입 | 설명 |
+|------|------|
+| `venture` | 벤처인증 |
+| `innobiz` | 이노비즈 |
+| `mainbiz` | 메인비즈 |
+| `greencompany` | 녹색기업 |
+| `familyfriendly` | 가족친화기업 |
+| `socialenterprise` | 사회적기업 |
+| `womenbiz` | 여성기업 |
+
+**마이그레이션:** `supabase/migrations/014_company_certifications.sql`
+
+**3. 통합 조회에 인증 정보 포함**
+`lookupBusiness()` 함수가 자동으로 인증 정보 조회:
+
+```typescript
+const result = await lookupBusiness('123-45-67890')
+console.log(result.data?.certifications)
+// [{ type: 'venture', name: '벤처인증', isValid: true, expiryDate: '2027-12-31' }]
+```
+
+---
+
 ## 최근 완료 작업 (2026-01-23)
 
 ### 사업자번호 조회 시 폼 필드 자동 입력 기능
