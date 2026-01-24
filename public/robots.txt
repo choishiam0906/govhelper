@@ -1,0 +1,22 @@
+# GovHelper Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://govhelpers.com/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /onboarding/
+Disallow: /dashboard/pending-approval/
+
+# Allow important pages
+Allow: /
+Allow: /try
+Allow: /login
+Allow: /register
+Allow: /about
+Allow: /terms
+Allow: /privacy

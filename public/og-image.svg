@@ -1,0 +1,8 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#3b82f6"/>
+  <rect x="50" y="50" width="80" height="80" rx="16" fill="white"/>
+  <text x="90" y="110" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#3b82f6" text-anchor="middle">G</text>
+  <text x="600" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">GovHelper</text>
+  <text x="600" y="380" font-family="Arial, sans-serif" font-size="36" fill="rgba(255,255,255,0.9)" text-anchor="middle">AI 기반 정부지원사업 매칭 플랫폼</text>
+  <text x="600" y="450" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.7)" text-anchor="middle">우리 기업에 딱 맞는 지원사업을 찾아드려요</text>
+</svg>
