@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { streamWithGemini } from '@/lib/ai/gemini'
 import { Tables } from '@/types/database'
 import { MatchAnalysis } from '@/types'
@@ -252,7 +252,8 @@ ${businessPlanContent}
 
           const analysis: MatchAnalysis = JSON.parse(jsonMatch[0])
 
-          // DB에 매칭 결과 저장
+          // DB에 매칭 결과 저장 (Service Client로 RLS 우회)
+          const serviceClient = await createServiceClient()
           const matchInsert = {
             company_id: companyId,
             announcement_id: announcementId,
@@ -262,7 +263,7 @@ ${businessPlanContent}
           }
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: matchResult, error: matchError } = await (supabase as any)
+          const { data: matchResult, error: matchError } = await (serviceClient as any)
             .from('matches')
             .insert(matchInsert)
             .select()
