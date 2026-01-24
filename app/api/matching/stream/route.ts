@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { streamWithGemini } from '@/lib/ai/gemini'
+import { streamWithAI } from '@/lib/ai'
 import { Tables } from '@/types/database'
 import { MatchAnalysis } from '@/types'
 import {
@@ -231,7 +231,7 @@ ${businessPlanContent}
           })
           controller.enqueue(encoder.encode(`data: ${startData}\n\n`))
 
-          for await (const chunk of streamWithGemini(prompt)) {
+          for await (const chunk of streamWithAI(prompt)) {
             fullContent += chunk
             chunkCount++
 

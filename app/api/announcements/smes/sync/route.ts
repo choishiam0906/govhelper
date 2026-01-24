@@ -7,7 +7,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
-import { parseEligibilityCriteria } from '@/lib/ai/gemini'
+import { parseEligibilityCriteria } from '@/lib/ai'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { streamWithGemini } from '@/lib/ai/gemini'
+import { streamWithGemini } from '@/lib/ai'
 import { z } from 'zod'
 
 interface RouteParams {

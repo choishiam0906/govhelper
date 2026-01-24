@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { parseEligibilityCriteria } from '@/lib/ai/gemini'
+import { parseEligibilityCriteria } from '@/lib/ai'
 import {
   syncRateLimiter,
   checkRateLimit,

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { streamApplicationSection } from '@/lib/ai/gemini'
+import { streamApplicationSection } from '@/lib/ai'
 import { checkUsageLimit } from '@/lib/queries/dashboard'
 import { Tables } from '@/types/database'
 import {

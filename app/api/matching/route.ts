@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { analyzeMatchWithGemini } from '@/lib/ai/gemini'
+import { analyzeMatch } from '@/lib/ai'
 import { Tables, InsertTables, Json } from '@/types/database'
 import { withRateLimit } from '@/lib/api-utils'
 import { getMatchingCache, setMatchingCache } from '@/lib/cache'
@@ -125,7 +125,7 @@ async function handlePost(request: NextRequest) {
       : '사업계획서 없음'
 
     // 6. Perform AI analysis
-    const analysis = await analyzeMatchWithGemini(
+    const analysis = await analyzeMatch(
       announcementContent,
       companyProfile,
       businessPlanContent

@@ -7,7 +7,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
-import { parseEligibilityCriteria } from '@/lib/ai/gemini'
+import { parseEligibilityCriteria } from '@/lib/ai'
 
 // K-Startup API 설정 (공공데이터포털)
 const KSTARTUP_API_URL = 'https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01'

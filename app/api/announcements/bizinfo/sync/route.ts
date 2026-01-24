@@ -7,7 +7,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
-import { parseEligibilityCriteria } from '@/lib/ai/gemini'
+import { parseEligibilityCriteria } from '@/lib/ai'
 
 // 기업마당 API 설정
 const BIZINFO_API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do'
