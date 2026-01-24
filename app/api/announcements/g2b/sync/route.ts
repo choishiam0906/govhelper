@@ -281,6 +281,12 @@ export async function POST(request: NextRequest) {
         upserted: count,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
+      },
+      debug: {
+        inqryBgnDt,
+        inqryEndDt,
+        hasApiKey: !!G2B_API_KEY,
+        apiKeyLength: G2B_API_KEY?.length || 0
       }
     })
 
