@@ -3,6 +3,39 @@
 
 import redis from '@/lib/redis'
 import type { UnifiedBusinessInfo } from '@/lib/business/types'
+import type { MatchAnalysis } from '@/types'
+
+// 캐시된 매칭 결과 타입
+export interface CachedMatchingResult {
+  match: {
+    id: string
+    company_id: string
+    announcement_id: string
+    match_score: number
+    analysis: MatchAnalysis
+    created_at: string
+    updated_at: string
+  }
+  analysis: MatchAnalysis
+}
+
+// 캐시된 공고 목록 응답 타입
+export interface CachedAnnouncementsResponse {
+  success: boolean
+  data: Array<{
+    id: string
+    title: string
+    organization: string
+    source: string
+    [key: string]: unknown
+  }>
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
 
 // TTL 정책 상수 (초 단위)
 export const CACHE_TTL = {
@@ -163,21 +196,21 @@ export async function deleteBusinessCache(businessNumber: string): Promise<void>
 export async function getMatchingCache(
   companyId: string,
   announcementId: string
-): Promise<any | null> {
+): Promise<CachedMatchingResult | null> {
   const key = cacheKey.matching(companyId, announcementId)
-  return getCache(key)
+  return getCache<CachedMatchingResult>(key)
 }
 
 /**
  * AI 매칭 결과 캐시 저장
  * @param companyId 기업 ID
  * @param announcementId 공고 ID
- * @param data 매칭 결과
+ * @param data 매칭 결과 (match 객체와 analysis 포함)
  */
 export async function setMatchingCache(
   companyId: string,
   announcementId: string,
-  data: any
+  data: { match: unknown; analysis: MatchAnalysis }
 ): Promise<void> {
   const key = cacheKey.matching(companyId, announcementId)
   await setCache(key, data, CACHE_TTL.AI_MATCHING)
@@ -229,9 +262,9 @@ function getAnnouncementsListCacheKey(params: AnnouncementsListParams): string {
  */
 export async function getAnnouncementsListCache(
   params: AnnouncementsListParams
-): Promise<any | null> {
+): Promise<CachedAnnouncementsResponse | null> {
   const key = getAnnouncementsListCacheKey(params)
-  return getCache(key)
+  return getCache<CachedAnnouncementsResponse>(key)
 }
 
 /**
@@ -239,7 +272,7 @@ export async function getAnnouncementsListCache(
  */
 export async function setAnnouncementsListCache(
   params: AnnouncementsListParams,
-  data: any
+  data: CachedAnnouncementsResponse
 ): Promise<void> {
   const key = getAnnouncementsListCacheKey(params)
   await setCache(key, data, CACHE_TTL.ANNOUNCEMENTS_LIST)

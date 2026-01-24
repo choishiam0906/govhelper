@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/ai/gemini'
 import crypto from 'crypto'
+import {
+  parallelBatchWithRetry,
+  summarizeBatchResults,
+} from '@/lib/utils/parallel-batch'
 
 const ADMIN_EMAILS = ['choishiam@gmail.com']
-const BATCH_SIZE = 10 // 한 번에 처리할 공고 수
-const DELAY_MS = 1000 // API 호출 간 딜레이 (Rate Limit 방지)
+const CONCURRENCY = 5 // 동시 처리 수
+const DELAY_BETWEEN_BATCHES = 500 // 배치 간 딜레이 (ms)
 
 // 텍스트 해시 생성 (변경 감지용)
 function generateHash(text: string): string {
@@ -91,63 +95,86 @@ export async function POST(request: NextRequest) {
       existingEmbeddings?.map(e => [e.announcement_id, e.content_hash]) || []
     )
 
-    let processed = 0
-    let skipped = 0
-    let errors: string[] = []
-
-    // 배치 처리
-    for (let i = 0; i < announcements.length; i += BATCH_SIZE) {
-      const batch = announcements.slice(i, i + BATCH_SIZE)
-
-      for (const announcement of batch) {
-        try {
-          const text = prepareEmbeddingText(announcement)
+    // 변경되지 않은 공고 필터링
+    const announcementsToProcess = forceRegenerate
+      ? announcements
+      : announcements.filter(ann => {
+          const text = prepareEmbeddingText(ann)
           const contentHash = generateHash(text)
+          return existingMap.get(ann.id) !== contentHash
+        })
 
-          // 변경되지 않은 경우 스킵 (forceRegenerate가 false일 때)
-          if (!forceRegenerate && existingMap.get(announcement.id) === contentHash) {
-            skipped++
-            continue
-          }
+    const skipped = announcements.length - announcementsToProcess.length
+    const errors: string[] = []
 
-          // 임베딩 생성
-          const embedding = await generateEmbedding(text)
-
-          // Supabase에 저장 (upsert)
-          const { error: upsertError } = await (supabase
-            .from('announcement_embeddings') as any)
-            .upsert({
-              announcement_id: announcement.id,
-              embedding: `[${embedding.join(',')}]`,
-              content_hash: contentHash,
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'announcement_id',
-            })
-
-          if (upsertError) {
-            console.error(`Embedding upsert error for ${announcement.id}:`, upsertError)
-            errors.push(`${announcement.id}: ${upsertError.message}`)
-            continue
-          }
-
-          processed++
-
-          // Rate Limit 방지
-          await new Promise(resolve => setTimeout(resolve, DELAY_MS))
-        } catch (embeddingError) {
-          console.error(`Embedding generation error for ${announcement.id}:`, embeddingError)
-          errors.push(`${announcement.id}: ${embeddingError}`)
-        }
-      }
+    if (announcementsToProcess.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: '변경된 공고가 없어요',
+        processed: 0,
+        skipped,
+        total: announcements.length,
+      })
     }
+
+    console.log(`🔄 임베딩 생성 시작: ${announcementsToProcess.length}건 (병렬 처리)`)
+
+    // 병렬 배치 처리
+    const results = await parallelBatchWithRetry(
+      announcementsToProcess,
+      async (announcement) => {
+        const text = prepareEmbeddingText(announcement)
+        const contentHash = generateHash(text)
+
+        // 임베딩 생성
+        const embedding = await generateEmbedding(text)
+
+        // Supabase에 저장 (upsert)
+        const { error: upsertError } = await (supabase
+          .from('announcement_embeddings') as ReturnType<typeof supabase.from>)
+          .upsert({
+            announcement_id: announcement.id,
+            embedding: `[${embedding.join(',')}]`,
+            content_hash: contentHash,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'announcement_id',
+          })
+
+        if (upsertError) {
+          throw new Error(`DB 저장 실패: ${upsertError.message}`)
+        }
+
+        console.log(`✅ ${announcement.id}: 임베딩 생성 완료`)
+        return embedding
+      },
+      {
+        concurrency: CONCURRENCY,
+        delayBetweenBatches: DELAY_BETWEEN_BATCHES,
+        onProgress: (completed, total) => {
+          console.log(`📊 진행률: ${completed}/${total} (${Math.round(completed / total * 100)}%)`)
+        }
+      },
+      2 // 최대 2회 재시도
+    )
+
+    const summary = summarizeBatchResults(results)
+
+    // 에러 수집
+    results.filter(r => !r.success).forEach(r => {
+      const ann = announcementsToProcess[r.index]
+      errors.push(`${ann.id}: ${r.error?.message || '알 수 없는 오류'}`)
+    })
+
+    console.log(`✅ 임베딩 생성 완료: ${summary.succeeded}건 성공, ${summary.failed}건 실패`)
 
     return NextResponse.json({
       success: true,
-      message: `${processed}개 공고를 벡터화했어요`,
-      processed,
+      message: `${summary.succeeded}개 공고를 벡터화했어요`,
+      processed: summary.succeeded,
       skipped,
       total: announcements.length,
+      successRate: `${summary.successRate.toFixed(1)}%`,
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (error) {

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import {
+  feedbackRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // 요청 스키마
 const feedbackSchema = z.object({
@@ -12,6 +19,26 @@ const feedbackSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  // Rate Limit 체크 (스팸 방지)
+  if (isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(feedbackRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   try {
     const body = await request.json()
 

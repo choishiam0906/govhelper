@@ -34,6 +34,30 @@ export const authRateLimiter = new Ratelimit({
   prefix: 'ratelimit:auth',
 })
 
+// 비회원 매칭 API - 분당 3회 (남용 방지)
+export const guestMatchingRateLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, '1 m'),
+  analytics: true,
+  prefix: 'ratelimit:guest-matching',
+})
+
+// 사업자 검증 API - 분당 10회
+export const businessVerifyRateLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+  analytics: true,
+  prefix: 'ratelimit:business-verify',
+})
+
+// 피드백 API - 분당 5회 (스팸 방지)
+export const feedbackRateLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '1 m'),
+  analytics: true,
+  prefix: 'ratelimit:feedback',
+})
+
 // Rate Limit 결과 타입
 export interface RateLimitResult {
   success: boolean

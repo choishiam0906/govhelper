@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import {
+  businessVerifyRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 // 사업자번호 상태조회 스키마
 const statusSchema = z.object({
@@ -98,6 +105,26 @@ function getTaxTypeText(code: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate Limit 체크
+  if (isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(businessVerifyRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   try {
     const body = await request.json()
 

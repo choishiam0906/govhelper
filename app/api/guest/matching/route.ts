@@ -4,6 +4,13 @@ import { z } from 'zod'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { resend, FROM_EMAIL } from '@/lib/email/resend'
 import { renderGuestMatchingEmail } from '@/lib/email/templates'
+import {
+  guestMatchingRateLimiter,
+  checkRateLimit,
+  getClientIP,
+  getRateLimitHeaders,
+  isRateLimitEnabled,
+} from '@/lib/rate-limit'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
@@ -108,6 +115,26 @@ ${companyText}
 }
 
 export async function POST(request: NextRequest) {
+  // Rate Limit 체크 (남용 방지)
+  if (isRateLimitEnabled()) {
+    const ip = getClientIP(request)
+    const result = await checkRateLimit(guestMatchingRateLimiter, ip)
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
+        },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(result),
+        }
+      )
+    }
+  }
+
   try {
     const body = await request.json()
     const validatedData = guestMatchingSchema.parse(body)

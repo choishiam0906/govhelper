@@ -8,6 +8,10 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
+import {
+  parallelBatchWithRetry,
+  summarizeBatchResults,
+} from '@/lib/utils/parallel-batch'
 
 // Supabase Admin Client
 function getSupabaseAdmin() {
@@ -154,14 +158,12 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`🔍 지원자격 파싱 시작: ${announcements.length}건`)
+    console.log(`🔍 지원자격 파싱 시작: ${announcements.length}건 (병렬 처리)`)
 
-    let parsed = 0
-    let failed = 0
-
-    // 순차 처리 (Rate Limit 고려)
-    for (const ann of announcements) {
-      try {
+    // 병렬 배치 처리 (동시 5개, 배치 간 500ms 딜레이)
+    const results = await parallelBatchWithRetry(
+      announcements,
+      async (ann) => {
         const criteria = await parseEligibilityCriteria(
           ann.title,
           ann.content || '',
@@ -175,33 +177,35 @@ export async function POST(request: NextRequest) {
           .eq('id', ann.id)
 
         if (updateError) {
-          console.error(`Update error for ${ann.id}:`, updateError.message)
-          failed++
-        } else {
-          parsed++
-          console.log(`✅ ${ann.id}: 지원자격 파싱 완료 (신뢰도: ${criteria.confidence})`)
+          throw new Error(`DB 업데이트 실패: ${updateError.message}`)
         }
 
-        // Rate limiting: 요청 간 딜레이 (Gemini API)
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        console.log(`✅ ${ann.id}: 지원자격 파싱 완료 (신뢰도: ${criteria.confidence})`)
+        return criteria
+      },
+      {
+        concurrency: 5,
+        delayBetweenBatches: 500,
+        onProgress: (completed, total) => {
+          console.log(`📊 진행률: ${completed}/${total} (${Math.round(completed / total * 100)}%)`)
+        }
+      },
+      2 // 최대 2회 재시도
+    )
 
-      } catch (error) {
-        console.error(`Parsing error for ${ann.id}:`, error)
-        failed++
-      }
-    }
-
+    const summary = summarizeBatchResults(results)
     const duration = Date.now() - startTime
 
-    console.log(`✅ 지원자격 파싱 완료: ${parsed}건 성공, ${failed}건 실패, ${duration}ms`)
+    console.log(`✅ 지원자격 파싱 완료: ${summary.succeeded}건 성공, ${summary.failed}건 실패, ${duration}ms`)
 
     return NextResponse.json({
       success: true,
       message: '지원자격 파싱 완료',
       stats: {
-        total: announcements.length,
-        parsed,
-        failed,
+        total: summary.total,
+        parsed: summary.succeeded,
+        failed: summary.failed,
+        successRate: `${summary.successRate.toFixed(1)}%`,
         duration: `${duration}ms`,
         parsedAt: new Date().toISOString()
       }

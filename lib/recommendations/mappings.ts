@@ -3,6 +3,20 @@
  * company-form.tsx의 매핑을 확장하여 양방향 검색 지원
  */
 
+// 지역 관련 기능은 통합 모듈에서 가져옴
+export {
+  getRegionKeywords,
+  SEOUL_METRO_AREA as seoulMetroArea,
+  NATIONWIDE_KEYWORDS as nationwideKeywords,
+  isRegionMatch,
+  isRegionExcluded,
+  getLocationLabel,
+} from '@/lib/location'
+
+// 호환성을 위한 regionKeywords (getRegionKeywords() 결과를 캐싱)
+import { getRegionKeywords } from '@/lib/location'
+export const regionKeywords = getRegionKeywords()
+
 // 업종 코드 → 한글 키워드 매핑
 export const industryKeywords: Record<string, string[]> = {
   software: [
@@ -45,35 +59,6 @@ export const industryKeywords: Record<string, string[]> = {
   other: ['기타', '서비스업']
 }
 
-// 지역 코드 → 한글 키워드 매핑
-export const regionKeywords: Record<string, string[]> = {
-  seoul: ['서울', '서울특별시', '서울시'],
-  gyeonggi: ['경기', '경기도'],
-  incheon: ['인천', '인천광역시', '인천시'],
-  busan: ['부산', '부산광역시', '부산시'],
-  daegu: ['대구', '대구광역시', '대구시'],
-  daejeon: ['대전', '대전광역시', '대전시'],
-  gwangju: ['광주', '광주광역시', '광주시'],
-  ulsan: ['울산', '울산광역시', '울산시'],
-  sejong: ['세종', '세종특별자치시', '세종시'],
-  gangwon: ['강원', '강원도', '강원특별자치도'],
-  chungbuk: ['충북', '충청북도'],
-  chungnam: ['충남', '충청남도'],
-  jeonbuk: ['전북', '전라북도', '전북특별자치도'],
-  jeonnam: ['전남', '전라남도'],
-  gyeongbuk: ['경북', '경상북도'],
-  gyeongnam: ['경남', '경상남도'],
-  jeju: ['제주', '제주특별자치도', '제주도']
-}
-
-// 수도권 지역 코드
-export const seoulMetroArea = ['seoul', 'gyeonggi', 'incheon']
-
-// 전국/제한없음을 의미하는 키워드
-export const nationwideKeywords = [
-  '전국', '전지역', '제한없음', '무관', '해당없음', '전 지역'
-]
-
 // 인증 코드 → 한글 키워드 매핑
 export const certificationKeywords: Record<string, string[]> = {
   venture: ['벤처', '벤처기업', '벤처인증'],
@@ -108,41 +93,6 @@ export function isIndustryMatch(
 }
 
 /**
- * 회사 지역 코드가 공고 지역 목록에 포함되는지 확인
- */
-export function isRegionMatch(
-  companyLocation: string | null,
-  announcementRegions: string[]
-): boolean {
-  if (!companyLocation || announcementRegions.length === 0) {
-    return true // 조건이 없으면 통과
-  }
-
-  // 전국이면 무조건 통과
-  if (announcementRegions.some(r =>
-    nationwideKeywords.some(kw => r.includes(kw))
-  )) {
-    return true
-  }
-
-  // 수도권 체크
-  if (announcementRegions.some(r => r.includes('수도권'))) {
-    if (seoulMetroArea.includes(companyLocation)) {
-      return true
-    }
-  }
-
-  const keywords = regionKeywords[companyLocation] || []
-
-  return announcementRegions.some(annRegion => {
-    const annLower = annRegion.toLowerCase()
-    return keywords.some(keyword =>
-      annLower.includes(keyword.toLowerCase())
-    )
-  })
-}
-
-/**
  * 회사가 제외 업종에 해당하는지 확인
  */
 export function isIndustryExcluded(
@@ -156,27 +106,6 @@ export function isIndustryExcluded(
   const keywords = industryKeywords[companyIndustry] || []
 
   return excludedIndustries.some(excluded => {
-    const exLower = excluded.toLowerCase()
-    return keywords.some(keyword =>
-      exLower.includes(keyword.toLowerCase())
-    )
-  })
-}
-
-/**
- * 회사가 제외 지역에 해당하는지 확인
- */
-export function isRegionExcluded(
-  companyLocation: string | null,
-  excludedRegions: string[]
-): boolean {
-  if (!companyLocation || excludedRegions.length === 0) {
-    return false
-  }
-
-  const keywords = regionKeywords[companyLocation] || []
-
-  return excludedRegions.some(excluded => {
     const exLower = excluded.toLowerCase()
     return keywords.some(keyword =>
       exLower.includes(keyword.toLowerCase())
@@ -232,28 +161,3 @@ export function getIndustryLabel(code: string): string {
   return labels[code] || code
 }
 
-/**
- * 지역 코드를 한글 라벨로 변환
- */
-export function getLocationLabel(code: string): string {
-  const labels: Record<string, string> = {
-    seoul: '서울',
-    gyeonggi: '경기',
-    incheon: '인천',
-    busan: '부산',
-    daegu: '대구',
-    daejeon: '대전',
-    gwangju: '광주',
-    ulsan: '울산',
-    sejong: '세종',
-    gangwon: '강원',
-    chungbuk: '충북',
-    chungnam: '충남',
-    jeonbuk: '전북',
-    jeonnam: '전남',
-    gyeongbuk: '경북',
-    gyeongnam: '경남',
-    jeju: '제주'
-  }
-  return labels[code] || code
-}

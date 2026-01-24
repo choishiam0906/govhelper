@@ -11,6 +11,21 @@ export type CertificationType =
   | 'socialenterprise' // 사회적기업
   | 'womenbiz'       // 여성기업
 
+// DB 테이블 행 타입
+interface CertificationRow {
+  id: string
+  business_number: string
+  cert_type: string
+  cert_name: string
+  cert_number: string | null
+  issued_date: string | null
+  expiry_date: string | null
+  is_valid: boolean | null
+  issuing_org: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface CertificationResult {
   source: 'certifications'
   businessNumber: string
@@ -67,7 +82,7 @@ export async function lookupCertifications(
     return {
       source: 'certifications',
       businessNumber: cleaned,
-      certifications: data.map((cert: any) => ({
+      certifications: (data as CertificationRow[]).map((cert) => ({
         type: cert.cert_type as CertificationType,
         name: cert.cert_name,
         certNumber: cert.cert_number || null,

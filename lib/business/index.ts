@@ -28,6 +28,7 @@ import {
 import { estimateCompanySize } from "./utils/company-size";
 import { getBusinessCache, setBusinessCache } from "@/lib/cache";
 import { inferCorporationType } from "./utils/corporation-type";
+import { extractLocationFromAddress } from "@/lib/location";
 
 // 기본 옵션
 const DEFAULT_OPTIONS: BusinessLookupOptions = {
@@ -331,7 +332,7 @@ function mergeResults(
     // --- 위치 정보 ---
     address: nps?.address || dart?.address || null,
     location:
-      nps?.location || extractLocation(nps?.address || dart?.address) || "",
+      nps?.location || extractLocationFromAddress(nps?.address || dart?.address) || "",
 
     // --- 사업 정보 ---
     industryCode: dart?.industryCode || null,
@@ -417,7 +418,7 @@ function createFromDart(dart: DARTResult): UnifiedBusinessInfo {
     companyNameEng: dart.corpNameEng,
     ceoName: dart.ceoName,
     address: dart.address,
-    location: extractLocation(dart.address),
+    location: extractLocationFromAddress(dart.address),
     industryCode: dart.industryCode,
     employeeCount: null,
     establishedDate: dart.establishedDate,
@@ -439,72 +440,3 @@ function createFromDart(dart: DARTResult): UnifiedBusinessInfo {
   };
 }
 
-/**
- * 주소에서 시/도 추출
- */
-function extractLocation(address: string | null | undefined): string {
-  if (!address) return "";
-
-  const patterns = [
-    "서울특별시",
-    "서울",
-    "부산광역시",
-    "부산",
-    "대구광역시",
-    "대구",
-    "인천광역시",
-    "인천",
-    "광주광역시",
-    "광주",
-    "대전광역시",
-    "대전",
-    "울산광역시",
-    "울산",
-    "세종특별자치시",
-    "세종",
-    "경기도",
-    "경기",
-    "강원도",
-    "강원",
-    "충청북도",
-    "충북",
-    "충청남도",
-    "충남",
-    "전라북도",
-    "전북",
-    "전라남도",
-    "전남",
-    "경상북도",
-    "경북",
-    "경상남도",
-    "경남",
-    "제주특별자치도",
-    "제주",
-  ];
-
-  for (const pattern of patterns) {
-    if (address.includes(pattern)) {
-      // 정식 명칭으로 반환
-      if (pattern === "서울") return "서울특별시";
-      if (pattern === "부산") return "부산광역시";
-      if (pattern === "대구") return "대구광역시";
-      if (pattern === "인천") return "인천광역시";
-      if (pattern === "광주") return "광주광역시";
-      if (pattern === "대전") return "대전광역시";
-      if (pattern === "울산") return "울산광역시";
-      if (pattern === "세종") return "세종특별자치시";
-      if (pattern === "경기") return "경기도";
-      if (pattern === "강원") return "강원도";
-      if (pattern === "충북") return "충청북도";
-      if (pattern === "충남") return "충청남도";
-      if (pattern === "전북") return "전라북도";
-      if (pattern === "전남") return "전라남도";
-      if (pattern === "경북") return "경상북도";
-      if (pattern === "경남") return "경상남도";
-      if (pattern === "제주") return "제주특별자치도";
-      return pattern;
-    }
-  }
-
-  return "";
-}
