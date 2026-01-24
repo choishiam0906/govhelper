@@ -6,6 +6,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { WebVitals } from "@/components/analytics/web-vitals";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -90,6 +91,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* Preconnect hints for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
         <meta name="theme-color" content="#3b82f6" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -106,6 +112,7 @@ export default function RootLayout({
         <SpeedInsights />
         <GoogleAnalytics />
         <ServiceWorkerRegister />
+        <WebVitals />
       </body>
     </html>
   );
