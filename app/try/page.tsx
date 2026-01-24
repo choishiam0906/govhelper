@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -34,59 +34,59 @@ import {
 import Link from 'next/link'
 import { useUTM } from '@/lib/hooks/use-utm'
 
-// ?�종 목록
+// 업종 목록
 const INDUSTRIES = [
-  '?�보?�신??,
-  '?�조??,
-  '?�매 �??�매??,
-  '건설??,
-  '?�문, 과학 �?기술 ?�비?�업',
-  '교육 ?�비?�업',
-  '금융 �?보험??,
-  '보건??�??�회복�? ?�비?�업',
-  '?�박 �??�식?�업',
-  '?�수 �?창고??,
-  '?�업, ?�업 �??�업',
-  '?�술, ?�포�?�??��?관???�비?�업',
-  '부?�산??,
-  '?�업?�설 관�? ?�업 지??�??��? ?�비?�업',
-  '?�기, 가?? 증기 �?공기 조절 공급??,
-  '?�도, ?�수 �??�기�?처리, ?�료 ?�생??,
+  '정보통신업',
+  '제조업',
+  '도매 및 소매업',
+  '건설업',
+  '전문, 과학 및 기술 서비스업',
+  '교육 서비스업',
+  '금융 및 보험업',
+  '보건업 및 사회복지 서비스업',
+  '숙박 및 음식점업',
+  '운수 및 창고업',
+  '농업, 임업 및 어업',
+  '예술, 스포츠 및 여가관련 서비스업',
+  '부동산업',
+  '사업시설 관리, 사업 지원 및 임대 서비스업',
+  '전기, 가스, 증기 및 공기 조절 공급업',
+  '수도, 하수 및 폐기물 처리, 원료 재생업',
   '광업',
-  '기�?',
+  '기타',
 ]
 
-// 지??목록
+// 지역 목록
 const LOCATIONS = [
-  '?�울?�별??,
-  '부?�광??��',
-  '?�구광??��',
-  '?�천광역??,
-  '광주광역??,
-  '?�?�광??��',
-  '?�산광역??,
-  '?�종?�별?�치??,
-  '경기??,
-  '강원??,
+  '서울특별시',
+  '부산광역시',
+  '대구광역시',
+  '인천광역시',
+  '광주광역시',
+  '대전광역시',
+  '울산광역시',
+  '세종특별자치시',
+  '경기도',
+  '강원도',
   '충청북도',
-  '충청?�도',
-  '?�라북도',
-  '?�라?�도',
+  '충청남도',
+  '전라북도',
+  '전라남도',
   '경상북도',
-  '경상?�도',
-  '?�주?�별?�치??,
+  '경상남도',
+  '제주특별자치도',
 ]
 
-// ?�증??목록
+// 인증서 목록
 const CERTIFICATIONS = [
-  '벤처기업?�증',
-  '?�노비즈?�증',
-  '메인비즈?�증',
-  '기술?�신??중소기업',
-  '?�성기업?�증',
-  '?�애?�기?�인�?,
-  '?�회?�기?�인�?,
-  '?�색?�증',
+  '벤처기업인증',
+  '이노비즈인증',
+  '메인비즈인증',
+  '기술혁신형 중소기업',
+  '여성기업인증',
+  '장애인기업인증',
+  '사회적기업인증',
+  '녹색인증',
 ]
 
 type Step = 1 | 2 | 3 | 4
@@ -103,7 +103,7 @@ interface FormData {
   email: string
 }
 
-// ?�합 조회 결과 ?�??(unified-lookup API ?�답)
+// 통합 조회 결과 타입 (unified-lookup API 응답)
 interface UnifiedLookupResult {
   success: boolean
   data?: {
@@ -116,10 +116,10 @@ interface UnifiedLookupResult {
     industryCode: string | null
     employeeCount: number | null
     establishedDate: string | null
-    businessType: string | null      // ?�태 (?�분류)
-    industryName: string | null      // 종목 (?�세분류)
+    businessType: string | null      // 업태 (대분류)
+    industryName: string | null      // 종목 (세세분류)
     companySize: string              // 기업규모
-    corporationType: string          // 법인?�태
+    corporationType: string          // 법인형태
     homepage: string | null
     phone: string | null
     ntsStatus: string | null
@@ -151,7 +151,7 @@ export default function TryPage() {
     email: '',
   })
 
-  // ?�업?�번??조회 결과
+  // 사업자번호 조회 결과
   const [lookupResult, setLookupResult] = useState<UnifiedLookupResult | null>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
 
@@ -170,7 +170,7 @@ export default function TryPage() {
     }))
   }
 
-  // ?�업?�번??조회 (?�합 API ?�용)
+  // 사업자번호 조회 (통합 API 사용)
   const lookupBusinessNumber = useCallback(async (bizNum: string) => {
     const cleaned = bizNum.replace(/[^0-9]/g, '')
 
@@ -195,7 +195,8 @@ export default function TryPage() {
       if (result.success && result.data) {
         setLookupResult(result)
 
-        // ???�동 채우�?        if (result.data.companyName) {
+        // 폼 자동 채우기
+        if (result.data.companyName) {
           updateFormData('companyName', result.data.companyName)
         }
         if (result.data.location) {
@@ -204,32 +205,34 @@ export default function TryPage() {
         if (result.data.employeeCount) {
           updateFormData('employeeCount', result.data.employeeCount.toString())
         }
-        // ?�종 ?�동 채우�?(businessType = ?�태)
+        // 업종 자동 채우기 (businessType = 업태)
         if (result.data.businessType && INDUSTRIES.includes(result.data.businessType)) {
           updateFormData('industry', result.data.businessType)
         }
-        // ?�립???�동 채우�?        if (result.data.establishedDate) {
-          // YYYYMMDD ??YYYY-MM-DD 변??          const dateStr = result.data.establishedDate.replace(/[^0-9]/g, '')
+        // 설립일 자동 채우기
+        if (result.data.establishedDate) {
+          // YYYYMMDD → YYYY-MM-DD 변환
+          const dateStr = result.data.establishedDate.replace(/[^0-9]/g, '')
           if (dateStr.length === 8) {
             const formatted = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
             updateFormData('foundedDate', formatted)
           }
         }
 
-        toast.success('?�업???�보�?찾았?�요!')
+        toast.success('사업자 정보를 찾았어요!')
       } else {
         setLookupResult({ success: false, error: result.error })
-        setLookupError(result.error || '기업 ?�보�?찾을 ???�어??)
+        setLookupError(result.error || '기업 정보를 찾을 수 없어요')
       }
     } catch (error) {
       console.error('Business lookup error:', error)
-      setLookupError('조회 �??�류가 발생?�어??)
+      setLookupError('조회 중 오류가 발생했어요')
     } finally {
       setLookingUp(false)
     }
   }, [])
 
-  // ?�업?�번???�력 ??debounce 조회
+  // 사업자번호 입력 시 debounce 조회
   useEffect(() => {
     const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
 
@@ -244,50 +247,50 @@ export default function TryPage() {
     }
   }, [formData.businessNumber, lookupBusinessNumber])
 
-  // 1?�계 ??2?�계
+  // 1단계 → 2단계
   const handleStep1Next = () => {
     const bizNum = formData.businessNumber.replace(/[^0-9]/g, '')
 
     if (bizNum.length > 0 && bizNum.length !== 10) {
-      toast.error('?�업?�번??10?�리�??�력?�주?�요')
+      toast.error('사업자번호 10자리를 입력해주세요')
       return
     }
 
     setStep(2)
   }
 
-  // ?�업?�번???�이 진행
+  // 사업자번호 없이 진행
   const handleSkipBusinessNumber = () => {
     setSkipBusinessNumber(true)
     setLookupResult(null)
     setStep(2)
   }
 
-  // 2?�계 ??3?�계
+  // 2단계 → 3단계
   const handleStep2Next = () => {
     if (!formData.companyName.trim()) {
-      toast.error('?�사명을 ?�력?�주?�요')
+      toast.error('회사명을 입력해주세요')
       return
     }
     if (!formData.industry) {
-      toast.error('?�종???�택?�주?�요')
+      toast.error('업종을 선택해주세요')
       return
     }
     if (!formData.employeeCount) {
-      toast.error('직원?��? ?�력?�주?�요')
+      toast.error('직원수를 입력해주세요')
       return
     }
     if (!formData.location) {
-      toast.error('?�재지�??�택?�주?�요')
+      toast.error('소재지를 선택해주세요')
       return
     }
     setStep(3)
   }
 
-  // 최종 ?�출
+  // 최종 제출
   const handleSubmit = async () => {
     if (!formData.email || !formData.email.includes('@')) {
-      toast.error('?�바�??�메?�을 ?�력?�주?�요')
+      toast.error('올바른 이메일을 입력해주세요')
       return
     }
 
@@ -316,12 +319,12 @@ export default function TryPage() {
       if (result.success) {
         router.push(`/try/result/${result.data.resultId}`)
       } else {
-        toast.error(result.error || '분석 �??�류가 발생?�어??)
+        toast.error(result.error || '분석 중 오류가 발생했어요')
         setStep(3)
         setLoading(false)
       }
     } catch (error) {
-      toast.error('분석 ?�청 �??�류가 발생?�어??)
+      toast.error('분석 요청 중 오류가 발생했어요')
       setStep(3)
       setLoading(false)
     }
@@ -329,28 +332,33 @@ export default function TryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      {/* ?�더 */}
+      {/* 헤더 */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2"><div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span className="text-primary-foreground font-bold text-lg">G</span></div><span className="font-bold text-xl">GovHelper</span></Link>
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-lg">G</span>
+            </div>
+            <span className="font-bold text-xl">GovHelper</span>
+          </Link>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/login">로그??/Link>
+            <Link href="/login">로그인</Link>
           </Button>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* 진행�?*/}
+        {/* 진행률 */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-muted-foreground mb-2">
             <span>무료 매칭 분석</span>
-            <span>{step}/4 ?�계</span>
+            <span>{step}/4 단계</span>
           </div>
           <Progress value={progress} className="h-2" />
         </div>
 
         <AnimatePresence mode="wait">
-          {/* 1?�계: ?�업?�번???�력 */}
+          {/* 1단계: 사업자번호 입력 */}
           {step === 1 && (
             <motion.div
               key="step1"
@@ -363,14 +371,15 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <Building2 className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">?�업?�번?��? ?�력?�주?�요</CardTitle>
+                  <CardTitle className="text-2xl">사업자번호를 입력해주세요</CardTitle>
                   <CardDescription>
-                    ?�업?�번?�만 ?�력?�면 기업 ?�보�??�동?�로 채워?�려??                  </CardDescription>
+                    사업자번호만 입력하면 기업 정보를 자동으로 채워드려요
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* ?�업?�번??*/}
+                  {/* 사업자번호 */}
                   <div className="space-y-2">
-                    <Label htmlFor="businessNumber">?�업?�번??/Label>
+                    <Label htmlFor="businessNumber">사업자번호</Label>
                     <div className="relative">
                       <Input
                         id="businessNumber"
@@ -384,11 +393,11 @@ export default function TryPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      ?�이??-) ?�이 ?�자�??�력?�도 ?�요
+                      하이픈(-) 없이 숫자만 입력해도 돼요
                     </p>
                   </div>
 
-                  {/* 조회 결과 ?�시 - 기업?�보�?찾�? 경우 */}
+                  {/* 조회 결과 표시 - 기업정보를 찾은 경우 */}
                   {lookupResult?.success && lookupResult.data && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
@@ -397,33 +406,33 @@ export default function TryPage() {
                     >
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="font-medium text-green-700">?�업???�보�?찾았?�요!</span>
+                        <span className="font-medium text-green-700">사업자 정보를 찾았어요!</span>
                       </div>
                       <div className="space-y-2 text-sm">
-                        {/* ?�사�?*/}
+                        {/* 회사명 */}
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-green-600" />
                           <span className="font-medium">{lookupResult.data.companyName}</span>
-                          {lookupResult.data.corporationType && lookupResult.data.corporationType !== '?????�음' && (
+                          {lookupResult.data.corporationType && lookupResult.data.corporationType !== '알 수 없음' && (
                             <Badge variant="outline" className="text-xs">
                               {lookupResult.data.corporationType}
                             </Badge>
                           )}
                         </div>
-                        {/* ?�?�자 */}
+                        {/* 대표자 */}
                         {lookupResult.data.ceoName && (
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">?�?? {lookupResult.data.ceoName}</span>
+                            <span className="text-muted-foreground">대표: {lookupResult.data.ceoName}</span>
                           </div>
                         )}
-                        {/* ?�종 */}
+                        {/* 업종 */}
                         {lookupResult.data.businessType && (
                           <div className="flex items-center gap-2">
                             <Briefcase className="h-4 w-4 text-green-600" />
                             <span className="text-muted-foreground">
                               {lookupResult.data.businessType}
-                              {lookupResult.data.industryName && lookupResult.data.industryName !== '기�?' && (
+                              {lookupResult.data.industryName && lookupResult.data.industryName !== '기타' && (
                                 <span className="text-xs ml-1">({lookupResult.data.industryName})</span>
                               )}
                             </span>
@@ -436,12 +445,13 @@ export default function TryPage() {
                             <span className="text-muted-foreground">{lookupResult.data.address}</span>
                           </div>
                         )}
-                        {/* 직원??*/}
+                        {/* 직원수 */}
                         {lookupResult.data.employeeCount && (
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4 text-green-600" />
                             <span className="text-muted-foreground">
-                              직원 ??{lookupResult.data.employeeCount}�?                              {lookupResult.data.companySize && lookupResult.data.companySize !== '?????�음' && (
+                              직원 약 {lookupResult.data.employeeCount}명
+                              {lookupResult.data.companySize && lookupResult.data.companySize !== '알 수 없음' && (
                                 <Badge variant="secondary" className="ml-2 text-xs">
                                   {lookupResult.data.companySize}
                                 </Badge>
@@ -449,16 +459,16 @@ export default function TryPage() {
                             </span>
                           </div>
                         )}
-                        {/* ?�립??*/}
+                        {/* 설립일 */}
                         {lookupResult.data.establishedDate && (
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-green-600" />
                             <span className="text-muted-foreground">
-                              ?�립: {lookupResult.data.establishedDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1??$2??$3??)}
+                              설립: {lookupResult.data.establishedDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1년 $2월 $3일')}
                             </span>
                           </div>
                         )}
-                        {/* ?�업???�태 */}
+                        {/* 사업자 상태 */}
                         {lookupResult.data.ntsStatus && (
                           <div className="flex items-center gap-2">
                             <Shield className="h-4 w-4 text-green-600" />
@@ -469,17 +479,17 @@ export default function TryPage() {
                           </div>
                         )}
                       </div>
-                      {/* ?�이???�스 */}
+                      {/* 데이터 소스 */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Database className="h-3 w-3" />
                         <span>
-                          ?�이???�스: {lookupResult.data.sources?.join(', ').toUpperCase() || 'NTS, NPS, DART'}
+                          데이터 소스: {lookupResult.data.sources?.join(', ').toUpperCase() || 'NTS, NPS, DART'}
                         </span>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* 조회 ?�패 */}
+                  {/* 조회 실패 */}
                   {lookupResult && !lookupResult.success && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
@@ -491,7 +501,7 @@ export default function TryPage() {
                         <span className="text-amber-700">{lookupError}</span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">
-                        기업 ?�보�?직접 ?�력?�주?�요
+                        기업 정보를 직접 입력해주세요
                       </p>
                     </motion.div>
                   )}
@@ -505,11 +515,12 @@ export default function TryPage() {
                     {lookupResult?.success ? (
                       <>
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        ?�보 ?�인?�고 계속?�기
+                        정보 확인하고 계속하기
                       </>
                     ) : (
                       <>
-                        ?�음 ?�계�?                        <ArrowRight className="h-4 w-4 ml-2" />
+                        다음 단계로
+                        <ArrowRight className="h-4 w-4 ml-2" />
                       </>
                     )}
                   </Button>
@@ -519,7 +530,7 @@ export default function TryPage() {
                       <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">?�는</span>
+                      <span className="bg-card px-2 text-muted-foreground">또는</span>
                     </div>
                   </div>
 
@@ -528,13 +539,13 @@ export default function TryPage() {
                     className="w-full"
                     onClick={handleSkipBusinessNumber}
                   >
-                    ?�업?�번???�이 진행?�기
+                    사업자번호 없이 진행하기
                   </Button>
 
                   <div className="flex items-start gap-2 p-4 bg-muted/50 rounded-lg">
                     <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <p className="text-sm text-muted-foreground">
-                      ?�력?�신 ?�보??매칭 분석?�만 ?�용?�며, ?�전?�게 보호?�요.
+                      입력하신 정보는 매칭 분석에만 사용되며, 안전하게 보호돼요.
                     </p>
                   </div>
                 </CardContent>
@@ -542,7 +553,7 @@ export default function TryPage() {
             </motion.div>
           )}
 
-          {/* 2?�계: 기업?�보 ?�력 */}
+          {/* 2단계: 기업정보 입력 */}
           {step === 2 && (
             <motion.div
               key="step2"
@@ -555,47 +566,49 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <FileText className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">기업 ?�보�??�인?�주?�요</CardTitle>
+                  <CardTitle className="text-2xl">기업 정보를 확인해주세요</CardTitle>
                   <CardDescription>
                     {lookupResult?.success
-                      ? '?�동?�로 채워�??�보�??�인?�고 ?�정?�주?�요'
-                      : '???�확??매칭???�해 기업 ?�보가 ?�요?�요'}
+                      ? '자동으로 채워진 정보를 확인하고 수정해주세요'
+                      : '더 정확한 매칭을 위해 기업 정보가 필요해요'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* ?�동 ?�력 ?�내 */}
+                  {/* 자동 입력 안내 */}
                   {lookupResult?.success && (
                     <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-green-700">
-                          ?�업???�보�??�동 ?�력??                        </p>
+                          사업자 정보로 자동 입력됨
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          ?�요???�정?????�어??                        </p>
+                          필요시 수정할 수 있어요
+                        </p>
                       </div>
                       <Badge variant="secondary" className="text-xs">
-                        {lookupResult.data?.sources?.length || 0}�??�스
+                        {lookupResult.data?.sources?.length || 0}개 소스
                       </Badge>
                     </div>
                   )}
 
-                  {/* ?�사�?*/}
+                  {/* 회사명 */}
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">?�사�?*</Label>
+                    <Label htmlFor="companyName">회사명 *</Label>
                     <Input
                       id="companyName"
-                      placeholder="(�??�사�?
+                      placeholder="(주)회사명"
                       value={formData.companyName}
                       onChange={(e) => updateFormData('companyName', e.target.value)}
                     />
                   </div>
 
-                  {/* ?�종 */}
+                  {/* 업종 */}
                   <div className="space-y-2">
                     <Label>
-                      ?�종 *
+                      업종 *
                       {lookupResult?.success && lookupResult.data?.businessType && (
-                        <span className="text-xs text-green-600 ml-1">(?�동 ?�력??</span>
+                        <span className="text-xs text-green-600 ml-1">(자동 입력됨)</span>
                       )}
                     </Label>
                     <Select
@@ -603,7 +616,7 @@ export default function TryPage() {
                       onValueChange={(value) => updateFormData('industry', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="?�종???�택?�주?�요" />
+                        <SelectValue placeholder="업종을 선택해주세요" />
                       </SelectTrigger>
                       <SelectContent>
                         {INDUSTRIES.map((industry) => (
@@ -615,13 +628,13 @@ export default function TryPage() {
                     </Select>
                   </div>
 
-                  {/* 직원??& ?�재지 */}
+                  {/* 직원수 & 소재지 */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="employeeCount">
-                        직원??*
+                        직원수 *
                         {lookupResult?.success && lookupResult.data?.employeeCount && (
-                          <span className="text-xs text-green-600 ml-1">(?�동)</span>
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
                         )}
                       </Label>
                       <div className="relative">
@@ -639,9 +652,9 @@ export default function TryPage() {
 
                     <div className="space-y-2">
                       <Label>
-                        ?�재지 *
+                        소재지 *
                         {lookupResult?.success && lookupResult.data?.location && (
-                          <span className="text-xs text-green-600 ml-1">(?�동)</span>
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
                         )}
                       </Label>
                       <Select
@@ -650,7 +663,7 @@ export default function TryPage() {
                       >
                         <SelectTrigger>
                           <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <SelectValue placeholder="지???�택" />
+                          <SelectValue placeholder="지역 선택" />
                         </SelectTrigger>
                         <SelectContent>
                           {LOCATIONS.map((location) => (
@@ -663,10 +676,10 @@ export default function TryPage() {
                     </div>
                   </div>
 
-                  {/* 매출 & ?�립??(?�택) */}
+                  {/* 매출 & 설립일 (선택) */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="annualRevenue">?�매�?(?�택)</Label>
+                      <Label htmlFor="annualRevenue">연매출 (선택)</Label>
                       <div className="relative">
                         <Input
                           id="annualRevenue"
@@ -677,16 +690,16 @@ export default function TryPage() {
                           onChange={(e) => updateFormData('annualRevenue', e.target.value)}
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          ?�원
+                          억원
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="foundedDate">
-                        ?�립??(?�택)
+                        설립일 (선택)
                         {lookupResult?.success && lookupResult.data?.establishedDate && (
-                          <span className="text-xs text-green-600 ml-1">(?�동)</span>
+                          <span className="text-xs text-green-600 ml-1">(자동)</span>
                         )}
                       </Label>
                       <Input
@@ -698,9 +711,9 @@ export default function TryPage() {
                     </div>
                   </div>
 
-                  {/* ?�증??*/}
+                  {/* 인증서 */}
                   <div className="space-y-2">
-                    <Label>보유 ?�증 (?�택)</Label>
+                    <Label>보유 인증 (선택)</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {CERTIFICATIONS.map((cert) => (
                         <div key={cert} className="flex items-center space-x-2">
@@ -728,13 +741,13 @@ export default function TryPage() {
                       className="flex-1"
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
-                      ?�전
+                      이전
                     </Button>
                     <Button
                       onClick={handleStep2Next}
                       className="flex-1"
                     >
-                      ?�음
+                      다음
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
@@ -743,7 +756,7 @@ export default function TryPage() {
             </motion.div>
           )}
 
-          {/* 3?�계: ?�메???�력 */}
+          {/* 3단계: 이메일 입력 */}
           {step === 3 && (
             <motion.div
               key="step3"
@@ -756,13 +769,14 @@ export default function TryPage() {
                   <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
                     <Mail className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl">?�메?�을 ?�력?�주?�요</CardTitle>
+                  <CardTitle className="text-2xl">이메일을 입력해주세요</CardTitle>
                   <CardDescription>
-                    분석 결과�??�메?�로??보내?�려??                  </CardDescription>
+                    분석 결과를 이메일로도 보내드려요
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="email">?�메??/Label>
+                    <Label htmlFor="email">이메일</Label>
                     <Input
                       id="email"
                       type="email"
@@ -773,18 +787,18 @@ export default function TryPage() {
                     />
                   </div>
 
-                  {/* ?�력 ?�보 ?�약 */}
+                  {/* 입력 정보 요약 */}
                   <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                    <h4 className="font-medium text-sm">?�력?�신 ?�보</h4>
+                    <h4 className="font-medium text-sm">입력하신 정보</h4>
                     <div className="text-sm text-muted-foreground space-y-1">
-                      <p>?�사�? {formData.companyName}</p>
-                      <p>?�종: {formData.industry}</p>
-                      <p>직원?? {formData.employeeCount}�?/p>
-                      <p>?�재지: {formData.location}</p>
-                      {formData.foundedDate && <p>?�립?? {formData.foundedDate}</p>}
-                      {formData.annualRevenue && <p>?�매�? {formData.annualRevenue}?�원</p>}
+                      <p>회사명: {formData.companyName}</p>
+                      <p>업종: {formData.industry}</p>
+                      <p>직원수: {formData.employeeCount}명</p>
+                      <p>소재지: {formData.location}</p>
+                      {formData.foundedDate && <p>설립일: {formData.foundedDate}</p>}
+                      {formData.annualRevenue && <p>연매출: {formData.annualRevenue}억원</p>}
                       {formData.certifications.length > 0 && (
-                        <p>?�증: {formData.certifications.join(', ')}</p>
+                        <p>인증: {formData.certifications.join(', ')}</p>
                       )}
                     </div>
                   </div>
@@ -797,14 +811,14 @@ export default function TryPage() {
                       className="flex-1"
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
-                      ?�전
+                      이전
                     </Button>
                     <Button
                       onClick={handleSubmit}
                       className="flex-1"
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
-                      AI 분석 ?�작
+                      AI 분석 시작
                     </Button>
                   </div>
                 </CardContent>
@@ -812,7 +826,7 @@ export default function TryPage() {
             </motion.div>
           )}
 
-          {/* 4?�계: 분석 �?*/}
+          {/* 4단계: 분석 중 */}
           {step === 4 && (
             <motion.div
               key="step4"
@@ -826,22 +840,23 @@ export default function TryPage() {
                       <Loader2 className="h-10 w-10 text-primary animate-spin" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold mb-2">AI가 분석 중이?�요</h2>
+                      <h2 className="text-xl font-semibold mb-2">AI가 분석 중이에요</h2>
                       <p className="text-muted-foreground">
-                        {formData.companyName}?�에�???맞는 지?�사?�을 찾고 ?�어??                      </p>
+                        {formData.companyName}님에게 딱 맞는 지원사업을 찾고 있어요
+                      </p>
                     </div>
                     <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span>기업 ?�보 ?�인 ?�료</span>
+                        <span>기업 정보 확인 완료</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>공고 매칭 분석 �?..</span>
+                        <span>공고 매칭 분석 중...</span>
                       </div>
                       <div className="flex items-center gap-2 opacity-50">
                         <Search className="h-4 w-4" />
-                        <span>최적 지?�사???�정</span>
+                        <span>최적 지원사업 선정</span>
                       </div>
                     </div>
                   </div>
@@ -851,13 +866,14 @@ export default function TryPage() {
           )}
         </AnimatePresence>
 
-        {/* ?�단 ?�내 */}
+        {/* 하단 안내 */}
         {step < 4 && (
           <div className="mt-8 text-center text-sm text-muted-foreground">
             <p>
-              ?��? 계정???�으?��???{' '}
+              이미 계정이 있으신가요?{' '}
               <Link href="/login" className="text-primary hover:underline">
-                로그??              </Link>
+                로그인
+              </Link>
             </p>
           </div>
         )}
