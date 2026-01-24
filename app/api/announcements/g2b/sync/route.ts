@@ -137,9 +137,13 @@ export async function POST(request: NextRequest) {
     const apiResults: Record<string, any> = {}
 
     // 각 유형별로 API 호출
-    for (const [type, endpoint] of Object.entries(BID_ENDPOINTS)) {
+    const endpoints = Object.entries(BID_ENDPOINTS)
+    apiResults['_endpoints'] = endpoints.map(([k]) => k)
+
+    for (const [type, endpoint] of endpoints) {
       let page = 1
       let hasMore = true
+      apiResults[type] = { started: true }
 
       while (hasMore && page <= 3) { // 최대 3페이지
         const params = new URLSearchParams({
@@ -166,6 +170,10 @@ export async function POST(request: NextRequest) {
           if (!response.ok) {
             const errorText = await response.text()
             console.error(`G2B API error (${type}):`, response.status, errorText.slice(0, 200))
+            apiResults[type] = {
+              status: response.status,
+              error: errorText.slice(0, 500)
+            }
             break
           }
 
@@ -203,6 +211,9 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error(`G2B fetch error (${type}):`, error)
+          apiResults[type] = {
+            error: error instanceof Error ? error.message : String(error)
+          }
           break
         }
       }
