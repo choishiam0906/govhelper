@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { analyzeMatchWithGemini } from '@/lib/ai/gemini'
 import { Tables, InsertTables, Json } from '@/types/database'
 import { withRateLimit } from '@/lib/api-utils'
+import { getMatchingCache, setMatchingCache } from '@/lib/cache'
 
 async function handlePost(request: NextRequest) {
   try {
@@ -26,7 +27,32 @@ async function handlePost(request: NextRequest) {
       )
     }
 
-    // Fetch announcement
+
+    // 1. 캐시 확인
+    try {
+      const cachedResult = await getMatchingCache(companyId, announcementId)
+      if (cachedResult) {
+        console.log('[Matching] Cache hit:', companyId, announcementId)
+        return NextResponse.json(
+          {
+            success: true,
+            data: cachedResult,
+            fromCache: true,
+          },
+          {
+            headers: {
+              'X-Matching-Cache': 'HIT',
+            },
+          }
+        )
+      }
+      console.log('[Matching] Cache miss:', companyId, announcementId)
+    } catch (cacheError) {
+      console.error('[Matching] Cache error (continuing without cache):', cacheError)
+      // 캐시 실패 시 기존 로직으로 fallback
+    }
+
+    // 2. Fetch announcement
     const { data: announcementData, error: announcementError } = await supabase
       .from('announcements')
       .select('*')
@@ -41,7 +67,7 @@ async function handlePost(request: NextRequest) {
     }
     const announcement = announcementData as Tables<'announcements'>
 
-    // Fetch company profile
+    // 3. Fetch company profile
     const { data: companyData, error: companyError } = await supabase
       .from('companies')
       .select('*')
@@ -56,7 +82,7 @@ async function handlePost(request: NextRequest) {
     }
     const company = companyData as Tables<'companies'>
 
-    // Fetch business plan if provided
+    // 4. Fetch business plan if provided
     let businessPlan: Tables<'business_plans'> | null = null
     if (businessPlanId) {
       const { data, error } = await supabase
@@ -70,7 +96,7 @@ async function handlePost(request: NextRequest) {
       }
     }
 
-    // Prepare content for AI analysis
+    // 5. Prepare content for AI analysis
     const announcementContent = `
 제목: ${announcement.title}
 기관: ${announcement.organization}
@@ -98,14 +124,14 @@ async function handlePost(request: NextRequest) {
       `.trim()
       : '사업계획서 없음'
 
-    // Perform AI analysis
+    // 6. Perform AI analysis
     const analysis = await analyzeMatchWithGemini(
       announcementContent,
       companyProfile,
       businessPlanContent
     )
 
-    // Save match result
+    // 7. Save match result
     const matchInsert = {
       company_id: companyId,
       announcement_id: announcementId,
@@ -128,13 +154,34 @@ async function handlePost(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        match: matchResult,
-        analysis,
+
+    // 8. 결과 데이터 준비
+    const resultData = {
+      match: matchResult,
+      analysis,
+    }
+
+    // 9. 캐시에 저장 (7일 TTL)
+    try {
+      await setMatchingCache(companyId, announcementId, resultData)
+      console.log('[Matching] Cached result:', companyId, announcementId)
+    } catch (cacheError) {
+      console.error('[Matching] Failed to cache result:', cacheError)
+      // 캐시 저장 실패는 무시 (결과는 정상 반환)
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: resultData,
+        fromCache: false,
       },
-    })
+      {
+        headers: {
+          'X-Matching-Cache': 'MISS',
+        },
+      }
+    )
   } catch (error) {
     console.error('Matching error:', error)
     return NextResponse.json(

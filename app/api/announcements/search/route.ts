@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/ai/gemini'
+import { getRagEmbeddingCache, setRagEmbeddingCache } from '@/lib/cache'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,8 +28,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // 검색어를 임베딩으로 변환
-    const queryEmbedding = await generateEmbedding(query)
+    // 검색어를 임베딩으로 변환 (캐시 우선 조회)
+    let queryEmbedding = await getRagEmbeddingCache(query)
+    let embeddingFromCache = false
+
+    if (queryEmbedding) {
+      embeddingFromCache = true
+    } else {
+      // 캐시 미스 시 Gemini API 호출
+      queryEmbedding = await generateEmbedding(query)
+      // 캐시에 저장 (1시간 TTL)
+      await setRagEmbeddingCache(query, queryEmbedding)
+    }
 
     // pgvector 시맨틱 검색 (RPC 함수 호출)
     const { data: semanticResults, error: searchError } = await (supabase.rpc as any)(
@@ -72,6 +83,11 @@ export async function POST(request: NextRequest) {
         query,
         totalResults: filteredResults.length,
         searchType: 'semantic',
+        embeddingFromCache,
+      },
+    }, {
+      headers: {
+        'X-Embedding-Cache': embeddingFromCache ? 'HIT' : 'MISS',
       },
     })
   } catch (error) {
@@ -124,7 +140,7 @@ async function fallbackSearch(
     meta: {
       query,
       totalResults: resultsWithSimilarity.length,
-      searchType: 'keyword', // 폴백 검색
+      searchType: 'keyword',
     },
   })
 }

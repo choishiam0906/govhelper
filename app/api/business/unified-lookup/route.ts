@@ -456,18 +456,28 @@ export async function POST(request: NextRequest) {
         success: false,
         data: null,
         error: '기업 정보를 찾을 수 없습니다.',
-        partialResults,
+      partialResults,
+      fromCache: false,
       }
-      return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: {
+        'X-Cache': 'MISS',
+      },
+    })
     }
 
     const result: BusinessLookupResult = {
       success: true,
       data: unified,
       partialResults,
+      fromCache: false,
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, {
+      headers: {
+        'X-Cache': 'MISS',
+      },
+    })
   } catch (error) {
     console.error('Unified lookup error:', error)
     return NextResponse.json(

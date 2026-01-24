@@ -11,30 +11,31 @@ import type {
   KSICResult,
   CompanySizeType,
   CorporationType,
-} from './types'
+} from "./types";
 
 import {
   lookupFromNTS,
   isValidBusinessNumber,
   formatBusinessNumber,
-} from './sources/nts'
-import { lookupFromNPS, searchNPSByCompanyName } from './sources/nps'
+} from "./sources/nts";
+import { lookupFromNPS, searchNPSByCompanyName } from "./sources/nps";
+import { lookupFromDARTByName, searchDARTByCompanyName } from "./sources/dart";
 import {
-  lookupFromDARTByName,
-  searchDARTByCompanyName,
-} from './sources/dart'
-import { lookupFromKSIC, getBusinessTypeFromCode, getIndustryNameFromCode } from './sources/ksic'
-import { estimateCompanySize } from './utils/company-size'
-import { getBusinessCache, setBusinessCache } from '@/lib/cache'
-import { inferCorporationType } from './utils/corporation-type'
+  lookupFromKSIC,
+  getBusinessTypeFromCode,
+  getIndustryNameFromCode,
+} from "./sources/ksic";
+import { estimateCompanySize } from "./utils/company-size";
+import { getBusinessCache, setBusinessCache } from "@/lib/cache";
+import { inferCorporationType } from "./utils/corporation-type";
 
 // 기본 옵션
 const DEFAULT_OPTIONS: BusinessLookupOptions = {
-  sources: ['nts', 'nps', 'dart'],
+  sources: ["nts", "nps", "dart"],
   timeout: 10000,
   useCache: true,
   enrichWithKSIC: true,
-}
+};
 
 /**
  * 사업자번호로 통합 기업정보 조회 (확장 버전)
@@ -61,62 +62,62 @@ const DEFAULT_OPTIONS: BusinessLookupOptions = {
  */
 export async function lookupBusiness(
   businessNumber: string,
-  options?: Partial<BusinessLookupOptions>
+  options?: Partial<BusinessLookupOptions>,
 ): Promise<BusinessLookupResult> {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
-  const formatted = formatBusinessNumber(businessNumber)
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const formatted = formatBusinessNumber(businessNumber);
 
   // 사업자번호 유효성 검사
   if (!isValidBusinessNumber(businessNumber)) {
     return {
       success: false,
       data: null,
-      error: '유효하지 않은 사업자등록번호입니다.',
-    }
+      error: "유효하지 않은 사업자등록번호입니다.",
+    };
   }
 
   // 캐시 조회 (useCache가 true인 경우)
   if (opts.useCache) {
     try {
-      const cached = await getBusinessCache(formatted)
+      const cached = await getBusinessCache(formatted);
       if (cached) {
         return {
           success: true,
           data: cached,
           partialResults: {},
           fromCache: true,
-        }
+        };
       }
     } catch (error) {
       // 캐시 조회 실패 시 기존 로직으로 fallback
-      console.error("[Cache] Failed to get business cache:", error)
+      console.error("[Cache] Failed to get business cache:", error);
     }
   }
 
   const partialResults: {
-    nts?: NTSResult | null
-    nps?: NPSResult | null
-    dart?: DARTResult | null
-    ksic?: KSICResult | null
-  } = {}
+    nts?: NTSResult | null;
+    nps?: NPSResult | null;
+    dart?: DARTResult | null;
+    ksic?: KSICResult | null;
+  } = {};
 
   // 병렬 조회 실행
-  const promises: Promise<void>[] = []
+  const promises: Promise<void>[] = [];
 
-  if (opts.sources?.includes('nts')) {
+  if (opts.sources?.includes("nts")) {
     promises.push(
       lookupFromNTS(formatted).then((result) => {
-        partialResults.nts = result
-      })
-    )
+        partialResults.nts = result;
+      }),
+    );
   }
 
-  if (opts.sources?.includes('nps')) {
+  if (opts.sources?.includes("nps")) {
     promises.push(
       lookupFromNPS(formatted).then((result) => {
-        partialResults.nps = result
-      })
-    )
+        partialResults.nps = result;
+      }),
+    );
   }
 
   // 타임아웃 처리
@@ -124,52 +125,57 @@ export async function lookupBusiness(
     await Promise.race([
       Promise.all(promises),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('조회 시간이 초과되었습니다.')), opts.timeout)
+        setTimeout(
+          () => reject(new Error("조회 시간이 초과되었습니다.")),
+          opts.timeout,
+        ),
       ),
-    ])
+    ]);
   } catch (error) {
-    console.error('Business lookup timeout or error:', error)
+    console.error("Business lookup timeout or error:", error);
   }
 
   // DART는 회사명 기반 검색이므로 NPS에서 회사명을 가져온 후 조회
-  if (opts.sources?.includes('dart') && partialResults.nps?.companyName) {
+  if (opts.sources?.includes("dart") && partialResults.nps?.companyName) {
     try {
-      const dartResult = await lookupFromDARTByName(partialResults.nps.companyName)
-      partialResults.dart = dartResult
+      const dartResult = await lookupFromDARTByName(
+        partialResults.nps.companyName,
+      );
+      partialResults.dart = dartResult;
     } catch (error) {
-      console.error('DART lookup error:', error)
+      console.error("DART lookup error:", error);
     }
   }
 
   // KSIC 업태/종목 변환 (DART의 industryCode 사용)
   if (opts.enrichWithKSIC && partialResults.dart?.industryCode) {
     try {
-      const ksicResult = await lookupFromKSIC(partialResults.dart.industryCode)
-      partialResults.ksic = ksicResult
+      const ksicResult = await lookupFromKSIC(partialResults.dart.industryCode);
+      partialResults.ksic = ksicResult;
     } catch (error) {
-      console.error('KSIC lookup error:', error)
+      console.error("KSIC lookup error:", error);
     }
   }
 
   // 결과 통합
-  const unifiedInfo = mergeResults(formatted, partialResults)
+  const unifiedInfo = mergeResults(formatted, partialResults);
 
   if (!unifiedInfo) {
     return {
       success: false,
       data: null,
-      error: '기업 정보를 찾을 수 없습니다.',
+      error: "기업 정보를 찾을 수 없습니다.",
       partialResults,
-    }
+    };
   }
 
   // 성공 시 캐시 저장 (useCache가 true인 경우)
   if (opts.useCache && unifiedInfo) {
     try {
-      await setBusinessCache(formatted, unifiedInfo)
+      await setBusinessCache(formatted, unifiedInfo);
     } catch (error) {
       // 캐시 저장 실패 시 조용히 무시
-      console.error("[Cache] Failed to set business cache:", error)
+      console.error("[Cache] Failed to set business cache:", error);
     }
   }
 
@@ -177,7 +183,7 @@ export async function lookupBusiness(
     success: true,
     data: unifiedInfo,
     partialResults,
-  }
+  };
 }
 
 /**
@@ -189,33 +195,33 @@ export async function lookupBusiness(
  */
 export async function searchBusinessByName(
   companyName: string,
-  limit: number = 10
+  limit: number = 10,
 ): Promise<UnifiedBusinessInfo[]> {
   if (!companyName || companyName.trim().length < 2) {
-    return []
+    return [];
   }
 
   // NPS와 DART에서 병렬 검색
   const [npsResults, dartResults] = await Promise.all([
     searchNPSByCompanyName(companyName, limit),
     searchDARTByCompanyName(companyName, limit),
-  ])
+  ]);
 
   // 결과 통합 (NPS 기준으로 DART 정보 매칭)
-  const results: UnifiedBusinessInfo[] = []
+  const results: UnifiedBusinessInfo[] = [];
 
   for (const nps of npsResults) {
     const matchingDart = dartResults.find(
       (dart) =>
         dart.corpName === nps.companyName ||
         dart.corpName.includes(nps.companyName) ||
-        nps.companyName.includes(dart.corpName)
-    )
+        nps.companyName.includes(dart.corpName),
+    );
 
     results.push(
       mergeResults(nps.businessNumber, { nps, dart: matchingDart }) ||
-        createBasicInfo(nps)
-    )
+        createBasicInfo(nps),
+    );
   }
 
   // NPS에 없는 DART 결과 추가
@@ -223,35 +229,53 @@ export async function searchBusinessByName(
     const alreadyIncluded = results.some(
       (r) =>
         r.companyName === dart.corpName ||
-        r.companyName.includes(dart.corpName)
-    )
+        r.companyName.includes(dart.corpName),
+    );
 
     if (!alreadyIncluded) {
-      results.push(createFromDart(dart))
+      results.push(createFromDart(dart));
     }
   }
 
-  return results.slice(0, limit)
+  return results.slice(0, limit);
 }
 
 /**
  * 사업자번호 유효성만 검사
  */
-export { isValidBusinessNumber, formatBusinessNumber }
+export { isValidBusinessNumber, formatBusinessNumber };
 
 /**
  * 개별 소스 조회 함수 내보내기
  */
-export { lookupFromNTS } from './sources/nts'
-export { lookupFromNPS, searchNPSByCompanyName } from './sources/nps'
+export { lookupFromNTS } from "./sources/nts";
+export { lookupFromNPS, searchNPSByCompanyName } from "./sources/nps";
 export {
   lookupFromDARTByName,
   searchDARTByCompanyName,
   lookupFromDARTByCorpCode,
-} from './sources/dart'
-export { lookupFromKSIC, getBusinessTypeFromCode, getIndustryNameFromCode, getAllBusinessTypes } from './sources/ksic'
-export { estimateCompanySize, getCompanySizeColor, getCompanySizeDescription } from './utils/company-size'
-export { inferCorporationType, getCorporationTypeDescription, getCorporationTypeColor } from './utils/corporation-type'
+} from "./sources/dart";
+export {
+  lookupFromKSIC,
+  getBusinessTypeFromCode,
+  getIndustryNameFromCode,
+  getAllBusinessTypes,
+} from "./sources/ksic";
+export {
+  lookupEmploymentInsuranceFromDB,
+  searchEmploymentInsuranceByCompanyName,
+  getEmploymentInsuranceStatsByBusinessType,
+} from "./sources/employment-insurance";
+export {
+  estimateCompanySize,
+  getCompanySizeColor,
+  getCompanySizeDescription,
+} from "./utils/company-size";
+export {
+  inferCorporationType,
+  getCorporationTypeDescription,
+  getCorporationTypeColor,
+} from "./utils/corporation-type";
 
 // ===== 내부 헬퍼 함수 =====
 
@@ -261,39 +285,40 @@ export { inferCorporationType, getCorporationTypeDescription, getCorporationType
 function mergeResults(
   businessNumber: string,
   partialResults: {
-    nts?: NTSResult | null
-    nps?: NPSResult | null
-    dart?: DARTResult | null
-    ksic?: KSICResult | null
-  }
+    nts?: NTSResult | null;
+    nps?: NPSResult | null;
+    dart?: DARTResult | null;
+    ksic?: KSICResult | null;
+  },
 ): UnifiedBusinessInfo | null {
-  const { nts, nps, dart, ksic } = partialResults
+  const { nts, nps, dart, ksic } = partialResults;
 
   // 최소한 하나의 소스에서 결과가 있어야 함
   if (!nts && !nps && !dart) {
-    return null
+    return null;
   }
 
-  const sources: BusinessDataSource[] = []
-  if (nts) sources.push('nts')
-  if (nps) sources.push('nps')
-  if (dart) sources.push('dart')
-  if (ksic) sources.push('ksic')
+  const sources: BusinessDataSource[] = [];
+  if (nts) sources.push("nts");
+  if (nps) sources.push("nps");
+  if (dart) sources.push("dart");
+  if (ksic) sources.push("ksic");
 
-  const companyName = nps?.companyName || dart?.corpName || ''
+  const companyName = nps?.companyName || dart?.corpName || "";
 
   // 기업규모 추정 (직원수 기반)
-  const businessType = ksic?.businessType || getBusinessTypeFromCode(dart?.industryCode || null)
+  const businessType =
+    ksic?.businessType || getBusinessTypeFromCode(dart?.industryCode || null);
   const companySize = estimateCompanySize(
     nps?.employeeCount || null,
-    businessType
-  )
+    businessType,
+  );
 
   // 법인형태 추정 (회사명, 과세유형 기반)
   const corporationType = inferCorporationType(
     companyName,
-    nts?.taxType || null
-  )
+    nts?.taxType || null,
+  );
 
   // 우선순위: NPS(회사명, 주소) > DART(상세정보) > NTS(사업자상태)
   return {
@@ -305,7 +330,8 @@ function mergeResults(
 
     // --- 위치 정보 ---
     address: nps?.address || dart?.address || null,
-    location: nps?.location || extractLocation(nps?.address || dart?.address) || '',
+    location:
+      nps?.location || extractLocation(nps?.address || dart?.address) || "",
 
     // --- 사업 정보 ---
     industryCode: dart?.industryCode || null,
@@ -314,7 +340,10 @@ function mergeResults(
 
     // --- 확장 필드 (KSIC 기반) ---
     businessType: ksic?.businessType || businessType || null,
-    industryName: ksic?.industryName || getIndustryNameFromCode(dart?.industryCode || null) || null,
+    industryName:
+      ksic?.industryName ||
+      getIndustryNameFromCode(dart?.industryCode || null) ||
+      null,
     companySize,
     corporationType,
 
@@ -331,20 +360,20 @@ function mergeResults(
 
     // --- 상장 정보 (DART) ---
     stockCode: dart?.stockCode || null,
-    stockMarket: dart?.stockMarket || '',
+    stockMarket: dart?.stockMarket || "",
 
     // 메타 정보
     sources,
     foundAt: new Date().toISOString(),
-  }
+  };
 }
 
 /**
  * NPS 결과만으로 기본 정보 생성
  */
 function createBasicInfo(nps: NPSResult): UnifiedBusinessInfo {
-  const companySize = estimateCompanySize(nps.employeeCount, null)
-  const corporationType = inferCorporationType(nps.companyName, null)
+  const companySize = estimateCompanySize(nps.employeeCount, null);
+  const corporationType = inferCorporationType(nps.companyName, null);
 
   return {
     businessNumber: nps.businessNumber,
@@ -368,22 +397,22 @@ function createBasicInfo(nps: NPSResult): UnifiedBusinessInfo {
     taxTypeCode: null,
     closedDate: null,
     stockCode: null,
-    stockMarket: '',
-    sources: ['nps'],
+    stockMarket: "",
+    sources: ["nps"],
     foundAt: new Date().toISOString(),
-  }
+  };
 }
 
 /**
  * DART 결과만으로 정보 생성
  */
 function createFromDart(dart: DARTResult): UnifiedBusinessInfo {
-  const businessType = getBusinessTypeFromCode(dart.industryCode)
-  const industryName = getIndustryNameFromCode(dart.industryCode)
-  const corporationType = inferCorporationType(dart.corpName, null)
+  const businessType = getBusinessTypeFromCode(dart.industryCode);
+  const industryName = getIndustryNameFromCode(dart.industryCode);
+  const corporationType = inferCorporationType(dart.corpName, null);
 
   return {
-    businessNumber: '',
+    businessNumber: "",
     companyName: dart.corpName,
     companyNameEng: dart.corpNameEng,
     ceoName: dart.ceoName,
@@ -394,7 +423,7 @@ function createFromDart(dart: DARTResult): UnifiedBusinessInfo {
     establishedDate: dart.establishedDate,
     businessType,
     industryName,
-    companySize: '알 수 없음',
+    companySize: "알 수 없음",
     corporationType,
     homepage: dart.homepage,
     phone: dart.phone,
@@ -405,77 +434,77 @@ function createFromDart(dart: DARTResult): UnifiedBusinessInfo {
     closedDate: null,
     stockCode: dart.stockCode,
     stockMarket: dart.stockMarket,
-    sources: ['dart'],
+    sources: ["dart"],
     foundAt: new Date().toISOString(),
-  }
+  };
 }
 
 /**
  * 주소에서 시/도 추출
  */
 function extractLocation(address: string | null | undefined): string {
-  if (!address) return ''
+  if (!address) return "";
 
   const patterns = [
-    '서울특별시',
-    '서울',
-    '부산광역시',
-    '부산',
-    '대구광역시',
-    '대구',
-    '인천광역시',
-    '인천',
-    '광주광역시',
-    '광주',
-    '대전광역시',
-    '대전',
-    '울산광역시',
-    '울산',
-    '세종특별자치시',
-    '세종',
-    '경기도',
-    '경기',
-    '강원도',
-    '강원',
-    '충청북도',
-    '충북',
-    '충청남도',
-    '충남',
-    '전라북도',
-    '전북',
-    '전라남도',
-    '전남',
-    '경상북도',
-    '경북',
-    '경상남도',
-    '경남',
-    '제주특별자치도',
-    '제주',
-  ]
+    "서울특별시",
+    "서울",
+    "부산광역시",
+    "부산",
+    "대구광역시",
+    "대구",
+    "인천광역시",
+    "인천",
+    "광주광역시",
+    "광주",
+    "대전광역시",
+    "대전",
+    "울산광역시",
+    "울산",
+    "세종특별자치시",
+    "세종",
+    "경기도",
+    "경기",
+    "강원도",
+    "강원",
+    "충청북도",
+    "충북",
+    "충청남도",
+    "충남",
+    "전라북도",
+    "전북",
+    "전라남도",
+    "전남",
+    "경상북도",
+    "경북",
+    "경상남도",
+    "경남",
+    "제주특별자치도",
+    "제주",
+  ];
 
   for (const pattern of patterns) {
     if (address.includes(pattern)) {
       // 정식 명칭으로 반환
-      if (pattern === '서울') return '서울특별시'
-      if (pattern === '부산') return '부산광역시'
-      if (pattern === '대구') return '대구광역시'
-      if (pattern === '인천') return '인천광역시'
-      if (pattern === '광주') return '광주광역시'
-      if (pattern === '대전') return '대전광역시'
-      if (pattern === '울산') return '울산광역시'
-      if (pattern === '세종') return '세종특별자치시'
-      if (pattern === '경기') return '경기도'
-      if (pattern === '강원') return '강원도'
-      if (pattern === '충북') return '충청북도'
-      if (pattern === '충남') return '충청남도'
-      if (pattern === '전북') return '전라북도'
-      if (pattern === '전남') return '전라남도'
-      if (pattern === '경북') return '경상북도'
-      if (pattern === '경남') return '경상남도'
-      if (pattern === '제주') return '제주특별자치도'
-      return pattern
+      if (pattern === "서울") return "서울특별시";
+      if (pattern === "부산") return "부산광역시";
+      if (pattern === "대구") return "대구광역시";
+      if (pattern === "인천") return "인천광역시";
+      if (pattern === "광주") return "광주광역시";
+      if (pattern === "대전") return "대전광역시";
+      if (pattern === "울산") return "울산광역시";
+      if (pattern === "세종") return "세종특별자치시";
+      if (pattern === "경기") return "경기도";
+      if (pattern === "강원") return "강원도";
+      if (pattern === "충북") return "충청북도";
+      if (pattern === "충남") return "충청남도";
+      if (pattern === "전북") return "전라북도";
+      if (pattern === "전남") return "전라남도";
+      if (pattern === "경북") return "경상북도";
+      if (pattern === "경남") return "경상남도";
+      if (pattern === "제주") return "제주특별자치도";
+      return pattern;
     }
   }
 
-  return ''
+  return "";
 }

@@ -200,8 +200,11 @@ ${announcementContent}
 
 1. **기업 유형**: 중소기업, 스타트업, 소상공인, 중견기업, 대기업, 예비창업자, 1인 창조기업 등
 2. **직원수 조건**: "상시근로자 5인 이상", "50인 미만" 등의 표현에서 min/max 추출
+   - **중요**: "미만"은 해당 숫자 -1로 변환 (예: "300인 미만" → max: 299)
 3. **매출 조건**: "연매출 100억 이하", "매출액 10억 이상" 등에서 금액 추출 (원 단위로 변환)
+   - **중요**: 금액 단위 정확히 변환 (예: "100억" → 10000000000, "1,000억" → 100000000000)
 4. **업력 조건**: "창업 7년 이내", "설립 3년 이상" 등에서 년수 추출
+   - **중요**: "우대" 조건은 필수가 아니므로 description에 명시하되 max는 null로 설정
 5. **업종 조건**: 지원 가능/불가능 업종 구분
 6. **지역 조건**: 특정 지역 제한 여부 (수도권, 비수도권, 특정 시/도 등)
 7. **필요 인증**: 벤처인증, 이노비즈, 메인비즈, ISO, 여성기업, 사회적기업 등
@@ -216,13 +219,86 @@ ${announcementContent}
 
 ---
 
+
+# Few-shot 예시
+
+## 예시 1: 일반 R&D 지원사업
+
+### 공고 내용
+"2024년 중소기업 기술개발 지원사업 공고. 지원 대상: 중소기업기본법 제2조에 따른 중소기업, 상시근로자 5인 이상 300인 미만, 연매출 1,000억 이하. 창업 7년 이내 기업 우대. 제조업, IT서비스업 분야. 벤처인증 필수."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업"],
+  "employeeCount": { "min": 5, "max": 299, "description": "상시근로자 5인 이상 300인 미만" },
+  "revenue": { "min": null, "max": 100000000000, "description": "연매출 1,000억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "창업 7년 이내 우대 (필수 아님)" },
+  "industries": { "included": ["제조업", "IT서비스업"], "excluded": [], "description": "제조업, IT서비스업 분야" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": ["벤처인증"],
+  "additionalRequirements": [],
+  "exclusions": [],
+  "summary": "중소기업 기술개발 지원, 제조업/IT서비스업, 상시근로자 5인 이상, 벤처인증 필수",
+  "confidence": 0.95
+}
+
+---
+
+## 예시 2: 스타트업 창업 지원사업
+
+### 공고 내용
+"2024년 청년창업 패키지 지원사업. 지원 대상: 창업 3년 이내 예비창업자 및 초기창업기업, 대표자 만 39세 이하, 직원수 제한 없음, 서울·경기·인천 지역 우선 지원. IT, 바이오, 문화콘텐츠 분야 가능. 유흥업, 부동산업 제외."
+
+### 올바른 출력
+{
+  "companyTypes": ["예비창업자", "스타트업"],
+  "employeeCount": { "min": null, "max": null, "description": "직원수 제한 없음" },
+  "revenue": { "min": null, "max": null, "description": "매출 제한 없음" },
+  "businessAge": { "min": null, "max": 3, "description": "창업 3년 이내" },
+  "industries": { "included": ["IT", "바이오", "문화콘텐츠"], "excluded": ["유흥업", "부동산업"], "description": "IT, 바이오, 문화콘텐츠 (유흥업, 부동산업 제외)" },
+  "regions": { "included": ["서울", "경기", "인천"], "excluded": [], "description": "서울·경기·인천 지역 우선 지원" },
+  "requiredCertifications": [],
+  "additionalRequirements": ["대표자 만 39세 이하"],
+  "exclusions": ["유흥업", "부동산업"],
+  "summary": "창업 3년 이내 청년창업기업 대상, IT/바이오/문화콘텐츠, 수도권 우선",
+  "confidence": 0.9
+}
+
+---
+
+## 예시 3: 지역 특화 사업
+
+### 공고 내용
+"경상남도 지역혁신 R&D 지원사업. 지원 대상: 경상남도 소재 중소·중견기업, 직원수 10인 이상, 연매출 500억 이하, 고용보험 가입 기업, 이노비즈 또는 메인비즈 인증 보유. 세금 체납 기업 및 휴폐업 기업 제외."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업", "중견기업"],
+  "employeeCount": { "min": 10, "max": null, "description": "직원수 10인 이상" },
+  "revenue": { "min": null, "max": 50000000000, "description": "연매출 500억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": [], "excluded": [], "description": "업종 제한 없음" },
+  "regions": { "included": ["경상남도"], "excluded": [], "description": "경상남도 소재 기업" },
+  "requiredCertifications": ["이노비즈", "메인비즈"],
+  "additionalRequirements": ["고용보험 가입 기업"],
+  "exclusions": ["세금 체납 기업", "휴폐업 기업"],
+  "summary": "경남 소재 중소·중견기업, 직원 10인 이상, 이노비즈/메인비즈 필수",
+  "confidence": 0.92
+}
+
+---
+
 # 응답 형식 (JSON만 반환)
+
+위 예시를 참고하여 아래 형식의 JSON만 응답하세요. 설명이나 마크다운 없이 순수 JSON만 출력하세요.
+
+
 
 {
   "companyTypes": ["중소기업", "스타트업"],
   "employeeCount": {
     "min": 5,
-    "max": 300,
+    "max": 299,
     "description": "상시근로자 5인 이상 300인 미만"
   },
   "revenue": {
