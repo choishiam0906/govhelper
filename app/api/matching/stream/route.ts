@@ -269,7 +269,8 @@ ${businessPlanContent}
             .single()
 
           if (matchError) {
-            throw new Error('분석 결과 저장에 실패했습니다')
+            console.error('Match save error:', matchError)
+            throw new Error(`분석 결과 저장에 실패했습니다: ${matchError.message || matchError.code || JSON.stringify(matchError)}`)
           }
 
           // 완료 신호 전송
