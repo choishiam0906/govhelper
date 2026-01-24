@@ -418,8 +418,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 | 국세청 사업자등록정보 | 사업자번호 검증 | - | ✅ 완료 |
 | 국민연금 사업장 내역 | 사업자 정보 자동 조회 | 월간 CSV | ✅ 완료 (2026-01-21) |
 | DART (전자공시) | 기업정보 자동 조회 | 1회 수집 | ✅ 완료 (2026-01-22) |
-| 나라장터 (G2B) | 조달청 입찰공고 | 03:00, 15:00 | ⚠️ 401 오류 (API 키 재발급 필요) |
-| HRD Korea | 고용노동부 훈련 | - | 📋 API 키 미설정 (`HRD_AUTH_KEY`) |
+| 나라장터 (G2B) | 조달청 입찰공고 | 03:00, 15:00 | ✅ 완료 (2026-01-24) |
 
 ### 외부 서비스 API
 | API | 용도 | 상태 |
@@ -460,7 +459,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 서비스 소개 페이지 (완료 - 2026-01-20)
 
 ### P2 - 중기 (남은 작업)
-- [ ] HRD Korea API 연동 (API 키 미설정 - `HRD_AUTH_KEY` 필요)
+- (모두 완료)
 
 ### P2 - 중기 (완료)
 - [x] 나라장터 API 연동 (G2B) (완료 - 2026-01-24)
@@ -1202,7 +1201,6 @@ recharts 라이브러리를 사용한 관리자 대시보드 통계 시각화:
   - `components/announcements/bizinfo-announcement-list.tsx`
   - `components/announcements/kstartup-announcement-list.tsx`
   - `components/announcements/g2b-announcement-list.tsx`
-  - `components/announcements/hrd-announcement-list.tsx`
 
 ### 미등록 사업자 승인 프로세스
 - 온보딩 페이지에서 사업자등록 여부 선택 가능
