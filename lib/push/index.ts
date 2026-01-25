@@ -1,15 +1,29 @@
 import webpush from 'web-push'
 
-// VAPID 키 설정
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || ''
+// VAPID 키 (런타임에 읽음)
+let vapidInitialized = false
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(
-    'mailto:support@govhelpers.com',
-    vapidPublicKey,
-    vapidPrivateKey
-  )
+function initializeVapid() {
+  if (vapidInitialized) return true
+
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const privateKey = process.env.VAPID_PRIVATE_KEY
+
+  if (publicKey && privateKey && publicKey.length > 10 && privateKey.length > 10) {
+    try {
+      webpush.setVapidDetails(
+        'mailto:support@govhelpers.com',
+        publicKey,
+        privateKey
+      )
+      vapidInitialized = true
+      return true
+    } catch (error) {
+      console.error('VAPID initialization error:', error)
+      return false
+    }
+  }
+  return false
 }
 
 export interface PushSubscription {
@@ -37,6 +51,11 @@ export async function sendPushNotification(
   subscription: PushSubscription,
   payload: PushPayload
 ): Promise<{ success: boolean; error?: string }> {
+  // VAPID 초기화 확인
+  if (!initializeVapid()) {
+    return { success: false, error: 'VAPID keys not configured' }
+  }
+
   try {
     const pushSubscription = {
       endpoint: subscription.endpoint,
@@ -99,8 +118,9 @@ export async function sendPushNotificationToMany(
 /**
  * VAPID 공개 키 반환 (클라이언트용)
  */
-export function getVapidPublicKey(): string {
-  return vapidPublicKey
+export function getVapidPublicKey(): string | null {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  return publicKey && publicKey.length > 10 ? publicKey : null
 }
 
 /**
