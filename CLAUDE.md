@@ -512,11 +512,17 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - `components/matching/eligibility-card.tsx` - 자격 충족도 진행 바, 부적합 사유 상세 표시
 - `types/index.ts` - MatchAnalysis에 scoreDetails 필드 추가
 
-### Phase 3: 데이터 및 기능 확장
+### Phase 3: 데이터 및 기능 확장 (완료)
 | 번호 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 7 | 공고 비교 기능 강화 | 여러 공고를 테이블로 비교 | ⏳ 대기 |
-| 8 | 지원 일정 캘린더 | 마감일, 발표일 캘린더 뷰 | ⏳ 대기 |
+| 7 | 공고 비교 기능 강화 | 여러 공고를 테이블로 비교, 추천 점수, 최고 금액/마감일 하이라이팅 | ✅ 완료 |
+| 8 | 지원 일정 캘린더 | 마감일 캘린더 뷰, 이번 주/달 마감 요약, 날짜별 상세 팝업 | ✅ 완료 |
+
+**구현 내용:**
+- `app/(dashboard)/dashboard/compare/page.tsx` - 추천 점수 계산, 최고 금액/마감일 Badge, 상세 비교 테이블
+- `app/(dashboard)/dashboard/calendar/page.tsx` - 월별 캘린더 서버 컴포넌트, 요약 카드
+- `app/(dashboard)/dashboard/calendar/calendar-view.tsx` - 인터랙티브 캘린더 그리드, 날짜 클릭 상세 다이얼로그
+- `components/dashboard/nav.tsx` - 지원 일정, 공고 비교 네비게이션 추가
 
 ---
 
