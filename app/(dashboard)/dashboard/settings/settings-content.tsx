@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { NotificationSettings } from '@/components/notifications/notification-settings'
-import { Settings, Mail, Calendar, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
+import { PushNotificationToggle } from '@/components/push/push-notification-toggle'
+import { Settings, Mail, Calendar, Lock, Loader2, Eye, EyeOff, Bell } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 
@@ -222,8 +223,24 @@ export function SettingsContent({ user }: SettingsContentProps) {
         </CardContent>
       </Card>
 
-      {/* 알림 설정 */}
+      {/* 이메일 알림 설정 */}
       <NotificationSettings userEmail={user.email || ''} />
+
+      {/* 푸시 알림 설정 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5" />
+            푸시 알림
+          </CardTitle>
+          <CardDescription>
+            브라우저 푸시 알림으로 마감 임박 공고를 놓치지 마세요
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PushNotificationToggle />
+        </CardContent>
+      </Card>
 
       {/* 구분선 */}
       <Separator />

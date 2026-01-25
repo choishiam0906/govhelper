@@ -38,6 +38,9 @@
     },
     "app/api/cron/process-dart-queue/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/push/send-deadline/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -100,6 +103,10 @@
     {
       "path": "/api/cron/process-dart-queue",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/push/send-deadline",
+      "schedule": "0 0 * * *"
     }
   ]
 }
