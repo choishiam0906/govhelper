@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Calendar,
   GitCompare,
+  Bookmark,
 } from "lucide-react"
 
 const navItems = [
@@ -32,6 +33,11 @@ const navItems = [
     title: "AI 매칭",
     href: "/dashboard/matching",
     icon: TrendingUp,
+  },
+  {
+    title: "저장된 공고",
+    href: "/dashboard/saved",
+    icon: Bookmark,
   },
   {
     title: "지원 이력",
