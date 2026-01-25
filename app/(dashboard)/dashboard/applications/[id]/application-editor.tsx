@@ -7,7 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SectionEditor } from '@/components/applications/section-editor'
 import { AIImproveDialog } from '@/components/applications/ai-improve-dialog'
-import { ArrowLeft, Building2, Calendar, Save, Loader2, Trash2, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, Save, Loader2, Trash2, CheckCircle, FolderPlus } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { DownloadPDFButton } from './download-pdf-button'
 import { DownloadHwpxButton } from './download-hwpx-button'
 import Link from 'next/link'
@@ -73,6 +84,10 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
   const [deleting, setDeleting] = useState(false)
   const [improveDialogOpen, setImproveDialogOpen] = useState(false)
   const [selectedSection, setSelectedSection] = useState<number | null>(null)
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [templateDescription, setTemplateDescription] = useState('')
+  const [savingTemplate, setSavingTemplate] = useState(false)
 
   const announcement = application.matches?.announcements
 
@@ -154,6 +169,47 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
     }
   }
 
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('템플릿 이름을 입력해 주세요')
+      return
+    }
+
+    setSavingTemplate(true)
+    try {
+      const sections = content.sections.map((s) => ({
+        sectionName: s.section,
+        content: s.content,
+      }))
+
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName,
+          description: templateDescription,
+          sections,
+          isDefault: false,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || '템플릿 저장에 실패했어요')
+      }
+
+      toast.success('템플릿으로 저장했어요')
+      setTemplateDialogOpen(false)
+      setTemplateName('')
+      setTemplateDescription('')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '템플릿 저장에 실패했어요')
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -185,6 +241,14 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTemplateDialogOpen(true)}
+          >
+            <FolderPlus className="h-4 w-4 mr-1" />
+            템플릿으로 저장
+          </Button>
           <DownloadHwpxButton application={application} />
           <DownloadPDFButton application={application} />
           <AlertDialog>
@@ -280,6 +344,55 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
           onImproveComplete={handleImproveComplete}
         />
       )}
+
+      {/* 템플릿으로 저장 다이얼로그 */}
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>템플릿으로 저장</DialogTitle>
+            <DialogDescription>
+              현재 지원서를 템플릿으로 저장하면 다른 공고에 재사용할 수 있어요
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="templateName">템플릿 이름</Label>
+              <Input
+                id="templateName"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="예: R&D 지원사업 기본"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="templateDescription">설명 (선택)</Label>
+              <Textarea
+                id="templateDescription"
+                value={templateDescription}
+                onChange={(e) => setTemplateDescription(e.target.value)}
+                placeholder="템플릿에 대한 설명을 입력해요"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveAsTemplate} disabled={savingTemplate}>
+              {savingTemplate ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <FolderPlus className="h-4 w-4 mr-2" />
+              )}
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

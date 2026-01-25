@@ -16,6 +16,7 @@ import {
   Calendar,
   GitCompare,
   Bookmark,
+  FolderOpen,
 } from "lucide-react"
 
 const navItems = [
@@ -58,6 +59,11 @@ const navItems = [
     title: "지원서 관리",
     href: "/dashboard/applications",
     icon: FileText,
+  },
+  {
+    title: "지원서 템플릿",
+    href: "/dashboard/templates",
+    icon: FolderOpen,
   },
   {
     title: "기업 프로필",
