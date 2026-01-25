@@ -8,6 +8,8 @@ import { notFound, redirect } from 'next/navigation'
 import { ScoreGauge } from '@/components/matching/score-gauge'
 import { AnalysisCard } from '@/components/matching/analysis-card'
 import { EligibilityCard } from '@/components/matching/eligibility-card'
+import { ScoreRadarChart } from '@/components/matching/score-radar-chart'
+import { ScoreBreakdown } from '@/components/matching/score-breakdown'
 import { MatchAnalysis } from '@/types'
 import { DeleteMatchButton } from './delete-match-button'
 import { DownloadPDFButton } from './download-pdf-button'
@@ -165,7 +167,7 @@ export default async function MatchingDetailPage({ params }: PageProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="flex flex-col lg:flex-row items-center gap-8">
             {/* 종합 점수 게이지 */}
             <div className="flex-shrink-0">
               <ScoreGauge
@@ -180,62 +182,29 @@ export default async function MatchingDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* 세부 점수 */}
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.technicalScore || 0}
-                  maxScore={25}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">기술성</p>
-                <p className="text-xs text-muted-foreground">{analysis.technicalScore || 0}/25점</p>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.marketScore || 0}
-                  maxScore={20}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">시장성</p>
-                <p className="text-xs text-muted-foreground">{analysis.marketScore || 0}/20점</p>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.businessScore || 0}
-                  maxScore={20}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">사업성</p>
-                <p className="text-xs text-muted-foreground">{analysis.businessScore || 0}/20점</p>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.fitScore || 0}
-                  maxScore={25}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">공고부합도</p>
-                <p className="text-xs text-muted-foreground">{analysis.fitScore || 0}/25점</p>
-              </div>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <ScoreGauge
-                  score={analysis.bonusPoints || 0}
-                  maxScore={10}
-                  size="sm"
-                  showLabel={false}
-                />
-                <p className="text-sm font-medium mt-2">가점</p>
-                <p className="text-xs text-muted-foreground">{analysis.bonusPoints || 0}/10점</p>
-              </div>
+            {/* 레이더 차트 */}
+            <div className="flex-1 w-full max-w-md">
+              <ScoreRadarChart
+                technicalScore={analysis.technicalScore || 0}
+                marketScore={analysis.marketScore || 0}
+                businessScore={analysis.businessScore || 0}
+                fitScore={analysis.fitScore || 0}
+                bonusPoints={analysis.bonusPoints || 0}
+              />
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* 점수 상세 분석 */}
+      <ScoreBreakdown
+        technicalScore={analysis.technicalScore || 0}
+        marketScore={analysis.marketScore || 0}
+        businessScore={analysis.businessScore || 0}
+        fitScore={analysis.fitScore || 0}
+        bonusPoints={analysis.bonusPoints || 0}
+        scoreDetails={analysis.scoreDetails}
+      />
 
       {/* 분석 상세 */}
       <div className="grid md:grid-cols-3 gap-4">

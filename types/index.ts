@@ -103,6 +103,15 @@ export interface MatchAnalysis {
   fitScore: number              // 0-25 공고부합도 (신규)
   bonusPoints: number           // 0-10 가점 (기존 20 → 10)
 
+  // 점수 상세 분석 (각 항목별 이유)
+  scoreDetails?: {
+    technical?: string[]        // 기술성 점수 이유
+    market?: string[]           // 시장성 점수 이유
+    business?: string[]         // 사업성 점수 이유
+    fit?: string[]              // 공고부합도 점수 이유
+    bonus?: string[]            // 가점 이유
+  }
+
   // 분석 내용
   strengths: string[]
   weaknesses: string[]
