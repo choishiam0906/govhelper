@@ -13,6 +13,8 @@ import {
   Settings,
   Shield,
   ClipboardList,
+  Calendar,
+  GitCompare,
 } from "lucide-react"
 
 const navItems = [
@@ -35,6 +37,16 @@ const navItems = [
     title: "지원 이력",
     href: "/dashboard/tracking",
     icon: ClipboardList,
+  },
+  {
+    title: "지원 일정",
+    href: "/dashboard/calendar",
+    icon: Calendar,
+  },
+  {
+    title: "공고 비교",
+    href: "/dashboard/compare",
+    icon: GitCompare,
   },
   {
     title: "지원서 관리",
