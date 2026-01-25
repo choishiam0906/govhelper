@@ -41,6 +41,9 @@
     },
     "app/api/push/send-deadline/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/notifications/send-changes/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -107,6 +110,10 @@
     {
       "path": "/api/push/send-deadline",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/notifications/send-changes",
+      "schedule": "0 * * * *"
     }
   ]
 }

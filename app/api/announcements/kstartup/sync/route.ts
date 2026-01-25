@@ -8,6 +8,7 @@ import {
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
 import { parseEligibilityCriteria } from '@/lib/ai'
+import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 
 // K-Startup API 설정 (공공데이터포털)
 const KSTARTUP_API_URL = 'https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01'
@@ -178,18 +179,14 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString()
     }))
 
-    // 배치 upsert
-    const { error: upsertError, count } = await supabase
-      .from('announcements')
-      .upsert(announcementsToUpsert, {
-        onConflict: 'source,source_id',
-        count: 'exact'
-      })
-
-    if (upsertError) {
-      console.error('Batch upsert error:', upsertError.message)
+    // 배치 upsert + 변경 감지
+    let syncResult
+    try {
+      syncResult = await syncWithChangeDetection(supabase, announcementsToUpsert)
+    } catch (error) {
+      console.error('Batch upsert error:', error)
       return NextResponse.json(
-        { success: false, error: upsertError.message },
+        { success: false, error: error instanceof Error ? error.message : 'Sync failed' },
         { status: 500 }
       )
     }
@@ -246,7 +243,7 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    console.log(`✅ K-Startup 동기화 완료: ${uniqueAnnouncements.length}건, AI 분류: ${aiParsed}건, ${duration}ms`)
+    console.log(`✅ K-Startup 동기화 완료: ${uniqueAnnouncements.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, AI 분류: ${aiParsed}건, ${duration}ms`)
 
     return NextResponse.json({
       success: true,
@@ -255,7 +252,9 @@ export async function POST(request: NextRequest) {
         fetched: allAnnouncements.length,
         active: activeAnnouncements.length,
         unique: uniqueAnnouncements.length,
-        upserted: count,
+        upserted: syncResult.upserted,
+        changesDetected: syncResult.changesDetected,
+        notificationsQueued: syncResult.notificationsQueued,
         aiParsed,
         pages: page,
         duration: `${duration}ms`,

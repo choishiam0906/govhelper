@@ -33,8 +33,10 @@ import {
   Sparkles,
   Target,
   Info,
+  History,
 } from 'lucide-react'
 import { DownloadPDFButton } from './download-pdf-button'
+import { ChangeHistory } from '@/components/announcements/change-history'
 
 interface EligibilityCriteria {
   companyTypes: string[]
@@ -461,6 +463,10 @@ export function AnnouncementDetail({
             <FileText className="h-4 w-4 mr-2" />
             첨부파일
           </TabsTrigger>
+          <TabsTrigger value="changes" className="flex-1 sm:flex-none">
+            <History className="h-4 w-4 mr-2" />
+            변경 이력
+          </TabsTrigger>
         </TabsList>
 
         {/* 공고 내용 탭 */}
@@ -772,6 +778,24 @@ export function AnnouncementDetail({
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 변경 이력 탭 */}
+        <TabsContent value="changes" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-primary" />
+                변경 이력
+              </CardTitle>
+              <CardDescription>
+                이 공고의 지원금액, 마감일 등 주요 정보 변경 내역이에요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChangeHistory announcementId={announcement.id} />
             </CardContent>
           </Card>
         </TabsContent>

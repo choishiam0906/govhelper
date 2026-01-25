@@ -7,6 +7,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
+import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 
 // 나라장터 API 설정
 const G2B_API_URL = 'https://apis.data.go.kr/1230000/ad/BidPublicInfoService'
@@ -240,18 +241,14 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 배치 upsert
-    const { error: upsertError, count } = await supabase
-      .from('announcements')
-      .upsert(bidsToUpsert, {
-        onConflict: 'source,source_id',
-        count: 'exact'
-      })
-
-    if (upsertError) {
-      console.error('G2B upsert error:', upsertError.message)
+    // 배치 upsert + 변경 감지
+    let syncResult
+    try {
+      syncResult = await syncWithChangeDetection(supabase, bidsToUpsert)
+    } catch (error) {
+      console.error('G2B upsert error:', error)
       return NextResponse.json(
-        { success: false, error: upsertError.message },
+        { success: false, error: error instanceof Error ? error.message : 'Sync failed' },
         { status: 500 }
       )
     }
@@ -265,7 +262,7 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    console.log(`✅ 나라장터 동기화 완료: ${uniqueBids.length}건, ${duration}ms`)
+    console.log(`✅ 나라장터 동기화 완료: ${uniqueBids.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, ${duration}ms`)
 
     return NextResponse.json({
       success: true,
@@ -274,7 +271,9 @@ export async function POST(request: NextRequest) {
         fetched: allBids.length,
         active: activeBids.length,
         unique: uniqueBids.length,
-        upserted: count,
+        upserted: syncResult.upserted,
+        changesDetected: syncResult.changesDetected,
+        notificationsQueued: syncResult.notificationsQueued,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
       }

@@ -8,6 +8,7 @@ import {
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
 import { parseEligibilityCriteria } from '@/lib/ai'
+import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -183,18 +184,14 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 배치 upsert (한 번에 처리)
-    const { error: upsertError, count } = await supabase
-      .from('announcements')
-      .upsert(announcementsToUpsert, {
-        onConflict: 'source,source_id',
-        count: 'exact'
-      })
-
-    if (upsertError) {
-      console.error('Batch upsert error:', upsertError.message)
+    // 배치 upsert + 변경 감지
+    let syncResult
+    try {
+      syncResult = await syncWithChangeDetection(supabase, announcementsToUpsert)
+    } catch (error) {
+      console.error('Batch upsert error:', error)
       return NextResponse.json(
-        { success: false, error: upsertError.message },
+        { success: false, error: error instanceof Error ? error.message : 'Sync failed' },
         { status: 500 }
       )
     }
@@ -251,14 +248,16 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    console.log(`✅ SMES 동기화 완료: ${uniqueAnnouncements.length}건, AI 분류: ${aiParsed}건, ${duration}ms`)
+    console.log(`✅ SMES 동기화 완료: ${uniqueAnnouncements.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, AI 분류: ${aiParsed}건, ${duration}ms`)
 
     return NextResponse.json({
       success: true,
       message: '동기화 완료',
       stats: {
         total: uniqueAnnouncements.length,
-        upserted: count,
+        upserted: syncResult.upserted,
+        changesDetected: syncResult.changesDetected,
+        notificationsQueued: syncResult.notificationsQueued,
         aiParsed,
         duration: `${duration}ms`,
         syncedAt: new Date().toISOString()
