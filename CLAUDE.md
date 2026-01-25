@@ -527,11 +527,19 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 ### Phase 4: 사용자 경험 강화
 | 번호 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 9 | 저장된 공고 페이지 | 관심 등록한 공고 모아보기, 폴더/태그 분류 | ⏳ 진행중 |
+| 9 | 저장된 공고 페이지 | 관심 등록한 공고 모아보기, 폴더/태그 분류, 메모, 알림 설정 | ✅ 완료 |
 | 10 | 공고 알림 푸시 (FCM) | 마감 임박, 신규 맞춤 공고 푸시 알림 | ⏳ 대기 |
 | 11 | 지원서 템플릿 | 자주 쓰는 지원서 양식 저장/재사용 | ⏳ 대기 |
 | 12 | 공고 변경 알림 | 공고 내용 변경 시 알림 (금액, 마감일 등) | ⏳ 대기 |
 | 13 | 대시보드 위젯 커스터마이징 | 사용자가 원하는 위젯 배치 | ⏳ 대기 |
+
+**구현 내용 (Task 9):**
+- `app/(dashboard)/dashboard/saved/page.tsx` - 저장된 공고 페이지 (서버 컴포넌트)
+- `app/(dashboard)/dashboard/saved/saved-list.tsx` - 폴더/태그/메모 관리 클라이언트 컴포넌트
+- `app/api/saved-announcements/update/route.ts` - 저장 공고 업데이트 API
+- `app/api/saved-announcements/folders/route.ts` - 폴더 CRUD API
+- `supabase/migrations/020_saved_announcement_folders.sql` - 폴더/태그/메모 DB 마이그레이션
+- `components/dashboard/nav.tsx` - 저장된 공고 메뉴 추가
 
 ---
 
