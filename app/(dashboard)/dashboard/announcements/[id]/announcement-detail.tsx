@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -20,6 +21,18 @@ import {
   TrendingUp,
   Loader2,
   RefreshCw,
+  Users,
+  Coins,
+  MapPin,
+  Award,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Briefcase,
+  ChevronRight,
+  Sparkles,
+  Target,
+  Info,
 } from 'lucide-react'
 import { DownloadPDFButton } from './download-pdf-button'
 
@@ -57,11 +70,21 @@ interface Announcement {
   created_at: string
 }
 
+interface RelatedAnnouncement {
+  id: string
+  title: string
+  organization: string | null
+  category: string | null
+  support_type: string | null
+  support_amount: string | null
+  application_end: string | null
+  source: string
+}
+
 // 콘텐츠에서 원본 URL 추출 함수
 function extractSourceUrl(content: string | null): string | null {
   if (!content) return null
 
-  // "상세보기: URL" 또는 "상세보기 : URL" 패턴 매칭
   const patterns = [
     /상세보기\s*:\s*(https?:\/\/[^\s<>"]+)/i,
     /원문\s*:\s*(https?:\/\/[^\s<>"]+)/i,
@@ -92,6 +115,7 @@ function removeSourceUrlFromContent(content: string | null): string | null {
 interface AnnouncementDetailProps {
   announcement: Announcement
   isSaved: boolean
+  relatedAnnouncements: RelatedAnnouncement[]
 }
 
 // 출처 라벨
@@ -99,7 +123,19 @@ const sourceLabels: Record<string, string> = {
   bizinfo: '기업마당',
   kstartup: 'K-Startup',
   narajangteo: '나라장터',
+  g2b: '나라장터',
+  smes: '중소벤처24',
   datagoKr: '공공데이터',
+}
+
+// 출처별 색상
+const sourceColors: Record<string, string> = {
+  bizinfo: 'bg-blue-100 text-blue-800',
+  kstartup: 'bg-green-100 text-green-800',
+  narajangteo: 'bg-purple-100 text-purple-800',
+  g2b: 'bg-purple-100 text-purple-800',
+  smes: 'bg-indigo-100 text-indigo-800',
+  datagoKr: 'bg-orange-100 text-orange-800',
 }
 
 function formatDate(dateStr: string | null) {
@@ -111,15 +147,58 @@ function formatDate(dateStr: string | null) {
   })
 }
 
+function formatDateShort(dateStr: string | null) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 function getDaysLeft(endDate: string | null) {
   if (!endDate) return null
   const end = new Date(endDate)
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  end.setHours(0, 0, 0, 0)
   const diff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
   return diff
 }
 
-export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved: initialSaved }: AnnouncementDetailProps) {
+// 지원금액 포맷팅
+function formatAmount(amount: string | null): string {
+  if (!amount) return '미정'
+
+  // 이미 형식화된 경우
+  if (amount.includes('억') || amount.includes('만') || amount.includes('원')) {
+    return amount
+  }
+
+  // 숫자만 있는 경우
+  const numericStr = amount.replace(/[^0-9]/g, '')
+  if (numericStr) {
+    const value = parseInt(numericStr, 10)
+    if (value >= 100000000) {
+      const eok = Math.floor(value / 100000000)
+      return `${eok}억원`
+    } else if (value >= 10000000) {
+      const cheonman = Math.round(value / 10000000)
+      return `${cheonman}천만원`
+    } else if (value >= 10000) {
+      const man = Math.round(value / 10000)
+      return `약 ${man.toLocaleString()}만원`
+    }
+    return `${value.toLocaleString()}원`
+  }
+
+  return amount
+}
+
+export function AnnouncementDetail({
+  announcement: initialAnnouncement,
+  isSaved: initialSaved,
+  relatedAnnouncements
+}: AnnouncementDetailProps) {
   const router = useRouter()
   const [announcement, setAnnouncement] = useState(initialAnnouncement)
   const [isSaved, setIsSaved] = useState(initialSaved)
@@ -128,6 +207,8 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
   const [parsingEligibility, setParsingEligibility] = useState(false)
 
   const daysLeft = getDaysLeft(announcement.application_end)
+  const isExpired = daysLeft !== null && daysLeft < 0
+  const isClosingSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7
 
   const toggleSave = async () => {
     setSaving(true)
@@ -164,7 +245,6 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
         throw new Error(result.error)
       }
 
-      // 공고 상태 업데이트
       setAnnouncement(prev => ({
         ...prev,
         attachment_urls: result.attachments || []
@@ -192,7 +272,6 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
         throw new Error(result.error)
       }
 
-      // 공고 상태 업데이트
       setAnnouncement(prev => ({
         ...prev,
         eligibility_criteria: result.data
@@ -210,6 +289,9 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
     }
   }
 
+  const sourceUrl = extractSourceUrl(announcement.parsed_content || announcement.content)
+  const cleanedContent = removeSourceUrlFromContent(announcement.parsed_content || announcement.content)
+
   return (
     <div className="space-y-6">
       {/* 뒤로가기 */}
@@ -218,379 +300,537 @@ export function AnnouncementDetail({ announcement: initialAnnouncement, isSaved:
         목록으로
       </Button>
 
-      {/* 헤더 */}
+      {/* 상단 알림 배너 */}
+      {isClosingSoon && !isExpired && (
+        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+          <div>
+            <p className="font-medium text-red-800">마감이 얼마 남지 않았어요!</p>
+            <p className="text-sm text-red-600">D-{daysLeft} - 서둘러 지원하세요</p>
+          </div>
+        </div>
+      )}
+
+      {isExpired && (
+        <div className="flex items-center gap-3 p-4 bg-gray-100 border border-gray-200 rounded-lg">
+          <XCircle className="h-5 w-5 text-gray-500 shrink-0" />
+          <div>
+            <p className="font-medium text-gray-700">이 공고는 마감되었어요</p>
+            <p className="text-sm text-gray-500">비슷한 다른 공고를 확인해 보세요</p>
+          </div>
+        </div>
+      )}
+
+      {/* 헤더 섹션 */}
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
-          <div className="flex flex-wrap gap-2 mb-3">
-            <Badge>{sourceLabels[announcement.source] || announcement.source}</Badge>
+        <div className="flex-1 space-y-4">
+          {/* 배지 */}
+          <div className="flex flex-wrap gap-2">
+            <Badge className={sourceColors[announcement.source] || 'bg-gray-100'}>
+              {sourceLabels[announcement.source] || announcement.source}
+            </Badge>
             {announcement.category && <Badge variant="outline">{announcement.category}</Badge>}
             {announcement.support_type && <Badge variant="secondary">{announcement.support_type}</Badge>}
-            {announcement.status === 'closed' && <Badge variant="destructive">마감</Badge>}
+            {isExpired && <Badge variant="destructive">마감</Badge>}
+            {isClosingSoon && !isExpired && (
+              <Badge className="bg-red-500 text-white animate-pulse">마감임박</Badge>
+            )}
           </div>
 
-          <h1 className="text-2xl lg:text-3xl font-bold mb-4">{announcement.title}</h1>
+          {/* 제목 */}
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight">{announcement.title}</h1>
 
-          <div className="flex flex-wrap gap-4 text-muted-foreground">
-            {announcement.organization && (
-              <div className="flex items-center gap-1">
-                <Building2 className="h-4 w-4" />
-                <span>{announcement.organization}</span>
+          {/* 기관명 */}
+          {announcement.organization && (
+            <div className="flex items-center gap-2 text-lg text-muted-foreground">
+              <Building2 className="h-5 w-5" />
+              <span>{announcement.organization}</span>
+            </div>
+          )}
+
+          {/* 핵심 정보 카드 그리드 */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
+            {/* 지원금액 */}
+            <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <Coins className="h-4 w-4" />
+                <span className="text-xs font-medium">지원금액</span>
               </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>
-                {formatDate(announcement.application_start)} ~ {formatDate(announcement.application_end)}
-              </span>
+              <p className="text-lg font-bold text-primary">
+                {formatAmount(announcement.support_amount)}
+              </p>
+            </div>
+
+            {/* 마감일 */}
+            <div className={`p-4 rounded-xl border ${
+              isExpired
+                ? 'bg-gray-100 border-gray-200'
+                : isClosingSoon
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-orange-50 border-orange-200'
+            }`}>
+              <div className={`flex items-center gap-2 mb-1 ${
+                isExpired ? 'text-gray-500' : isClosingSoon ? 'text-red-600' : 'text-orange-600'
+              }`}>
+                <Clock className="h-4 w-4" />
+                <span className="text-xs font-medium">마감일</span>
+              </div>
+              <p className={`text-lg font-bold ${
+                isExpired ? 'text-gray-600' : isClosingSoon ? 'text-red-700' : 'text-orange-700'
+              }`}>
+                {daysLeft !== null ? (isExpired ? '마감됨' : `D-${daysLeft}`) : '상시'}
+              </p>
+            </div>
+
+            {/* 신청기간 */}
+            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <div className="flex items-center gap-2 text-blue-600 mb-1">
+                <Calendar className="h-4 w-4" />
+                <span className="text-xs font-medium">신청기간</span>
+              </div>
+              <p className="text-sm font-medium text-blue-800">
+                {formatDateShort(announcement.application_start)} ~ {formatDateShort(announcement.application_end)}
+              </p>
+            </div>
+
+            {/* 지원유형 */}
+            <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+              <div className="flex items-center gap-2 text-green-600 mb-1">
+                <Target className="h-4 w-4" />
+                <span className="text-xs font-medium">지원유형</span>
+              </div>
+              <p className="text-sm font-medium text-green-800">
+                {announcement.support_type || '-'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* 사이드 카드 */}
-        <Card className="lg:w-80 shrink-0">
-          <CardContent className="pt-6 space-y-4">
-            {/* 마감일 */}
-            {daysLeft !== null && (
-              <div className={`text-center p-4 rounded-lg ${
-                daysLeft <= 7 ? 'bg-red-50 text-red-700' :
-                daysLeft <= 14 ? 'bg-orange-50 text-orange-700' :
-                'bg-blue-50 text-blue-700'
-              }`}>
-                <p className="text-3xl font-bold">D-{daysLeft > 0 ? daysLeft : 0}</p>
-                <p className="text-sm">마감까지</p>
-              </div>
-            )}
+        {/* 사이드 액션 카드 */}
+        <Card className="lg:w-72 shrink-0 h-fit">
+          <CardContent className="pt-6 space-y-3">
+            <Button
+              variant={isSaved ? 'secondary' : 'outline'}
+              className="w-full"
+              onClick={toggleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : isSaved ? (
+                <BookmarkCheck className="h-4 w-4 mr-2" />
+              ) : (
+                <Bookmark className="h-4 w-4 mr-2" />
+              )}
+              {isSaved ? '관심 등록됨' : '관심 등록'}
+            </Button>
 
-            {/* 지원금액 */}
-            {announcement.support_amount && (
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">지원금액</p>
-                <p className="text-xl font-bold">{announcement.support_amount}</p>
-              </div>
-            )}
+            <Button asChild className="w-full">
+              <Link href={`/dashboard/matching?announcementId=${announcement.id}`}>
+                <TrendingUp className="h-4 w-4 mr-2" />
+                AI 매칭 분석
+              </Link>
+            </Button>
 
-            {/* 액션 버튼 */}
-            <div className="space-y-2">
-              <Button
-                variant={isSaved ? 'secondary' : 'outline'}
-                className="w-full"
-                onClick={toggleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : isSaved ? (
-                  <BookmarkCheck className="h-4 w-4 mr-2" />
-                ) : (
-                  <Bookmark className="h-4 w-4 mr-2" />
-                )}
-                {isSaved ? '관심 등록됨' : '관심 등록'}
+            <DownloadPDFButton announcement={announcement} />
+
+            {sourceUrl && (
+              <Button asChild variant="outline" className="w-full">
+                <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  원본 사이트
+                </a>
               </Button>
-
-              <Button asChild className="w-full">
-                <Link href={`/dashboard/matching?announcementId=${announcement.id}`}>
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  AI 매칭 분석
-                </Link>
-              </Button>
-
-              <DownloadPDFButton announcement={announcement} />
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* 상세 내용 탭 */}
-      {(() => {
-        const sourceUrl = extractSourceUrl(announcement.parsed_content || announcement.content)
-        const cleanedContent = removeSourceUrlFromContent(announcement.parsed_content || announcement.content)
+      {/* 탭 콘텐츠 */}
+      <Tabs defaultValue="content" className="w-full">
+        <TabsList className="w-full justify-start">
+          <TabsTrigger value="content" className="flex-1 sm:flex-none">
+            <FileText className="h-4 w-4 mr-2" />
+            공고 내용
+          </TabsTrigger>
+          <TabsTrigger value="eligibility" className="flex-1 sm:flex-none">
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            지원 자격
+          </TabsTrigger>
+          <TabsTrigger value="attachments" className="flex-1 sm:flex-none">
+            <FileText className="h-4 w-4 mr-2" />
+            첨부파일
+          </TabsTrigger>
+        </TabsList>
 
-        return (
-          <Tabs defaultValue="content" className="w-full">
-            <TabsList>
-              <TabsTrigger value="content">공고 내용</TabsTrigger>
-              <TabsTrigger value="requirements">지원 자격</TabsTrigger>
-              <TabsTrigger value="attachments">첨부파일</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="content" className="mt-6">
-              <Card>
-                <CardContent className="pt-6">
-                  {cleanedContent ? (
-                    <div
-                      className="prose prose-slate max-w-none"
-                      dangerouslySetInnerHTML={{
-                        __html: cleanedContent,
-                      }}
-                    />
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      상세 내용이 없습니다
-                    </p>
-                  )}
-
-                  {/* 원본 페이지 바로가기 */}
+        {/* 공고 내용 탭 */}
+        <TabsContent value="content" className="mt-6">
+          <Card>
+            <CardContent className="pt-6">
+              {cleanedContent ? (
+                <div
+                  className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-primary"
+                  dangerouslySetInnerHTML={{ __html: cleanedContent }}
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">상세 내용이 없어요</p>
                   {sourceUrl && (
-                    <div className="mt-8 pt-6 border-t">
-                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-                        <div>
-                          <p className="font-medium">원본 공고 페이지</p>
-                          <p className="text-sm text-muted-foreground">
-                            더 자세한 정보는 원본 사이트에서 확인하세요
-                          </p>
+                    <Button asChild variant="link" className="mt-2">
+                      <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                        원본 사이트에서 확인하기
+                        <ExternalLink className="h-4 w-4 ml-1" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 지원 자격 탭 */}
+        <TabsContent value="eligibility" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-primary" />
+                    지원 자격
+                  </CardTitle>
+                  <CardDescription>이 공고에 지원하기 위한 자격 요건이에요</CardDescription>
+                </div>
+                {!announcement.eligibility_criteria && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={parseEligibility}
+                    disabled={parsingEligibility}
+                  >
+                    {parsingEligibility ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        분석 중...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI 분석
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {announcement.eligibility_criteria ? (
+                <div className="space-y-6">
+                  {/* 요약 카드 */}
+                  {announcement.eligibility_criteria.summary && (
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Sparkles className="h-5 w-5 text-blue-600" />
                         </div>
-                        <Button asChild>
-                          <a
-                            href={sourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            바로가기
-                          </a>
-                        </Button>
+                        <div className="flex-1">
+                          <p className="font-medium text-blue-900 mb-1">AI 분석 요약</p>
+                          <p className="text-blue-800">{announcement.eligibility_criteria.summary}</p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <span className="text-xs text-blue-600">분석 신뢰도</span>
+                            <Progress
+                              value={announcement.eligibility_criteria.confidence * 100}
+                              className="h-2 w-24"
+                            />
+                            <span className="text-xs font-medium text-blue-700">
+                              {Math.round(announcement.eligibility_criteria.confidence * 100)}%
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="requirements" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>지원 자격</CardTitle>
-                      <CardDescription>이 공고에 지원하기 위한 자격 요건입니다</CardDescription>
+                  {/* 기업 유형 */}
+                  {announcement.eligibility_criteria.companyTypes.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">지원 가능 기업 유형</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {announcement.eligibility_criteria.companyTypes.map((type, idx) => (
+                          <Badge key={idx} variant="secondary" className="px-3 py-1">
+                            <CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />
+                            {type}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    {!announcement.eligibility_criteria && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={parseEligibility}
-                        disabled={parsingEligibility}
-                      >
-                        {parsingEligibility ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            분석 중...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            AI 상세 분석
-                          </>
-                        )}
-                      </Button>
+                  )}
+
+                  {/* 규모 조건 그리드 */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {announcement.eligibility_criteria.employeeCount && (
+                      <div className="p-4 border rounded-xl bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users className="h-5 w-5 text-blue-600" />
+                          <span className="font-medium">직원수</span>
+                        </div>
+                        <p className="text-lg font-semibold text-blue-800">
+                          {announcement.eligibility_criteria.employeeCount.description}
+                        </p>
+                      </div>
+                    )}
+                    {announcement.eligibility_criteria.revenue && (
+                      <div className="p-4 border rounded-xl bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Coins className="h-5 w-5 text-green-600" />
+                          <span className="font-medium">매출</span>
+                        </div>
+                        <p className="text-lg font-semibold text-green-800">
+                          {announcement.eligibility_criteria.revenue.description}
+                        </p>
+                      </div>
+                    )}
+                    {announcement.eligibility_criteria.businessAge && (
+                      <div className="p-4 border rounded-xl bg-slate-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="h-5 w-5 text-purple-600" />
+                          <span className="font-medium">업력</span>
+                        </div>
+                        <p className="text-lg font-semibold text-purple-800">
+                          {announcement.eligibility_criteria.businessAge.description}
+                        </p>
+                      </div>
                     )}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {announcement.eligibility_criteria ? (
-                    <div className="space-y-6">
-                      {/* 요약 */}
-                      {announcement.eligibility_criteria.summary && (
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-blue-800">
-                            {announcement.eligibility_criteria.summary}
-                          </p>
-                          <p className="text-xs text-blue-600 mt-2">
-                            분석 신뢰도: {Math.round(announcement.eligibility_criteria.confidence * 100)}%
-                          </p>
-                        </div>
-                      )}
 
-                      {/* 기업 유형 */}
-                      {announcement.eligibility_criteria.companyTypes.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">기업 유형</p>
-                          <div className="flex flex-wrap gap-2">
-                            {announcement.eligibility_criteria.companyTypes.map((type, idx) => (
-                              <Badge key={idx} variant="secondary">{type}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 규모 조건 */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {announcement.eligibility_criteria.employeeCount && (
-                          <div className="p-3 border rounded-lg">
-                            <p className="text-sm text-muted-foreground">직원수</p>
-                            <p className="font-medium">{announcement.eligibility_criteria.employeeCount.description}</p>
-                          </div>
-                        )}
-                        {announcement.eligibility_criteria.revenue && (
-                          <div className="p-3 border rounded-lg">
-                            <p className="text-sm text-muted-foreground">매출</p>
-                            <p className="font-medium">{announcement.eligibility_criteria.revenue.description}</p>
-                          </div>
-                        )}
-                        {announcement.eligibility_criteria.businessAge && (
-                          <div className="p-3 border rounded-lg">
-                            <p className="text-sm text-muted-foreground">업력</p>
-                            <p className="font-medium">{announcement.eligibility_criteria.businessAge.description}</p>
-                          </div>
-                        )}
+                  {/* 지역 */}
+                  {announcement.eligibility_criteria.regions.description && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">지역 조건</h4>
                       </div>
-
-                      {/* 업종 조건 */}
-                      {(announcement.eligibility_criteria.industries.included.length > 0 ||
-                        announcement.eligibility_criteria.industries.excluded.length > 0) && (
-                        <div>
-                          <p className="font-medium mb-2">업종</p>
-                          {announcement.eligibility_criteria.industries.included.length > 0 && (
-                            <div className="mb-2">
-                              <span className="text-sm text-green-600 mr-2">지원 가능:</span>
-                              {announcement.eligibility_criteria.industries.included.join(', ')}
-                            </div>
-                          )}
-                          {announcement.eligibility_criteria.industries.excluded.length > 0 && (
-                            <div>
-                              <span className="text-sm text-red-600 mr-2">지원 불가:</span>
-                              {announcement.eligibility_criteria.industries.excluded.join(', ')}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 지역 조건 */}
-                      {announcement.eligibility_criteria.regions.description && (
-                        <div>
-                          <p className="font-medium mb-2">지역</p>
-                          <p className="text-muted-foreground">{announcement.eligibility_criteria.regions.description}</p>
-                        </div>
-                      )}
-
-                      {/* 필요 인증 */}
-                      {announcement.eligibility_criteria.requiredCertifications.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">필요 인증/자격</p>
-                          <div className="flex flex-wrap gap-2">
-                            {announcement.eligibility_criteria.requiredCertifications.map((cert, idx) => (
-                              <Badge key={idx} variant="outline">{cert}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 기타 요건 */}
-                      {announcement.eligibility_criteria.additionalRequirements.length > 0 && (
-                        <div>
-                          <p className="font-medium mb-2">기타 요건</p>
-                          <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                            {announcement.eligibility_criteria.additionalRequirements.map((req, idx) => (
-                              <li key={idx}>{req}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* 지원 제외 대상 */}
-                      {announcement.eligibility_criteria.exclusions.length > 0 && (
-                        <div className="p-4 bg-red-50 rounded-lg">
-                          <p className="font-medium mb-2 text-red-800">지원 제외 대상</p>
-                          <ul className="list-disc list-inside text-red-700 space-y-1">
-                            {announcement.eligibility_criteria.exclusions.map((ex, idx) => (
-                              <li key={idx}>{ex}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : announcement.target_company ? (
-                    <div className="space-y-4">
-                      <div>
-                        <p className="font-medium mb-2">지원 대상 (기본 정보)</p>
-                        <p className="text-muted-foreground">{announcement.target_company}</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        &apos;AI 상세 분석&apos; 버튼을 클릭하면 더 자세한 지원자격 정보를 확인할 수 있어요
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">
-                        지원자격 정보가 없어요
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        &apos;AI 상세 분석&apos; 버튼을 클릭하면 공고 내용에서 지원자격을 분석해드려요
+                      <p className="text-muted-foreground pl-7">
+                        {announcement.eligibility_criteria.regions.description}
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
 
-            <TabsContent value="attachments" className="mt-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>첨부파일</CardTitle>
-                      <CardDescription>공고와 관련된 첨부파일입니다</CardDescription>
+                  {/* 필요 인증 */}
+                  {announcement.eligibility_criteria.requiredCertifications.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">필요 인증/자격</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pl-7">
+                        {announcement.eligibility_criteria.requiredCertifications.map((cert, idx) => (
+                          <Badge key={idx} variant="outline" className="bg-amber-50 border-amber-200 text-amber-800">
+                            <Award className="h-3 w-3 mr-1" />
+                            {cert}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
-                    {(!announcement.attachment_urls || announcement.attachment_urls.length === 0) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchAttachments}
-                        disabled={fetchingAttachments}
-                      >
-                        {fetchingAttachments ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            가져오는 중...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            첨부파일 가져오기
-                          </>
-                        )}
-                      </Button>
-                    )}
+                  )}
+
+                  {/* 기타 요건 */}
+                  {announcement.eligibility_criteria.additionalRequirements.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Info className="h-5 w-5 text-primary" />
+                        <h4 className="font-semibold">기타 요건</h4>
+                      </div>
+                      <ul className="space-y-2 pl-7">
+                        {announcement.eligibility_criteria.additionalRequirements.map((req, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-muted-foreground">
+                            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                            {req}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* 지원 제외 대상 */}
+                  {announcement.eligibility_criteria.exclusions.length > 0 && (
+                    <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <XCircle className="h-5 w-5 text-red-600" />
+                        <h4 className="font-semibold text-red-800">지원 제외 대상</h4>
+                      </div>
+                      <ul className="space-y-2">
+                        {announcement.eligibility_criteria.exclusions.map((ex, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-red-700">
+                            <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                            {ex}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : announcement.target_company ? (
+                <div className="space-y-4">
+                  <div className="p-4 border rounded-lg">
+                    <p className="font-medium mb-2">지원 대상 (기본 정보)</p>
+                    <p className="text-muted-foreground">{announcement.target_company}</p>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {announcement.attachment_urls && announcement.attachment_urls.length > 0 ? (
-                    <div className="space-y-2">
-                      {announcement.attachment_urls.map((url, index) => {
-                        // URL에서 파일명 추출
-                        const fileName = url.split('/').pop() || `첨부파일 ${index + 1}`
-                        return (
-                          <a
-                            key={index}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-                          >
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="flex-1 truncate">{decodeURIComponent(fileName)}</span>
-                            <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                          </a>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">
-                        첨부파일이 아직 로드되지 않았어요
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        &apos;첨부파일 가져오기&apos; 버튼을 클릭하여 원본 공고에서 첨부파일을 가져올 수 있어요
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  <p className="text-sm text-muted-foreground text-center">
+                    'AI 분석' 버튼을 클릭하면 더 자세한 지원자격 정보를 확인할 수 있어요
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">지원자격 정보가 없어요</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    AI가 공고 내용에서 지원자격을 분석해드려요
+                  </p>
+                  <Button variant="outline" onClick={parseEligibility} disabled={parsingEligibility}>
+                    {parsingEligibility ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        분석 중...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI로 분석하기
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          </Tabs>
-        )
-      })()}
+        {/* 첨부파일 탭 */}
+        <TabsContent value="attachments" className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>첨부파일</CardTitle>
+                  <CardDescription>공고와 관련된 첨부파일이에요</CardDescription>
+                </div>
+                {(!announcement.attachment_urls || announcement.attachment_urls.length === 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchAttachments}
+                    disabled={fetchingAttachments}
+                  >
+                    {fetchingAttachments ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        가져오는 중...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        첨부파일 가져오기
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {announcement.attachment_urls && announcement.attachment_urls.length > 0 ? (
+                <div className="space-y-2">
+                  {announcement.attachment_urls.map((url, index) => {
+                    const fileName = url.split('/').pop() || `첨부파일 ${index + 1}`
+                    return (
+                      <a
+                        key={index}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 rounded-lg border hover:bg-muted transition-colors group"
+                      >
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="flex-1 truncate">{decodeURIComponent(fileName)}</span>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </a>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-2">첨부파일이 아직 로드되지 않았어요</p>
+                  <p className="text-sm text-muted-foreground">
+                    '첨부파일 가져오기' 버튼을 클릭하여 원본 공고에서 첨부파일을 가져올 수 있어요
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* 관련 공고 섹션 */}
+      {relatedAnnouncements.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              비슷한 공고
+            </CardTitle>
+            <CardDescription>이 공고와 비슷한 다른 공고예요</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {relatedAnnouncements.slice(0, 6).map((related) => {
+                const relatedDaysLeft = getDaysLeft(related.application_end)
+                const relatedIsExpired = relatedDaysLeft !== null && relatedDaysLeft < 0
+
+                return (
+                  <Link
+                    key={related.id}
+                    href={`/dashboard/announcements/${related.id}`}
+                    className="block p-4 border rounded-xl hover:shadow-md hover:border-primary/50 transition-all group"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <Badge variant="outline" className={`text-xs ${sourceColors[related.source] || ''}`}>
+                        {sourceLabels[related.source] || related.source}
+                      </Badge>
+                      {relatedDaysLeft !== null && (
+                        <span className={`text-xs font-medium ${
+                          relatedIsExpired ? 'text-gray-500' :
+                          relatedDaysLeft <= 7 ? 'text-red-600' : 'text-orange-600'
+                        }`}>
+                          {relatedIsExpired ? '마감' : `D-${relatedDaysLeft}`}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-medium line-clamp-2 group-hover:text-primary transition-colors mb-2">
+                      {related.title}
+                    </h4>
+                    {related.organization && (
+                      <p className="text-sm text-muted-foreground mb-2">{related.organization}</p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-primary">
+                        {formatAmount(related.support_amount)}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

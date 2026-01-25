@@ -23,6 +23,9 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
     notFound()
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ann = announcement as any
+
   // 저장 여부 확인
   const { data: saved } = await supabase
     .from('saved_announcements')
@@ -31,10 +34,21 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
     .eq('announcement_id', id)
     .single()
 
+  // 관련 공고 조회 (같은 카테고리 또는 출처, 최근 5개)
+  const { data: relatedAnnouncements } = await supabase
+    .from('announcements')
+    .select('id, title, organization, category, support_type, support_amount, application_end, source')
+    .eq('status', 'active')
+    .neq('id', id)
+    .or(`category.eq.${ann.category || ''},source.eq.${ann.source}`)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
   return (
     <AnnouncementDetail
-      announcement={announcement}
+      announcement={ann}
       isSaved={!!saved}
+      relatedAnnouncements={relatedAnnouncements || []}
     />
   )
 }
