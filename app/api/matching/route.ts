@@ -97,12 +97,25 @@ async function handlePost(request: NextRequest) {
     }
 
     // 5. Prepare content for AI analysis
+    // support_amount 안전하게 형식화 (숫자 또는 문자열 처리)
+    const formatSupportAmount = (amount: string | null | undefined): string => {
+      if (!amount) return '미정'
+      // 이미 형식화된 경우 그대로 반환
+      if (amount.includes('원') || amount.includes('억')) return amount
+      // 숫자만 있는 경우 형식화
+      const numericValue = Number(amount.replace(/[^0-9]/g, ''))
+      if (!isNaN(numericValue) && numericValue > 0) {
+        return `${numericValue.toLocaleString()}원`
+      }
+      return amount || '미정'
+    }
+
     const announcementContent = `
 제목: ${announcement.title}
 기관: ${announcement.organization}
 분야: ${announcement.category}
 지원유형: ${announcement.support_type}
-지원금액: ${announcement.support_amount}
+지원금액: ${formatSupportAmount(announcement.support_amount)}
 내용: ${announcement.content || announcement.parsed_content || ''}
     `.trim()
 

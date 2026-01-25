@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         category: getBidTypeName(item.bidType),
         support_type: item.cntrctMthdNm || '', // 계약방법 → support_type으로 이동
         target_company: targetParts.join(' / ') || '', // 공고종류 + 입찰방식
-        support_amount: item.presmptPrce ? `추정가 ${Number(item.presmptPrce).toLocaleString()}원` : '',
+        support_amount: item.presmptPrce || '',
         application_start: formatDate(item.bidNtceDt),
         application_end: formatDate(item.bidClseDt),
         content: [
@@ -231,6 +231,7 @@ export async function POST(request: NextRequest) {
           `계약방법: ${item.cntrctMthdNm || ''}`,
           `낙찰방법: ${item.sucsfbidMthdNm || ''}`,
           `수요기관: ${item.dminsttNm || ''}`,
+          item.presmptPrce ? `추정가격: ${Number(item.presmptPrce).toLocaleString()}원` : '',
           item.asignBdgtAmt ? `배정예산: ${Number(item.asignBdgtAmt).toLocaleString()}원` : '',
           item.bidNtceDtlUrl ? `상세보기: ${item.bidNtceDtlUrl}` : '',
         ].filter(Boolean).join('\n\n'),
