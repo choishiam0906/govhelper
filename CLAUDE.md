@@ -12,7 +12,7 @@
 |------|------|
 | **라이브 URL** | https://govhelpers.com |
 | **GitHub** | https://github.com/choishiam0906/govhelper |
-| **진행도** | 95% 완성 |
+| **진행도** | 98% 완성 |
 | **상태** | 프로덕션 운영 중 |
 
 ---
@@ -123,6 +123,7 @@ govhelper-main/
 | `POST` | `/api/announcements/kstartup/sync` | K-Startup 동기화 (Cron 02:00, 14:00) |
 | `GET` | `/api/announcements/parse-eligibility?id=` | 지원자격 AI 파싱 (단일) |
 | `POST` | `/api/announcements/parse-eligibility` | 지원자격 AI 파싱 (배치) |
+| `GET` | `/api/announcements/[id]/changes` | 공고 변경 이력 조회 |
 
 ### 임베딩 (Embeddings)
 | Method | Endpoint | Description |
@@ -192,6 +193,21 @@ govhelper-main/
 |--------|----------|-------------|
 | `POST` | `/api/guest/matching` | 비회원 AI 매칭 분석 (리드 저장 + 상위 5개 매칭) |
 | `GET` | `/api/guest/matching/[id]` | 매칭 결과 조회 (1~2순위 블러 처리) |
+
+### 대시보드 (Dashboard)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/dashboard/widgets` | 사용자 위젯 설정 조회 |
+| `PUT` | `/api/dashboard/widgets` | 사용자 위젯 설정 저장 |
+
+### 알림 (Notifications)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/notifications/send` | 마감 임박 알림 발송 (Cron) |
+| `POST` | `/api/notifications/send-changes` | 공고 변경 알림 발송 (Cron) |
+| `GET/PUT` | `/api/notifications/settings` | 알림 설정 조회/수정 |
+| `POST` | `/api/push/subscribe` | 웹 푸시 구독 |
+| `POST` | `/api/push/send-deadline` | 마감 임박 푸시 발송 (Cron) |
 
 ---
 
@@ -282,8 +298,11 @@ npm run lint
 - `companies`: 기업 정보 (미등록 사업자 승인 관련 컬럼 포함)
 - `announcements`: 정부지원사업 공고 (eligibility_criteria JSONB 포함)
 - `announcement_embeddings`: 공고 벡터 임베딩 (pgvector, 768차원)
+- `announcement_changes`: 공고 변경 이력 (2026-01-26 추가)
+- `announcement_change_notifications`: 변경 알림 큐 (2026-01-26 추가)
 - `matches`: AI 매칭 결과
 - `applications`: 지원서
+- `application_templates`: 지원서 템플릿 (2026-01-25 추가)
 - `payments`: 결제 내역
 - `subscriptions`: 구독 정보
 - `guest_leads`: 비회원 리드 정보 (2026-01-21 추가)
@@ -291,6 +310,9 @@ npm run lint
 - `newsletter_subscribers`: 뉴스레터 구독자 (2026-01-24 추가)
 - `newsletter_campaigns`: 뉴스레터 캠페인 (2026-01-24 추가)
 - `newsletter_sends`: 뉴스레터 발송 로그 (2026-01-24 추가)
+- `push_subscriptions`: 웹 푸시 구독 (2026-01-25 추가)
+- `saved_announcement_folders`: 저장 공고 폴더 (2026-01-25 추가)
+- `dashboard_widget_settings`: 대시보드 위젯 설정 (2026-01-26 추가)
 
 ### companies 테이블 스키마
 ```sql
@@ -485,8 +507,13 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### P3 - 장기 (남은 작업)
 - [ ] 모바일 앱 (React Native/Expo)
-- [ ] 공고 알림 푸시 (FCM)
+- [ ] 모바일 푸시 알림 (FCM) - 모바일 앱 의존
 - [ ] A/B 테스트 인프라
+
+### P3 - 장기 (완료 - 2026-01-25~26)
+- [x] 공고 알림 푸시 (Web Push) - Phase 4 Task 10
+- [x] 공고 변경 알림 - Phase 4 Task 12
+- [x] 대시보드 위젯 커스터마이징 - Phase 4 Task 13
 
 ### P3 - 장기 (완료)
 - [x] 사용자 피드백 수집 기능 (완료 - 2026-01-24)
@@ -528,14 +555,14 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - `app/(dashboard)/dashboard/calendar/calendar-view.tsx` - 인터랙티브 캘린더 그리드, 날짜 클릭 상세 다이얼로그
 - `components/dashboard/nav.tsx` - 지원 일정, 공고 비교 네비게이션 추가
 
-### Phase 4: 사용자 경험 강화
+### Phase 4: 사용자 경험 강화 (완료)
 | 번호 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 9 | 저장된 공고 페이지 | 관심 등록한 공고 모아보기, 폴더/태그 분류, 메모, 알림 설정 | ✅ 완료 |
 | 10 | 공고 알림 푸시 (Web Push) | 마감 임박 공고 브라우저 푸시 알림 (3일/7일 전) | ✅ 완료 |
 | 11 | 지원서 템플릿 | 자주 쓰는 지원서 양식 저장/재사용 | ✅ 완료 |
-| 12 | 공고 변경 알림 | 공고 내용 변경 시 알림 (금액, 마감일 등) | ⏳ 대기 |
-| 13 | 대시보드 위젯 커스터마이징 | 사용자가 원하는 위젯 배치 | ⏳ 대기 |
+| 12 | 공고 변경 알림 | 공고 내용 변경 시 알림 (금액, 마감일 등) | ✅ 완료 (2026-01-26) |
+| 13 | 대시보드 위젯 커스터마이징 | 사용자가 원하는 위젯 배치 | ✅ 완료 (2026-01-26) |
 
 **구현 내용 (Task 9):**
 - `app/(dashboard)/dashboard/saved/page.tsx` - 저장된 공고 페이지 (서버 컴포넌트)
@@ -568,6 +595,57 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 **설정 완료 (2026-01-25):**
 - [x] Supabase 마이그레이션 실행: `022_application_templates.sql`
 
+**구현 내용 (Task 12 - 공고 변경 알림):**
+- `supabase/migrations/023_announcement_changes.sql` - 변경 이력 및 알림 큐 테이블
+- `lib/announcements/change-detector.ts` - 변경 감지 로직 (필드 비교, 변경사항 저장)
+- `lib/announcements/sync-with-changes.ts` - 동기화 시 변경 감지 통합
+- `app/api/announcements/[id]/changes/route.ts` - 변경 이력 조회 API
+- `app/api/notifications/send-changes/route.ts` - 변경 알림 발송 Cron (매시간)
+- `components/announcements/change-history.tsx` - 변경 이력 UI 컴포넌트
+- `app/(dashboard)/dashboard/announcements/[id]/announcement-detail.tsx` - "변경 이력" 탭 추가
+- 각 동기화 API (smes, bizinfo, kstartup, g2b) - `syncWithChangeDetection()` 적용
+
+**변경 감지 대상 필드:**
+| 필드 | 설명 |
+|------|------|
+| `title` | 공고 제목 |
+| `support_amount` | 지원금액 |
+| `application_start` | 접수 시작일 |
+| `application_end` | 접수 마감일 |
+| `status` | 공고 상태 |
+| `description` | 공고 설명 |
+| `eligibility` | 지원자격 |
+
+**설정 완료 (2026-01-26):**
+- [x] Supabase 마이그레이션 실행: `023_announcement_changes.sql`
+- [x] vercel.json에 send-changes Cron job 추가 (0 * * * *)
+
+**구현 내용 (Task 13 - 대시보드 위젯 커스터마이징):**
+- `supabase/migrations/024_dashboard_widget_settings.sql` - 위젯 설정 테이블, RLS
+- `app/api/dashboard/widgets/route.ts` - 위젯 설정 GET/PUT API
+- `components/dashboard/widget-customizer.tsx` - 위젯 커스터마이저 다이얼로그
+- `components/dashboard/dashboard-widgets.tsx` - 대시보드 위젯 래퍼 컴포넌트
+- `app/(dashboard)/dashboard/page.tsx` - DashboardWidgets 컴포넌트 적용
+
+**위젯 목록:**
+| ID | 이름 | 기본 순서 |
+|----|------|----------|
+| `stats` | 통계 카드 | 0 |
+| `quickActions` | 빠른 메뉴 | 1 |
+| `recommendations` | 맞춤 추천 공고 | 2 |
+| `urgentDeadlines` | 마감 임박 공고 | 3 |
+| `inProgressApps` | 작성 중인 지원서 | 4 |
+| `recentAnnouncements` | 최신 공고 | 5 |
+
+**기능:**
+- 위젯 표시/숨김 토글 (Switch)
+- 위젯 순서 변경 (위/아래 버튼)
+- 기본값으로 초기화
+- 사용자별 설정 저장 (Supabase)
+
+**설정 완료 (2026-01-26):**
+- [x] Supabase 마이그레이션 실행: `024_dashboard_widget_settings.sql`
+
 ---
 
 ### P9 - 사업자 등록 후 진행
@@ -584,6 +662,66 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ### Vercel 환경변수 - 완료 (2026-01-20)
 - [x] `UPSTASH_REDIS_REST_TOKEN` - 공백/줄바꿈 제거 완료
+
+---
+
+## 최근 완료 작업 (2026-01-26)
+
+### Phase 4 완료: 사용자 경험 강화 ✅
+
+Phase 4의 모든 작업(Task 9~13)이 완료되었습니다.
+
+### Task 12: 공고 변경 알림 ✅
+
+공고 동기화 시 변경사항을 감지하고 관심 등록한 사용자에게 알림을 보내는 기능.
+
+**아키텍처:**
+```
+동기화 API → syncWithChangeDetection() → 변경 감지 → DB 저장 → Cron 알림 발송
+```
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/023_announcement_changes.sql` | 변경 이력/알림 큐 테이블 |
+| `lib/announcements/change-detector.ts` | 필드별 변경 감지 로직 |
+| `lib/announcements/sync-with-changes.ts` | 동기화 통합 유틸리티 |
+| `app/api/announcements/[id]/changes/route.ts` | 변경 이력 조회 API |
+| `app/api/notifications/send-changes/route.ts` | 변경 알림 발송 Cron |
+| `components/announcements/change-history.tsx` | 변경 이력 UI |
+
+**변경 감지 필드:**
+- 제목, 지원금액, 접수기간, 상태, 설명, 지원자격
+
+**Cron 설정:**
+- 스케줄: 매시간 (0 * * * *)
+- 알림 방식: Web Push (마감 임박 알림과 동일 인프라)
+
+### Task 13: 대시보드 위젯 커스터마이징 ✅
+
+사용자가 대시보드 위젯을 표시/숨김하고 순서를 변경할 수 있는 기능.
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/024_dashboard_widget_settings.sql` | 위젯 설정 테이블 |
+| `app/api/dashboard/widgets/route.ts` | 위젯 설정 GET/PUT API |
+| `components/dashboard/widget-customizer.tsx` | 설정 다이얼로그 |
+| `components/dashboard/dashboard-widgets.tsx` | 위젯 래퍼 컴포넌트 |
+
+**위젯 목록 (6개):**
+1. 통계 카드 (stats)
+2. 빠른 메뉴 (quickActions)
+3. 맞춤 추천 공고 (recommendations)
+4. 마감 임박 공고 (urgentDeadlines)
+5. 작성 중인 지원서 (inProgressApps)
+6. 최신 공고 (recentAnnouncements)
+
+**기능:**
+- Switch로 위젯 표시/숨김
+- 위/아래 버튼으로 순서 변경
+- 초기화 버튼으로 기본값 복원
+- 사용자별 설정 자동 저장
 
 ---
 
