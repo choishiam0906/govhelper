@@ -223,6 +223,10 @@ UPSTASH_REDIS_REST_TOKEN= # Upstash 콘솔에서 발급
 # Email
 RESEND_API_KEY=
 
+# Web Push (VAPID)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # VAPID 공개키 (npx web-push generate-vapid-keys)
+VAPID_PRIVATE_KEY=             # VAPID 비밀키
+
 # App
 NEXT_PUBLIC_APP_URL=https://govhelpers.com
 ADMIN_EMAILS=             # 쉼표로 구분된 관리자 이메일
@@ -548,6 +552,10 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - `components/push/push-notification-toggle.tsx` - 설정 페이지 푸시 토글
 - `lib/supabase/admin.ts` - Supabase Admin 클라이언트 (Cron용)
 - `supabase/migrations/021_push_subscriptions.sql` - 푸시 구독/로그 테이블
+
+**설정 완료 (2026-01-25):**
+- [x] Supabase 마이그레이션 실행: `021_push_subscriptions.sql`
+- [x] VAPID 키 생성 및 환경변수 설정 (Vercel Production)
 
 ---
 
