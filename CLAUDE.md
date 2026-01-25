@@ -528,7 +528,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 | 번호 | 작업 | 설명 | 상태 |
 |------|------|------|------|
 | 9 | 저장된 공고 페이지 | 관심 등록한 공고 모아보기, 폴더/태그 분류, 메모, 알림 설정 | ✅ 완료 |
-| 10 | 공고 알림 푸시 (FCM) | 마감 임박, 신규 맞춤 공고 푸시 알림 | ⏳ 대기 |
+| 10 | 공고 알림 푸시 (Web Push) | 마감 임박 공고 브라우저 푸시 알림 (3일/7일 전) | ✅ 완료 |
 | 11 | 지원서 템플릿 | 자주 쓰는 지원서 양식 저장/재사용 | ⏳ 대기 |
 | 12 | 공고 변경 알림 | 공고 내용 변경 시 알림 (금액, 마감일 등) | ⏳ 대기 |
 | 13 | 대시보드 위젯 커스터마이징 | 사용자가 원하는 위젯 배치 | ⏳ 대기 |
@@ -540,6 +540,14 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - `app/api/saved-announcements/folders/route.ts` - 폴더 CRUD API
 - `supabase/migrations/020_saved_announcement_folders.sql` - 폴더/태그/메모 DB 마이그레이션
 - `components/dashboard/nav.tsx` - 저장된 공고 메뉴 추가
+
+**구현 내용 (Task 10):**
+- `lib/push/index.ts` - Web Push 유틸리티 (VAPID, 알림 발송)
+- `app/api/push/subscribe/route.ts` - 푸시 구독/해제 API
+- `app/api/push/send-deadline/route.ts` - 마감 임박 알림 Cron (매일 09:00 KST)
+- `components/push/push-notification-toggle.tsx` - 설정 페이지 푸시 토글
+- `lib/supabase/admin.ts` - Supabase Admin 클라이언트 (Cron용)
+- `supabase/migrations/021_push_subscriptions.sql` - 푸시 구독/로그 테이블
 
 ---
 
