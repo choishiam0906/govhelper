@@ -513,9 +513,6 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 - [x] 공고 변경 알림 - Phase 4 Task 12
 - [x] 대시보드 위젯 커스터마이징 - Phase 4 Task 13
 
-### P99 - 장기 보류 (모바일 인프라)
-- [ ] 모바일 앱 (React Native/Expo)
-- [ ] 모바일 푸시 알림 (FCM) - 모바일 앱 의존
 
 ### P3 - 장기 (완료)
 - [x] 사용자 피드백 수집 기능 (완료 - 2026-01-24)
@@ -650,8 +647,10 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
-### P9 - 사업자 등록 후 진행
+### P9 - 장기 보류
 - [ ] 카카오페이 결제 연동 (사업자등록증 필요)
+- [ ] 모바일 앱 (React Native/Expo)
+- [ ] 모바일 푸시 알림 (FCM) - 모바일 앱 의존
 
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`
