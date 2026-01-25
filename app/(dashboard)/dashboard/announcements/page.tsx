@@ -28,10 +28,10 @@ export default async function AnnouncementsPage({
   const supportType = params.supportType || ''
   const source = params.source || ''
 
-  // 쿼리 빌드
+  // 쿼리 빌드 - eligibility_criteria, created_at 포함
   let query = supabase
     .from('announcements')
-    .select('*', { count: 'exact' })
+    .select('id, title, organization, category, support_type, support_amount, application_start, application_end, source, status, created_at, eligibility_criteria', { count: 'exact' })
     .eq('status', 'active')
 
   // 검색어 필터
