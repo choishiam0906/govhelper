@@ -533,7 +533,7 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 |------|------|------|------|
 | 9 | 저장된 공고 페이지 | 관심 등록한 공고 모아보기, 폴더/태그 분류, 메모, 알림 설정 | ✅ 완료 |
 | 10 | 공고 알림 푸시 (Web Push) | 마감 임박 공고 브라우저 푸시 알림 (3일/7일 전) | ✅ 완료 |
-| 11 | 지원서 템플릿 | 자주 쓰는 지원서 양식 저장/재사용 | ⏳ 대기 |
+| 11 | 지원서 템플릿 | 자주 쓰는 지원서 양식 저장/재사용 | ✅ 완료 |
 | 12 | 공고 변경 알림 | 공고 내용 변경 시 알림 (금액, 마감일 등) | ⏳ 대기 |
 | 13 | 대시보드 위젯 커스터마이징 | 사용자가 원하는 위젯 배치 | ⏳ 대기 |
 
@@ -556,6 +556,17 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 **설정 완료 (2026-01-25):**
 - [x] Supabase 마이그레이션 실행: `021_push_subscriptions.sql`
 - [x] VAPID 키 생성 및 환경변수 설정 (Vercel Production)
+
+**구현 내용 (Task 11):**
+- `supabase/migrations/022_application_templates.sql` - 템플릿 테이블, RLS
+- `app/api/templates/route.ts` - 템플릿 목록/생성 API
+- `app/api/templates/[id]/route.ts` - 템플릿 상세/수정/삭제 API
+- `app/(dashboard)/dashboard/templates/page.tsx` - 템플릿 관리 페이지
+- `app/(dashboard)/dashboard/applications/[id]/application-editor.tsx` - "템플릿으로 저장" 기능
+- `components/dashboard/nav.tsx` - 템플릿 메뉴 추가
+
+**설정 완료 (2026-01-25):**
+- [x] Supabase 마이그레이션 실행: `022_application_templates.sql`
 
 ---
 
