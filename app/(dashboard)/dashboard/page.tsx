@@ -3,6 +3,7 @@ import { getDashboardStats, getRecentAnnouncements, PLAN_INFO, PlanType } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import {
   Search,
@@ -14,7 +15,14 @@ import {
   CheckCircle,
   Crown,
   Building2,
+  AlertTriangle,
+  Bell,
+  Sparkles,
+  Calendar,
+  Edit,
+  ExternalLink,
 } from "lucide-react"
+import { RecommendedAnnouncements } from "@/components/recommendations/recommended-announcements"
 
 // 출처 라벨
 const sourceLabels: Record<string, string> = {
@@ -40,6 +48,20 @@ function getDaysLeft(endDate: string | null) {
   return diff
 }
 
+function getDeadlineColor(daysLeft: number | null) {
+  if (daysLeft === null) return 'text-muted-foreground'
+  if (daysLeft <= 3) return 'text-red-600'
+  if (daysLeft <= 7) return 'text-orange-500'
+  return 'text-muted-foreground'
+}
+
+function getDeadlineBadgeVariant(daysLeft: number | null): 'destructive' | 'secondary' | 'outline' {
+  if (daysLeft === null) return 'outline'
+  if (daysLeft <= 3) return 'destructive'
+  if (daysLeft <= 7) return 'secondary'
+  return 'outline'
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -53,11 +75,65 @@ export default async function DashboardPage() {
 
   const company = companyData as { id: string; name: string } | null
 
+  // 오늘 날짜 (마감 7일 이내 필터링용)
+  const today = new Date()
+  const sevenDaysLater = new Date(today)
+  sevenDaysLater.setDate(today.getDate() + 7)
+
   // 대시보드 통계 및 최근 공고 조회
-  const [stats, recentAnnouncements] = await Promise.all([
+  const [stats, recentAnnouncements, urgentSavedResult, inProgressAppsResult] = await Promise.all([
     company ? getDashboardStats(supabase, user!.id, company.id) : null,
     getRecentAnnouncements(supabase, 5),
+    // 마감 임박 저장 공고 (7일 이내)
+    supabase
+      .from('saved_announcements')
+      .select(`
+        id,
+        announcements (
+          id,
+          title,
+          organization,
+          application_end,
+          source
+        )
+      `)
+      .eq('user_id', user!.id)
+      .gte('announcements.application_end', today.toISOString().split('T')[0])
+      .lte('announcements.application_end', sevenDaysLater.toISOString().split('T')[0])
+      .order('announcements(application_end)', { ascending: true })
+      .limit(5),
+    // 진행 중인 지원서
+    supabase
+      .from('applications')
+      .select(`
+        id,
+        status,
+        created_at,
+        updated_at,
+        announcements (
+          id,
+          title,
+          organization,
+          application_end
+        )
+      `)
+      .eq('user_id', user!.id)
+      .eq('status', 'draft')
+      .order('updated_at', { ascending: false })
+      .limit(5),
   ])
+
+  // 마감 임박 공고 필터링 (유효한 데이터만)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const urgentSaved = (urgentSavedResult.data as any[] || []).filter(
+    (item) => item.announcements && item.announcements.id
+  )
+
+  // 진행 중인 지원서 필터링
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inProgressApps = (inProgressAppsResult.data as any[] || []).filter(
+    (item) => item.announcements && item.announcements.id
+  )
 
   // 현재 플랜 정보
   const currentPlan = (stats?.subscription?.plan as PlanType) || 'free'
@@ -183,6 +259,155 @@ export default async function DashboardPage() {
               </CardDescription>
             </CardHeader>
           </Link>
+        </Card>
+      </div>
+
+      {/* 맞춤 추천 공고 (Pro/Premium 전용) */}
+      <RecommendedAnnouncements />
+
+      {/* 알림 및 진행 현황 */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* 마감 임박 알림 위젯 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <CardTitle className="text-lg">마감 임박 공고</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/saved" className="gap-1">
+                전체 보기
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {urgentSaved.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">마감 임박 공고가 없어요</p>
+                <p className="text-xs mt-1">관심 공고를 저장하면 마감일이 다가올 때 알려드려요</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {urgentSaved.map((item: { id: string; announcements: { id: string; title: string; organization: string | null; application_end: string | null; source: string } }) => {
+                  const announcement = item.announcements
+                  const daysLeft = getDaysLeft(announcement.application_end)
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/dashboard/announcements/${announcement.id}`}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 pr-3">
+                        <p className="font-medium text-sm truncate">{announcement.title}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          {announcement.organization && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              <span className="truncate max-w-[100px]">{announcement.organization}</span>
+                            </span>
+                          )}
+                          <Badge variant="outline" className="text-xs px-1.5 py-0">
+                            {sourceLabels[announcement.source] || announcement.source}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Badge
+                        variant={getDeadlineBadgeVariant(daysLeft)}
+                        className="shrink-0"
+                      >
+                        {daysLeft !== null && daysLeft >= 0 ? (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            D-{daysLeft}
+                          </span>
+                        ) : (
+                          '마감됨'
+                        )}
+                      </Badge>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 진행중 지원서 현황 위젯 */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-lg">작성 중인 지원서</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/applications" className="gap-1">
+                전체 보기
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {inProgressApps.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">작성 중인 지원서가 없어요</p>
+                <p className="text-xs mt-1">AI가 지원서 초안을 작성해 드려요</p>
+                <Button variant="outline" size="sm" asChild className="mt-3">
+                  <Link href="/dashboard/applications">새 지원서 작성</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {inProgressApps.map((app: { id: string; status: string; updated_at: string; announcements: { id: string; title: string; organization: string | null; application_end: string | null } }) => {
+                  const announcement = app.announcements
+                  const daysLeft = getDaysLeft(announcement.application_end)
+                  const updatedAt = new Date(app.updated_at)
+                  const daysSinceUpdate = Math.floor(
+                    (new Date().getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)
+                  )
+
+                  return (
+                    <Link
+                      key={app.id}
+                      href={`/dashboard/applications/${app.id}`}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 pr-3">
+                        <p className="font-medium text-sm truncate">{announcement.title}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          {announcement.organization && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              <span className="truncate max-w-[100px]">{announcement.organization}</span>
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {daysSinceUpdate === 0
+                              ? '오늘 수정'
+                              : daysSinceUpdate === 1
+                              ? '어제 수정'
+                              : `${daysSinceUpdate}일 전 수정`}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {daysLeft !== null && daysLeft >= 0 && daysLeft <= 7 && (
+                          <Badge variant={getDeadlineBadgeVariant(daysLeft)} className="text-xs">
+                            D-{daysLeft}
+                          </Badge>
+                        )}
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
         </Card>
       </div>
 
