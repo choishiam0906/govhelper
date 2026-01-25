@@ -499,12 +499,18 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 | 2 | 공고 상세 페이지 개선 | 탭 구성, 자격요건 시각화, 관련 공고 추천 | ✅ 완료 |
 | 3 | 대시보드 홈 개선 | 맞춤 공고 위젯, 마감 임박 알림, 진행중 지원서 현황 | ✅ 완료 |
 
-### Phase 2: AI 매칭 알고리즘 개선 (진행중)
+### Phase 2: AI 매칭 알고리즘 개선 (완료)
 | 번호 | 작업 | 설명 | 상태 |
 |------|------|------|------|
-| 4 | 매칭 점수 세분화 | 자격조건별 점수 breakdown 표시 | ⏳ 대기 |
-| 5 | 매칭 이유 시각화 | 왜 이 공고가 맞는지 그래프/차트로 표시 | ⏳ 대기 |
-| 6 | 부적합 사유 명시 | 어떤 조건이 안 맞는지 구체적으로 표시 | ⏳ 대기 |
+| 4 | 매칭 점수 세분화 | 자격조건별 점수 breakdown 표시 | ✅ 완료 |
+| 5 | 매칭 이유 시각화 | 왜 이 공고가 맞는지 그래프/차트로 표시 | ✅ 완료 |
+| 6 | 부적합 사유 명시 | 어떤 조건이 안 맞는지 구체적으로 표시 | ✅ 완료 |
+
+**구현 내용:**
+- `components/matching/score-radar-chart.tsx` - 레이더 차트로 5가지 점수 시각화
+- `components/matching/score-breakdown.tsx` - 각 항목별 상세 점수와 이유 표시
+- `components/matching/eligibility-card.tsx` - 자격 충족도 진행 바, 부적합 사유 상세 표시
+- `types/index.ts` - MatchAnalysis에 scoreDetails 필드 추가
 
 ### Phase 3: 데이터 및 기능 확장
 | 번호 | 작업 | 설명 | 상태 |
