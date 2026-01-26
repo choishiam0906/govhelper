@@ -39,8 +39,17 @@ export async function uploadCompanyDocument(
       return { success: false, error: '파일 크기는 250MB 이하여야 해요' }
     }
 
+    // 파일명 정규화 (한글 등 특수문자 제거)
+    const sanitizedFileName = file.name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // 악센트 제거
+      .replace(/[^\x00-\x7F]/g, '') // 비ASCII 문자 제거 (한글 등)
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // 특수문자를 _로 대체
+      .replace(/_+/g, '_') // 연속 _ 제거
+      || 'document.pdf' // 파일명이 비어있으면 기본값
+
     // Storage에 업로드
-    const fileName = `${userId}/${companyId}/${Date.now()}_${file.name}`
+    const fileName = `${userId}/${companyId}/${Date.now()}_${sanitizedFileName}`
     const { error: uploadError } = await supabase.storage
       .from('company-documents')
       .upload(fileName, file)
