@@ -47,7 +47,7 @@ export async function uploadCompanyDocument(
 
     if (uploadError) {
       console.error('Storage 업로드 실패:', uploadError)
-      return { success: false, error: '파일 업로드에 실패했어요' }
+      return { success: false, error: `파일 업로드 실패: ${uploadError.message}` }
     }
 
     // 문서 레코드 생성
