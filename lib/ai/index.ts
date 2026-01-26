@@ -174,7 +174,8 @@ export async function* streamApplicationSection(
   section: string,
   announcementContent: string,
   companyProfile: string,
-  businessPlan: string
+  businessPlan: string,
+  companyContext?: string
 ): AsyncGenerator<string, void, unknown> {
   ensureGroqAvailable('streamApplicationSection')
   logProvider('streamApplicationSection', 'groq')
@@ -183,7 +184,7 @@ export async function* streamApplicationSection(
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      yield* streamApplicationSectionWithGroq(section, announcementContent, companyProfile, businessPlan)
+      yield* streamApplicationSectionWithGroq(section, announcementContent, companyProfile, businessPlan, companyContext)
       return
     } catch (error) {
       lastError = error as Error

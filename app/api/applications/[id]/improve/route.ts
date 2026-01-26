@@ -9,6 +9,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
+import { getCompanyContextForApplication, hasCompanyDocuments } from '@/lib/company-documents/rag'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -79,10 +80,38 @@ export async function POST(
       )
     }
 
-    // AI로 섹션 개선
+    // 기업 정보 조회 (RAG 컨텍스트용)
+    const { data: companyResult } = await supabase
+      .from('companies')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const companyData = companyResult as { id: string } | null
+
+    // RAG 컨텍스트 조회
+    let companyContext = ''
+    if (companyData?.id) {
+      try {
+        const hasDocuments = await hasCompanyDocuments(supabase, companyData.id)
+        if (hasDocuments) {
+          // 현재 섹션 이름 가져오기
+          const contentJson = JSON.parse(application.content || '{}')
+          const sectionName = contentJson.sections?.[validatedData.sectionIndex]?.section || ''
+          companyContext = await getCompanyContextForApplication(supabase, companyData.id, sectionName)
+          console.log('[Improve] RAG context retrieved:', companyContext.length, 'chars')
+        }
+      } catch (ragError) {
+        console.error('[Improve] RAG context error (continuing without):', ragError)
+      }
+    }
+
+    // AI로 섹션 개선 (RAG 컨텍스트 포함)
     const improvedContent = await improveApplicationSection(
       validatedData.currentContent,
-      validatedData.feedback
+      validatedData.feedback,
+      companyContext || undefined
     )
 
     // 지원서 내용 업데이트

@@ -192,9 +192,18 @@ export async function* streamApplicationSectionWithGroq(
   section: string,
   announcementContent: string,
   companyProfile: string,
-  businessPlan: string
+  businessPlan: string,
+  companyContext?: string
 ): AsyncGenerator<string, void, unknown> {
-  const prompt = APPLICATION_SECTION_PROMPT(section, announcementContent, companyProfile, businessPlan)
+  // RAG 컨텍스트가 있으면 companyProfile에 추가
+  const enrichedCompanyProfile = companyContext
+    ? `${companyProfile}
+
+## 사업계획서 참고 자료 (RAG)
+${companyContext}`
+    : companyProfile
+
+  const prompt = APPLICATION_SECTION_PROMPT(section, announcementContent, enrichedCompanyProfile, businessPlan)
 
   try {
     const stream = await groq.chat.completions.create({

@@ -107,18 +107,26 @@ ${sectionPrompts[section] || '해당 섹션의 내용을 작성해주세요.'}
 
 export async function improveApplicationSection(
   currentContent: string,
-  feedback: string
+  feedback: string,
+  companyContext?: string
 ): Promise<string> {
   const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
+
+  const contextSection = companyContext
+    ? `
+## 기업 관련 참고 자료
+${companyContext}
+`
+    : ''
 
   const prompt = `
 현재 지원서 내용:
 ${currentContent}
-
+${contextSection}
 수정 요청:
 ${feedback}
 
-위 피드백을 반영하여 내용을 개선해주세요. 개선된 내용만 출력하세요.
+위 피드백을 반영하여 내용을 개선해주세요. ${companyContext ? '필요한 경우 기업 관련 참고 자료를 활용하세요. ' : ''}개선된 내용만 출력하세요.
 `
 
   try {

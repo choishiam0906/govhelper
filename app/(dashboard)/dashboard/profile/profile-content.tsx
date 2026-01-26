@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Building2, Mail, Calendar, Pencil } from 'lucide-react'
 import { NotificationSettings } from '@/components/notifications/notification-settings'
+import { BusinessPlanUpload } from '@/components/company/business-plan-upload'
 
 interface Company {
   id: string
@@ -25,9 +26,20 @@ interface Company {
   updated_at: string
 }
 
+interface Document {
+  id: string
+  file_name: string
+  file_size: number
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  error_message?: string
+  page_count?: number
+  created_at: string
+}
+
 interface ProfileContentProps {
   user: User
   company: Company | null
+  documents?: Document[]
 }
 
 // 인증 라벨
@@ -75,7 +87,7 @@ const locationLabels: Record<string, string> = {
   jeju: '제주',
 }
 
-export function ProfileContent({ user, company }: ProfileContentProps) {
+export function ProfileContent({ user, company, documents = [] }: ProfileContentProps) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
 
@@ -254,6 +266,12 @@ export function ProfileContent({ user, company }: ProfileContentProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* 사업계획서 업로드 */}
+      <BusinessPlanUpload
+        documents={documents}
+        onUploadComplete={() => router.refresh()}
+      />
 
       {/* 알림 설정 */}
       <NotificationSettings userEmail={user.email || ''} />

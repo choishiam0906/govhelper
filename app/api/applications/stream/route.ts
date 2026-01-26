@@ -10,6 +10,7 @@ import {
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
 import { z } from 'zod'
+import { getCompanyContextForApplication, hasCompanyDocuments } from '@/lib/company-documents/rag'
 
 // 요청 스키마
 const createApplicationSchema = z.object({
@@ -165,6 +166,23 @@ export async function POST(request: NextRequest) {
     const businessPlan = businessPlanData as { parsed_content: string | null; content: string | null } | null
     const businessPlanContent = businessPlan?.parsed_content || businessPlan?.content || '사업계획서 정보 없음'
 
+    // RAG 컨텍스트 조회 (PDF 사업계획서 기반)
+    let companyDocContext = ''
+    try {
+      const hasDocuments = await hasCompanyDocuments(supabase, company.id)
+      if (hasDocuments) {
+        // 공고 정보를 기반으로 관련 컨텍스트 조회
+        companyDocContext = await getCompanyContextForApplication(
+          supabase,
+          company.id,
+          announcement.title
+        )
+        console.log('[Application Stream] RAG context retrieved:', companyDocContext.length, 'chars')
+      }
+    } catch (ragError) {
+      console.error('[Application Stream] RAG context error (continuing without):', ragError)
+    }
+
     // 스트리밍 응답 생성
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
@@ -194,12 +212,13 @@ export async function POST(request: NextRequest) {
             })
             controller.enqueue(encoder.encode(`data: ${sectionStartData}\n\n`))
 
-            // 섹션 스트리밍 생성
+            // 섹션 스트리밍 생성 (RAG 컨텍스트 포함)
             for await (const chunk of streamApplicationSection(
               sectionName,
               announcementContent,
               companyProfile,
-              businessPlanContent
+              businessPlanContent,
+              companyDocContext || undefined
             )) {
               sectionContent += chunk
 

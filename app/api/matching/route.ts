@@ -4,6 +4,7 @@ import { analyzeMatch } from '@/lib/ai'
 import { Tables, InsertTables, Json } from '@/types/database'
 import { withRateLimit } from '@/lib/api-utils'
 import { getMatchingCache, setMatchingCache } from '@/lib/cache'
+import { getCompanyContextForMatching, hasCompanyDocuments } from '@/lib/company-documents/rag'
 
 async function handlePost(request: NextRequest) {
   try {
@@ -119,6 +120,23 @@ async function handlePost(request: NextRequest) {
 내용: ${announcement.content || announcement.parsed_content || ''}
     `.trim()
 
+    // 사업계획서 RAG 컨텍스트 조회
+    let companyDocumentContext = ''
+    try {
+      const hasDocuments = await hasCompanyDocuments(supabase, companyId)
+      if (hasDocuments) {
+        companyDocumentContext = await getCompanyContextForMatching(
+          supabase,
+          companyId,
+          announcement.title,
+          announcement.content || announcement.parsed_content || ''
+        )
+        console.log('[Matching] RAG context retrieved:', companyDocumentContext.length, 'chars')
+      }
+    } catch (ragError) {
+      console.error('[Matching] RAG context error (continuing without):', ragError)
+    }
+
     const companyProfile = `
 회사명: ${company.name}
 업종: ${company.industry}
@@ -128,6 +146,7 @@ async function handlePost(request: NextRequest) {
 연매출: ${company.annual_revenue}
 인증현황: ${company.certifications?.join(', ') || '없음'}
 회사 소개: ${company.description || ''}
+${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
     `.trim()
 
     const businessPlanContent = businessPlan
