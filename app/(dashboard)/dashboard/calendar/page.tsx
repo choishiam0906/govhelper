@@ -93,11 +93,13 @@ export default async function CalendarPage({
     isSaved: savedItems.some((s: any) => s.id === item.id),
   }))
 
-  // 날짜별로 그룹화
+  // 날짜별로 그룹화 (시간대 고려하여 정확한 날짜 추출)
   const eventsByDate: Record<string, typeof allItems> = {}
   allItems.forEach(item => {
     if (item.application_end) {
-      const dateKey = item.application_end.split('T')[0]
+      // 날짜 문자열에서 YYYY-MM-DD 형식으로 정규화
+      // "2026-01-27", "2026-01-27T00:00:00", "2026-01-27T00:00:00+09:00" 모두 처리
+      const dateKey = item.application_end.substring(0, 10)
       if (!eventsByDate[dateKey]) {
         eventsByDate[dateKey] = []
       }

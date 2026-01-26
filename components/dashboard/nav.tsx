@@ -94,14 +94,14 @@ export function DashboardNav({ userEmail }: DashboardNavProps) {
   const isAdmin = userEmail && ADMIN_EMAILS.includes(userEmail)
 
   return (
-    <nav className="hidden lg:flex flex-col w-64 border-r bg-card min-h-[calc(100vh-64px)] p-4">
+    <nav className="hidden lg:flex flex-col w-64 min-w-[256px] flex-shrink-0 border-r bg-card min-h-[calc(100vh-64px)] p-4">
       <div className="space-y-1">
         {navItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors whitespace-nowrap",
               pathname === item.href
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -119,7 +119,7 @@ export function DashboardNav({ userEmail }: DashboardNavProps) {
             <Link
               href="/admin/payments"
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors whitespace-nowrap",
                 pathname === "/admin/payments"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
