@@ -61,7 +61,7 @@ export default async function DashboardLayout({
       <DashboardHeader user={user} />
       <div className="flex">
         <DashboardNav userEmail={user.email} />
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 min-w-0 p-6 lg:p-8 overflow-x-auto">
           {children}
         </main>
       </div>

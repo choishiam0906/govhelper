@@ -96,19 +96,7 @@ export default async function CalendarPage({
     isSaved: savedItems.some((s: any) => s.id === item.id),
   }))
 
-  // 날짜별로 그룹화 (시간대 고려하여 정확한 날짜 추출)
-  const eventsByDate: Record<string, typeof allItems> = {}
-  allItems.forEach(item => {
-    if (item.application_end) {
-      // 날짜 문자열에서 YYYY-MM-DD 형식으로 정규화
-      // "2026-01-27", "2026-01-27T00:00:00", "2026-01-27T00:00:00+09:00" 모두 처리
-      const dateKey = item.application_end.substring(0, 10)
-      if (!eventsByDate[dateKey]) {
-        eventsByDate[dateKey] = []
-      }
-      eventsByDate[dateKey].push(item)
-    }
-  })
+  // 날짜별 그룹화는 클라이언트 컴포넌트에서 수행 (서버→클라이언트 직렬화 이슈 방지)
 
   // 이전/다음 월 계산
   const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
@@ -216,12 +204,12 @@ export default async function CalendarPage({
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <CalendarView
             key={`calendar-${currentYear}-${currentMonth}`}
             year={currentYear}
             month={currentMonth}
-            eventsByDate={eventsByDate}
+            items={allItems}
           />
         </CardContent>
       </Card>

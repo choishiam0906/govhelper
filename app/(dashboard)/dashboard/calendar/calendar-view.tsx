@@ -27,7 +27,7 @@ interface Announcement {
 interface CalendarViewProps {
   year: number
   month: number
-  eventsByDate: Record<string, Announcement[]>
+  items: Announcement[]
 }
 
 // 출처 라벨
@@ -46,9 +46,21 @@ const sourceColors: Record<string, string> = {
   g2b: 'bg-orange-500',
 }
 
-export function CalendarView({ year, month, eventsByDate }: CalendarViewProps) {
+export function CalendarView({ year, month, items }: CalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  // 클라이언트에서 날짜별로 그룹화
+  const eventsByDate: Record<string, Announcement[]> = {}
+  items.forEach(item => {
+    if (item.application_end) {
+      const dateKey = item.application_end.substring(0, 10)
+      if (!eventsByDate[dateKey]) {
+        eventsByDate[dateKey] = []
+      }
+      eventsByDate[dateKey].push(item)
+    }
+  })
 
   // 해당 월의 첫째 날과 마지막 날
   const firstDay = new Date(year, month - 1, 1)
@@ -87,7 +99,7 @@ export function CalendarView({ year, month, eventsByDate }: CalendarViewProps) {
 
   return (
     <>
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border rounded-lg overflow-hidden min-w-[600px]">
         {/* 요일 헤더 */}
         <div className="grid grid-cols-7 bg-muted">
           {weekdays.map((day, index) => (
