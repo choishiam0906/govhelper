@@ -107,6 +107,8 @@ ${businessPlan}
 **주의사항**:
 - 자격 미달(isEligible: false)인 경우에도 참고용으로 점수를 부여하되, overallScore는 0으로 설정
 - failedReasons는 isEligible이 false일 때만 내용을 채움
+- **중요**: "사업계획서가 없음", "사업계획서 부재", "사업계획서를 작성해야 함" 등의 내용을 weaknesses나 recommendations에 절대 포함하지 마세요. 이 서비스는 사업계획서 작성을 도와주는 서비스이므로 사업계획서 관련 피드백은 불필요합니다.
+- weaknesses와 recommendations는 기업의 실질적인 자격 조건, 기술력, 시장성, 사업화 역량에 대한 피드백만 포함하세요.
 - JSON만 응답하세요
 `
 
