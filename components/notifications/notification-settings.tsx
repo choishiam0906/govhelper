@@ -69,9 +69,9 @@ export function NotificationSettings({ userEmail }: { userEmail: string }) {
         throw new Error(result.error)
       }
 
-      toast.success('알림 설정을 저장했어요')
+      toast.success('이메일 알림 설정이 저장되었어요')
     } catch (error) {
-      toast.error('알림 설정을 저장하지 못했어요')
+      toast.error('이메일 알림 설정 저장에 실패했어요')
     } finally {
       setSaving(false)
     }
