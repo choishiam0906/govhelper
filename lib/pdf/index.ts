@@ -22,20 +22,14 @@ export interface PDFExtractResult {
 export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
   try {
     // unpdf 모듈 동적 import (ESM 모듈)
-    const { extractText, getDocumentProxy } = await import('unpdf')
+    const { extractText } = await import('unpdf')
 
-    // ArrayBuffer로 변환
-    const arrayBuffer = buffer.buffer.slice(
-      buffer.byteOffset,
-      buffer.byteOffset + buffer.byteLength
-    )
-
-    // PDF 문서 프록시 가져오기 (메타데이터용)
-    const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
-    const numPages = pdf.numPages
+    // Buffer를 새로운 Uint8Array로 복사 (detached ArrayBuffer 방지)
+    const uint8Array = Uint8Array.from(buffer)
 
     // 텍스트 추출
-    const { text } = await extractText(new Uint8Array(arrayBuffer), { mergePages: true })
+    const { text, totalPages } = await extractText(uint8Array, { mergePages: true })
+    const numPages = totalPages
 
     return {
       success: true,
