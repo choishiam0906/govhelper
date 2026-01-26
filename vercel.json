@@ -44,6 +44,9 @@
     },
     "app/api/notifications/send-changes/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/announcements/parse-attachments/route.ts": {
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -90,6 +93,14 @@
     {
       "path": "/api/announcements/scrape-attachments",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/announcements/parse-attachments",
+      "schedule": "15 5 * * *"
+    },
+    {
+      "path": "/api/announcements/parse-attachments",
+      "schedule": "15 17 * * *"
     },
     {
       "path": "/api/announcements/parse-eligibility",
