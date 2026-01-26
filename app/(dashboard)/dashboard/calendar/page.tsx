@@ -15,6 +15,9 @@ import {
 } from 'lucide-react'
 import { CalendarView } from './calendar-view'
 
+// 동적 렌더링 강제 (캐싱 비활성화)
+export const dynamic = 'force-dynamic'
+
 // 출처 라벨
 const sourceLabels: Record<string, string> = {
   bizinfo: '기업마당',
@@ -215,6 +218,7 @@ export default async function CalendarPage({
         </CardHeader>
         <CardContent>
           <CalendarView
+            key={`calendar-${currentYear}-${currentMonth}`}
             year={currentYear}
             month={currentMonth}
             eventsByDate={eventsByDate}
