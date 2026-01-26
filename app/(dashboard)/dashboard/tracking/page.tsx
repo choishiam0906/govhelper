@@ -15,6 +15,8 @@ import {
   Trash2,
   Edit,
   ChevronRight,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,54 +46,21 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-
-// 상태 타입
-type ApplicationStatus =
-  | 'interested'
-  | 'preparing'
-  | 'submitted'
-  | 'under_review'
-  | 'passed_initial'
-  | 'passed_final'
-  | 'rejected'
-  | 'cancelled'
-
-// 상태 정보
-const STATUS_INFO: Record<ApplicationStatus, { label: string; color: string; description: string }> = {
-  interested: { label: '관심', color: 'bg-gray-500', description: '관심 등록한 공고' },
-  preparing: { label: '준비 중', color: 'bg-blue-500', description: '지원 준비 중' },
-  submitted: { label: '지원 완료', color: 'bg-indigo-500', description: '지원서 제출 완료' },
-  under_review: { label: '심사 중', color: 'bg-yellow-500', description: '심사 진행 중' },
-  passed_initial: { label: '1차 합격', color: 'bg-emerald-500', description: '1차 심사 통과' },
-  passed_final: { label: '최종 합격', color: 'bg-green-500', description: '최종 선정' },
-  rejected: { label: '탈락', color: 'bg-red-500', description: '선정 탈락' },
-  cancelled: { label: '취소', color: 'bg-gray-400', description: '지원 취소' },
-}
-
-// 추적 레코드 타입
-interface TrackingRecord {
-  id: string
-  status: ApplicationStatus
-  memo: string | null
-  created_at: string
-  updated_at: string
-  status_updated_at: string
-  announcements: {
-    id: string
-    title: string
-    organization: string
-    application_start: string | null
-    application_end: string | null
-    support_amount: string | null
-  }
-}
+import { TrackingKanban } from '@/components/tracking/tracking-kanban'
+import {
+  ApplicationStatus,
+  TrackingRecord,
+  STATUS_INFO,
+} from '@/components/tracking/types'
 
 export default function TrackingPage() {
   const [records, setRecords] = useState<TrackingRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban')
 
   // 편집 다이얼로그
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -220,12 +189,27 @@ export default function TrackingPage() {
             지원한 공고의 진행 상태를 추적하고 관리해요
           </p>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/announcements">
-            <Plus className="h-4 w-4 mr-2" />
-            공고 찾기
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* 뷰 모드 토글 */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'kanban')}>
+            <TabsList>
+              <TabsTrigger value="kanban" className="gap-1.5">
+                <LayoutGrid className="h-4 w-4" />
+                칸반
+              </TabsTrigger>
+              <TabsTrigger value="list" className="gap-1.5">
+                <List className="h-4 w-4" />
+                목록
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button asChild>
+            <Link href="/dashboard/announcements">
+              <Plus className="h-4 w-4 mr-2" />
+              공고 찾기
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* 상태 요약 카드 */}
@@ -277,7 +261,7 @@ export default function TrackingPage() {
         </Select>
       </div>
 
-      {/* 이력 목록 */}
+      {/* 이력 목록/칸반 */}
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -289,6 +273,22 @@ export default function TrackingPage() {
             </Card>
           ))}
         </div>
+      ) : viewMode === 'kanban' ? (
+        /* 칸반 보드 뷰 */
+        <TrackingKanban
+          records={filteredRecords}
+          onRecordsChange={fetchRecords}
+          onEditRecord={(record) => {
+            setEditingRecord(record)
+            setEditStatus(record.status)
+            setEditMemo(record.memo || '')
+            setEditDialogOpen(true)
+          }}
+          onDeleteRecord={(record) => {
+            setDeletingRecord(record)
+            setDeleteDialogOpen(true)
+          }}
+        />
       ) : filteredRecords.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">

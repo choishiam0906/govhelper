@@ -429,3 +429,138 @@ ${userMessage}
 
 친절하고 명확하게 답변해주세요.
 `
+
+// ============================================
+// 평가기준 추출 프롬프트
+// ============================================
+
+export const EVALUATION_EXTRACTION_SYSTEM = `당신은 정부지원사업 평가기준 분석 전문가입니다.`
+
+export const EVALUATION_EXTRACTION_PROMPT = (
+  announcementTitle: string,
+  announcementContent: string
+) => `
+${EVALUATION_EXTRACTION_SYSTEM} 아래 공고 내용에서 **평가기준(심사기준)**을 추출해주세요.
+
+## 공고 제목
+${announcementTitle}
+
+## 공고 내용 (본문 + 첨부파일 텍스트)
+${announcementContent}
+
+---
+
+# 추출 지침
+
+1. **평가항목 식별**: 서류심사, 발표심사 등의 평가항목과 배점을 찾아주세요.
+2. **배점 추출**: 각 항목별 배점(점수)을 정확히 추출하세요.
+3. **가점/감점**: 가점 항목(벤처인증, 여성기업 등)과 감점 항목을 찾아주세요.
+4. **합격기준**: 합격 기준점(예: 70점 이상)이 있다면 추출하세요.
+
+**일반적인 정부지원사업 평가 분류:**
+- 기술성/기술개발역량 (기술의 혁신성, 차별성, 개발계획 적정성)
+- 사업성/사업화역량 (사업화 전략, 시장 분석, 수익 모델)
+- 시장성 (시장 규모, 성장성, 경쟁력)
+- 정책부합도/공고부합도 (사업 목적 부합성)
+- 대표자/팀 역량 (경험, 전문성)
+
+---
+
+# 응답 형식 (JSON만 반환)
+
+{
+  "found": true,
+  "totalScore": 100,
+  "passingScore": 70,
+  "items": [
+    {
+      "category": "기술성",
+      "name": "기술개발 계획의 적정성",
+      "description": "기술개발 목표, 내용, 방법의 구체성 및 적정성",
+      "maxScore": 30,
+      "subItems": [
+        {
+          "name": "개발 목표의 명확성",
+          "maxScore": 10,
+          "keywords": ["목표", "명확", "구체적"]
+        }
+      ]
+    }
+  ],
+  "bonusItems": [
+    {
+      "name": "벤처기업 인증",
+      "score": 3,
+      "condition": "벤처기업 인증서 보유",
+      "type": "bonus"
+    }
+  ],
+  "evaluationMethod": {
+    "type": "absolute",
+    "stages": 2,
+    "stageNames": ["서류심사", "발표심사"]
+  },
+  "confidence": 0.85
+}
+
+**주의사항:**
+- 평가기준을 찾을 수 없는 경우: { "found": false, "confidence": 0 }
+- 부분적으로만 있는 경우: 찾은 내용만 포함하고 confidence를 낮게 설정
+- JSON만 응답하세요. 설명이나 마크다운 없이 순수 JSON만 출력
+`
+
+// 평가기준 기반 매칭 점수 계산 프롬프트
+export const EVALUATION_BASED_MATCHING_PROMPT = (
+  evaluationCriteria: string,
+  companyProfile: string,
+  businessPlan: string
+) => `
+당신은 정부지원사업 평가위원입니다. 아래 평가기준에 따라 기업을 평가해주세요.
+
+## 평가기준
+${evaluationCriteria}
+
+## 기업 정보
+${companyProfile}
+
+## 사업계획 요약
+${businessPlan}
+
+---
+
+# 평가 지침
+
+각 평가항목에 대해:
+1. 기업 정보와 사업계획을 바탕으로 예상 점수 산정
+2. 점수 산정 근거 제시
+3. 개선 가능한 부분 제안
+
+# 응답 형식 (JSON만 반환)
+
+{
+  "totalEstimatedScore": 75,
+  "maxPossibleScore": 100,
+  "categories": [
+    {
+      "category": "기술성",
+      "maxScore": 30,
+      "estimatedScore": 22,
+      "percentage": 73,
+      "reasons": ["자체 기술 보유", "특허 2건 확보"],
+      "improvements": ["기술 차별성 강조 필요", "R&D 투자 계획 구체화"]
+    }
+  ],
+  "bonusApplied": [
+    {
+      "name": "벤처기업 인증",
+      "score": 3,
+      "applied": true
+    }
+  ],
+  "overallAssessment": "기술성은 우수하나 사업화 전략 보완 필요",
+  "keyStrengths": ["기술력", "팀 역량"],
+  "keyWeaknesses": ["시장 분석 부족"]
+}
+
+**주의**: JSON만 응답하세요.
+`

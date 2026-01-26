@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, LogOut, User as UserIcon, Settings, CreditCard } from "lucide-react"
 import { MobileNav } from "./mobile-nav"
 import { NotificationCenter } from "@/components/notifications/notification-center"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
 
 interface DashboardHeaderProps {
   user: User
@@ -59,6 +60,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
           <NotificationCenter />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

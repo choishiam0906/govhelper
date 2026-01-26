@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Bell, Mail, Loader2 } from 'lucide-react'
+import { Bell, Mail, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface NotificationPreferences {
@@ -15,6 +15,7 @@ interface NotificationPreferences {
   deadline_7_days: boolean
   deadline_3_days: boolean
   deadline_1_day: boolean
+  smart_recommendations: boolean
   notification_email: string
 }
 
@@ -26,6 +27,7 @@ export function NotificationSettings({ userEmail }: { userEmail: string }) {
     deadline_7_days: true,
     deadline_3_days: true,
     deadline_1_day: true,
+    smart_recommendations: true,
     notification_email: userEmail,
   })
 
@@ -44,6 +46,7 @@ export function NotificationSettings({ userEmail }: { userEmail: string }) {
           deadline_7_days: result.data.deadline_7_days ?? true,
           deadline_3_days: result.data.deadline_3_days ?? true,
           deadline_1_day: result.data.deadline_1_day ?? true,
+          smart_recommendations: result.data.smart_recommendations ?? true,
           notification_email: result.data.notification_email || userEmail,
         })
       }
@@ -145,9 +148,27 @@ export function NotificationSettings({ userEmail }: { userEmail: string }) {
               />
             </div>
 
+            {/* 스마트 추천 알림 */}
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="space-y-0.5">
+                <Label htmlFor="smart-recommendations" className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  스마트 추천 알림
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  새로운 맞춤 공고가 등록되면 알림을 받아요
+                </p>
+              </div>
+              <Switch
+                id="smart-recommendations"
+                checked={preferences.smart_recommendations}
+                onCheckedChange={() => handleToggle('smart_recommendations')}
+              />
+            </div>
+
             {/* 알림 타이밍 설정 */}
             <div className="space-y-4 pt-4 border-t">
-              <Label>알림 시점</Label>
+              <Label>마감 알림 시점</Label>
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">

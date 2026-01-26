@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Sparkles, Check, X, Edit2 } from 'lucide-react'
+import { SectionGuideButton } from './section-guide'
 
 interface SectionEditorProps {
   index: number
@@ -13,6 +14,12 @@ interface SectionEditorProps {
   onSave: (content: string) => void
   onImproveRequest: () => void
   isImproving?: boolean
+  announcementId?: string
+  companyInfo?: {
+    name?: string
+    industry?: string
+    description?: string
+  }
 }
 
 export function SectionEditor({
@@ -22,6 +29,8 @@ export function SectionEditor({
   onSave,
   onImproveRequest,
   isImproving = false,
+  announcementId,
+  companyInfo,
 }: SectionEditorProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(content)
@@ -64,6 +73,13 @@ export function SectionEditor({
             </>
           ) : (
             <>
+              {announcementId && (
+                <SectionGuideButton
+                  announcementId={announcementId}
+                  sectionName={title}
+                  companyInfo={companyInfo}
+                />
+              )}
               <Button
                 variant="ghost"
                 size="sm"

@@ -1,4 +1,5 @@
 export * from './database'
+export * from './evaluation'
 
 // Announcement types
 export interface Announcement {

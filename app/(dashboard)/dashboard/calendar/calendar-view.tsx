@@ -11,6 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Bookmark, Building2, Coins, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +34,7 @@ interface CalendarViewProps {
   year: number
   month: number
   items: Announcement[]
+  viewMode?: 'events' | 'heatmap'
 }
 
 // 출처 라벨
@@ -46,7 +53,21 @@ const sourceColors: Record<string, string> = {
   g2b: 'bg-orange-500',
 }
 
-export function CalendarView({ year, month, items }: CalendarViewProps) {
+// 히트맵 색상 (밀도에 따라)
+const heatmapColors = [
+  { min: 0, max: 0, bg: 'bg-transparent', label: '0건' },
+  { min: 1, max: 2, bg: 'bg-primary/20', label: '1-2건' },
+  { min: 3, max: 5, bg: 'bg-primary/40', label: '3-5건' },
+  { min: 6, max: 10, bg: 'bg-primary/60', label: '6-10건' },
+  { min: 11, max: Infinity, bg: 'bg-primary/80', label: '11건+' },
+]
+
+function getHeatmapColor(count: number): string {
+  const level = heatmapColors.find(l => count >= l.min && count <= l.max)
+  return level?.bg || 'bg-transparent'
+}
+
+export function CalendarView({ year, month, items, viewMode = 'events' }: CalendarViewProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -130,6 +151,51 @@ export function CalendarView({ year, month, items }: CalendarViewProps) {
             const isSunday = dayOfWeek === 0
             const isSaturday = dayOfWeek === 6
 
+            // 히트맵 모드
+            if (viewMode === 'heatmap') {
+              return (
+                <TooltipProvider key={day}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={cn(
+                          'min-h-[100px] border-t border-r p-1 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all',
+                          getHeatmapColor(events.length)
+                        )}
+                        onClick={() => handleDateClick(day)}
+                      >
+                        {/* 날짜 */}
+                        <div className={cn(
+                          'text-sm mb-1 w-6 h-6 flex items-center justify-center rounded-full',
+                          isToday && 'bg-primary text-primary-foreground font-bold',
+                          !isToday && isSunday && 'text-red-500',
+                          !isToday && isSaturday && 'text-blue-500'
+                        )}>
+                          {day}
+                        </div>
+
+                        {/* 공고 수 */}
+                        {events.length > 0 && (
+                          <div className="flex items-center justify-center h-16">
+                            <span className={cn(
+                              'text-2xl font-bold',
+                              events.length >= 11 ? 'text-primary-foreground' : 'text-primary'
+                            )}>
+                              {events.length}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{events.length}건 마감</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )
+            }
+
+            // 이벤트 모드 (기본)
             return (
               <div
                 key={day}
@@ -176,14 +242,25 @@ export function CalendarView({ year, month, items }: CalendarViewProps) {
       </div>
 
       {/* 범례 */}
-      <div className="flex flex-wrap gap-4 mt-4 justify-center">
-        {Object.entries(sourceLabels).map(([key, label]) => (
-          <div key={key} className="flex items-center gap-1.5 text-sm">
-            <div className={cn('w-3 h-3 rounded', sourceColors[key])} />
-            <span className="text-muted-foreground">{label}</span>
-          </div>
-        ))}
-      </div>
+      {viewMode === 'heatmap' ? (
+        <div className="flex flex-wrap gap-4 mt-4 justify-center">
+          {heatmapColors.map((level, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-sm">
+              <div className={cn('w-4 h-4 rounded border border-border', level.bg)} />
+              <span className="text-muted-foreground">{level.label}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-4 mt-4 justify-center">
+          {Object.entries(sourceLabels).map(([key, label]) => (
+            <div key={key} className="flex items-center gap-1.5 text-sm">
+              <div className={cn('w-3 h-3 rounded', sourceColors[key])} />
+              <span className="text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 날짜 상세 다이얼로그 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

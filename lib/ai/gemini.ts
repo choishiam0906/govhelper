@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { MatchAnalysis, EligibilityCriteria } from '@/types'
+import { MatchAnalysis, EligibilityCriteria, EvaluationCriteria, EvaluationExtractionResult } from '@/types'
 import {
   MATCHING_ANALYSIS_PROMPT,
   ELIGIBILITY_PARSING_PROMPT,
   APPLICATION_SECTION_PROMPT,
   SECTION_IMPROVEMENT_PROMPT,
+  EVALUATION_EXTRACTION_PROMPT,
 } from './prompts'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
@@ -240,6 +241,165 @@ export async function parseEligibilityCriteriaBatch(
       await new Promise(resolve => setTimeout(resolve, 500))
     } catch (error) {
       console.error(`Failed to parse eligibility for ${ann.id}:`, error)
+    }
+  }
+
+  return results
+}
+
+// 평가기준 추출 함수
+export async function extractEvaluationCriteria(
+  announcementTitle: string,
+  announcementContent: string
+): Promise<EvaluationExtractionResult> {
+  const model = genAI.getGenerativeModel({ model: MODEL_NAME })
+
+  const prompt = EVALUATION_EXTRACTION_PROMPT(announcementTitle, announcementContent)
+
+  try {
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      return {
+        success: false,
+        error: '평가기준을 추출할 수 없습니다.',
+        rawText: text.substring(0, 500)
+      }
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+
+    // found가 false인 경우
+    if (!parsed.found) {
+      return {
+        success: false,
+        error: '공고에서 평가기준 정보를 찾을 수 없습니다.',
+        rawText: parsed.rawText || null
+      }
+    }
+
+    // 평가기준 구조화
+    const criteria: EvaluationCriteria = {
+      totalScore: parsed.totalScore || 100,
+      passingScore: parsed.passingScore || null,
+      items: (parsed.items || []).map((item: {
+        category?: string
+        name?: string
+        description?: string
+        maxScore?: number
+        weight?: number
+        subItems?: Array<{
+          name?: string
+          description?: string
+          maxScore?: number
+          keywords?: string[]
+        }>
+      }) => ({
+        category: item.category || '기타',
+        name: item.name || '',
+        description: item.description || '',
+        maxScore: item.maxScore || 0,
+        weight: item.weight || null,
+        subItems: (item.subItems || []).map((sub: {
+          name?: string
+          description?: string
+          maxScore?: number
+          keywords?: string[]
+        }) => ({
+          name: sub.name || '',
+          description: sub.description || '',
+          maxScore: sub.maxScore || 0,
+          keywords: sub.keywords || []
+        }))
+      })),
+      bonusItems: (parsed.bonusItems || []).map((bonus: {
+        name?: string
+        score?: number
+        condition?: string
+        type?: 'bonus' | 'penalty'
+      }) => ({
+        name: bonus.name || '',
+        score: bonus.score || 0,
+        condition: bonus.condition || '',
+        type: bonus.type || 'bonus'
+      })),
+      evaluationMethod: parsed.evaluationMethod ? {
+        type: parsed.evaluationMethod.type || 'absolute',
+        stages: parsed.evaluationMethod.stages || null,
+        stageNames: parsed.evaluationMethod.stageNames || []
+      } : undefined,
+      extractedAt: new Date().toISOString(),
+      confidence: parsed.confidence || 0.5,
+      source: parsed.source || '본문'
+    }
+
+    // 요약 정보 생성
+    const summary = {
+      totalScore: criteria.totalScore,
+      categories: criteria.items.reduce((acc: { name: string; maxScore: number; percentage: number }[], item) => {
+        const existing = acc.find(c => c.name === item.category)
+        if (existing) {
+          existing.maxScore += item.maxScore
+          existing.percentage = Math.round((existing.maxScore / criteria.totalScore) * 100)
+        } else {
+          acc.push({
+            name: item.category,
+            maxScore: item.maxScore,
+            percentage: Math.round((item.maxScore / criteria.totalScore) * 100)
+          })
+        }
+        return acc
+      }, []),
+      hasBonusItems: (criteria.bonusItems?.length || 0) > 0,
+      passingScore: criteria.passingScore
+    }
+
+    return {
+      success: true,
+      criteria,
+      summary,
+      rawText: parsed.rawText || null
+    }
+  } catch (error) {
+    console.error('평가기준 추출 오류:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '평가기준 추출 중 오류가 발생했습니다.'
+    }
+  }
+}
+
+// 평가기준 배치 추출 함수
+export async function extractEvaluationCriteriaBatch(
+  announcements: Array<{
+    id: string
+    title: string
+    content: string | null
+  }>
+): Promise<Map<string, EvaluationExtractionResult>> {
+  const results = new Map<string, EvaluationExtractionResult>()
+
+  // 순차 처리 (Rate Limit 고려)
+  for (const ann of announcements) {
+    try {
+      const result = await extractEvaluationCriteria(
+        ann.title,
+        ann.content || ''
+      )
+      results.set(ann.id, result)
+
+      // Rate limiting: 요청 간 딜레이
+      await new Promise(resolve => setTimeout(resolve, 500))
+    } catch (error) {
+      console.error(`평가기준 추출 실패 (${ann.id}):`, error)
+      results.set(ann.id, {
+        success: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류'
+      })
     }
   }
 

@@ -17,12 +17,13 @@ import {
 } from "lucide-react";
 import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section";
 import { NewsletterForm } from "@/components/newsletter/newsletter-form";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background dark:from-background dark:to-muted/20">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -42,6 +43,7 @@ export default function Home() {
             </Link>
           </nav>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link href="/login">
               <Button variant="ghost" size="sm">로그인</Button>
             </Link>

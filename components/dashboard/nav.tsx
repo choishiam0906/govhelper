@@ -17,6 +17,7 @@ import {
   GitCompare,
   Bookmark,
   FolderOpen,
+  BarChart3,
 } from "lucide-react"
 
 const navItems = [
@@ -54,6 +55,11 @@ const navItems = [
     title: "공고 비교",
     href: "/dashboard/compare",
     icon: GitCompare,
+  },
+  {
+    title: "트렌드 분석",
+    href: "/dashboard/trends",
+    icon: BarChart3,
   },
   {
     title: "지원서 관리",

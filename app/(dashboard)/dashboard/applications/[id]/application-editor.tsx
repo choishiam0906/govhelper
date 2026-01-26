@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SectionEditor } from '@/components/applications/section-editor'
 import { AIImproveDialog } from '@/components/applications/ai-improve-dialog'
+import { ScorePanel } from '@/components/applications/score-panel'
+import { useApplicationScore } from '@/lib/hooks/use-application-score'
 import { ArrowLeft, Building2, Calendar, Save, Loader2, Trash2, CheckCircle, FolderPlus } from 'lucide-react'
 import {
   Dialog,
@@ -90,6 +92,25 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
   const [savingTemplate, setSavingTemplate] = useState(false)
 
   const announcement = application.matches?.announcements
+
+  // 실시간 점수 분석 훅
+  const {
+    score,
+    isLoading: scoreLoading,
+    analyzeScore,
+  } = useApplicationScore({ debounceMs: 3000, minContentLength: 100 })
+
+  // 섹션 내용 변경 시 점수 분석 트리거
+  const triggerScoreAnalysis = useCallback(() => {
+    if (announcement?.id && content.sections.length > 0) {
+      analyzeScore(announcement.id, content.sections)
+    }
+  }, [announcement?.id, content.sections, analyzeScore])
+
+  // 초기 로드 및 내용 변경 시 점수 분석
+  useEffect(() => {
+    triggerScoreAnalysis()
+  }, [triggerScoreAnalysis])
 
   const handleSectionSave = async (index: number, newContent: string) => {
     const updatedContent = { ...content }
@@ -307,30 +328,48 @@ export function ApplicationEditor({ application }: ApplicationEditorProps) {
         </CardContent>
       </Card>
 
-      {/* 섹션 에디터 */}
-      <div className="space-y-4">
-        {content.sections.map((section, index) => (
-          <SectionEditor
-            key={index}
-            index={index}
-            title={section.section}
-            content={section.content}
-            onSave={(newContent) => handleSectionSave(index, newContent)}
-            onImproveRequest={() => handleImproveRequest(index)}
-          />
-        ))}
-      </div>
+      {/* 2열 레이아웃: 에디터 + 점수 패널 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 섹션 에디터 (왼쪽 2열) */}
+        <div className="lg:col-span-2 space-y-4">
+          {content.sections.map((section, index) => (
+            <SectionEditor
+              key={index}
+              index={index}
+              title={section.section}
+              content={section.content}
+              onSave={(newContent) => handleSectionSave(index, newContent)}
+              onImproveRequest={() => handleImproveRequest(index)}
+              announcementId={announcement?.id}
+            />
+          ))}
 
-      {/* 하단 안내 */}
-      <Card className="bg-muted/30">
-        <CardContent className="py-4">
-          <div className="text-sm text-muted-foreground space-y-1">
-            <p>* 각 섹션의 편집 아이콘을 클릭하여 내용을 직접 수정할 수 있습니다.</p>
-            <p>* AI 아이콘을 클릭하면 해당 섹션을 AI가 개선해드립니다.</p>
-            <p>* 작성이 완료되면 &quot;작성 완료&quot; 버튼을 클릭해주세요.</p>
-          </div>
-        </CardContent>
-      </Card>
+          {/* 하단 안내 */}
+          <Card className="bg-muted/30">
+            <CardContent className="py-4">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>* 📖 &quot;작성 가이드&quot;를 클릭하면 섹션별 맞춤 작성 팁을 확인할 수 있어요.</p>
+                <p>* ✏️ 편집 아이콘을 클릭하여 내용을 직접 수정할 수 있어요.</p>
+                <p>* ✨ AI 아이콘을 클릭하면 해당 섹션을 AI가 개선해드려요.</p>
+                <p>* 오른쪽 패널에서 실시간 예상 점수를 확인할 수 있어요.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 실시간 점수 패널 (오른쪽 1열) */}
+        <div className="lg:col-span-1">
+          <ScorePanel
+            totalEstimatedScore={score?.totalEstimatedScore || 0}
+            totalMaxScore={score?.totalMaxScore || 100}
+            percentage={score?.percentage || 0}
+            sectionScores={score?.sectionScores || []}
+            overallFeedback={score?.overallFeedback || ''}
+            isLoading={scoreLoading}
+            onRefresh={triggerScoreAnalysis}
+          />
+        </div>
+      </div>
 
       {/* AI 개선 다이얼로그 (스트리밍 지원) */}
       {selectedSection !== null && (

@@ -34,9 +34,13 @@ import {
   Target,
   Info,
   History,
+  BarChart3,
 } from 'lucide-react'
 import { DownloadPDFButton } from './download-pdf-button'
 import { ChangeHistory } from '@/components/announcements/change-history'
+import { EvaluationCriteriaDisplay } from '@/components/announcements/evaluation-criteria'
+import { CompetitionPredictionCard } from '@/components/announcements/competition-prediction'
+import { EvaluationCriteria } from '@/types'
 
 interface EligibilityCriteria {
   companyTypes: string[]
@@ -67,6 +71,7 @@ interface Announcement {
   parsed_content: string | null
   attachment_urls: string[] | null
   eligibility_criteria: EligibilityCriteria | null
+  evaluation_criteria: EvaluationCriteria | null
   source: string
   status: string
   created_at: string
@@ -446,6 +451,12 @@ export function AnnouncementDetail({
             )}
           </CardContent>
         </Card>
+
+        {/* 경쟁률 예측 카드 */}
+        <CompetitionPredictionCard
+          announcementId={announcement.id}
+          className="lg:w-72 shrink-0"
+        />
       </div>
 
       {/* 탭 콘텐츠 */}
@@ -462,6 +473,10 @@ export function AnnouncementDetail({
           <TabsTrigger value="attachments" className="flex-1 sm:flex-none">
             <FileText className="h-4 w-4 mr-2" />
             첨부파일
+          </TabsTrigger>
+          <TabsTrigger value="evaluation" className="flex-1 sm:flex-none">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            평가기준
           </TabsTrigger>
           <TabsTrigger value="changes" className="flex-1 sm:flex-none">
             <History className="h-4 w-4 mr-2" />
@@ -778,6 +793,33 @@ export function AnnouncementDetail({
                   </p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 평가기준 탭 */}
+        <TabsContent value="evaluation" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                평가기준
+              </CardTitle>
+              <CardDescription>
+                이 공고의 심사 평가기준 및 배점이에요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EvaluationCriteriaDisplay
+                announcementId={announcement.id}
+                initialCriteria={announcement.evaluation_criteria}
+                onCriteriaLoaded={(criteria) => {
+                  setAnnouncement(prev => ({
+                    ...prev,
+                    evaluation_criteria: criteria
+                  }))
+                }}
+              />
             </CardContent>
           </Card>
         </TabsContent>

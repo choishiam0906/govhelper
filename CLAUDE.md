@@ -677,6 +677,169 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ## 최근 완료 작업 (2026-01-26)
 
+### 평가기준 자동 추출 시스템 (Phase 1-P0) ✅
+
+정부지원사업 공고에서 평가기준(심사기준)을 AI로 자동 추출하여 구조화하는 시스템.
+
+**아키텍처:**
+```
+공고 내용 (parsed_content) → Gemini AI → 평가기준 JSON → DB 저장 → UI 표시
+```
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `types/evaluation.ts` | 평가기준 타입 정의 (EvaluationCriteria, EvaluationItem, BonusItem) |
+| `lib/ai/prompts.ts` | EVALUATION_EXTRACTION_PROMPT 추가 |
+| `lib/ai/gemini.ts` | extractEvaluationCriteria() 함수 추가 |
+| `app/api/announcements/parse-evaluation/route.ts` | 평가기준 추출 API (GET/POST) |
+| `components/announcements/evaluation-criteria.tsx` | 평가기준 표시 UI 컴포넌트 |
+| `supabase/migrations/026_evaluation_criteria.sql` | evaluation_criteria 컬럼 추가 |
+| `scripts/run-evaluation-parse.ts` | 배치 추출 스크립트 |
+
+**evaluation_criteria JSONB 구조:**
+```json
+{
+  "totalScore": 100,
+  "passingScore": 70,
+  "items": [
+    {
+      "category": "기술성",
+      "name": "기술개발 계획의 적정성",
+      "description": "기술개발 목표, 내용, 방법의 구체성",
+      "maxScore": 30,
+      "subItems": [...]
+    }
+  ],
+  "bonusItems": [
+    {
+      "name": "벤처기업 인증",
+      "score": 3,
+      "condition": "벤처기업 인증서 보유",
+      "type": "bonus"
+    }
+  ],
+  "evaluationMethod": {
+    "type": "absolute",
+    "stages": 2,
+    "stageNames": ["서류심사", "발표심사"]
+  },
+  "confidence": 0.85,
+  "extractedAt": "2026-01-26T12:00:00.000Z"
+}
+```
+
+**API 엔드포인트:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/announcements/parse-evaluation?id=` | 단일 공고 평가기준 추출 |
+| `POST` | `/api/announcements/parse-evaluation` | 배치 평가기준 추출 (관리자용) |
+
+**UI 위치:**
+- `/dashboard/announcements/[id]` - 공고 상세 페이지 "평가기준" 탭
+
+**매칭 연동:**
+- 평가기준이 있는 공고는 매칭 분석 시 평가항목과 배점 정보가 AI 프롬프트에 포함됨
+- 더 정밀한 매칭 점수 계산 가능
+
+**배치 스크립트 실행:**
+```bash
+npx tsx scripts/run-evaluation-parse.ts
+```
+
+**Supabase 설정 필요:**
+- 마이그레이션 실행: `026_evaluation_criteria.sql`
+
+### 지원서 실시간 점수 피드백 (Phase 1-P1) ✅
+
+지원서 작성 중 평가기준 대비 예상 점수를 실시간으로 보여주는 기능.
+
+**아키텍처:**
+```
+지원서 내용 변경 → 디바운스(3초) → AI 분석 → 섹션별 점수 + 피드백 → UI 표시
+```
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `app/api/applications/score/route.ts` | 실시간 점수 분석 API |
+| `lib/hooks/use-application-score.ts` | 디바운스 훅 (3초 딜레이) |
+| `components/applications/score-panel.tsx` | 점수 패널 UI 컴포넌트 |
+| `components/ui/collapsible.tsx` | Radix Collapsible 컴포넌트 |
+
+**기능:**
+- 섹션 내용 변경 시 자동으로 점수 분석 트리거 (3초 디바운스)
+- 공고의 평가기준이 있으면 해당 기준으로 분석, 없으면 기본 기준 사용
+- 섹션별 예상 점수 및 관련 평가항목 표시
+- 개선 제안 제공 (접이식 UI)
+- 전체 예상 점수 및 등급 표시 (우수/양호/보통/개선 필요)
+
+**점수 등급:**
+| 득점률 | 등급 | 색상 |
+|--------|------|------|
+| 80%+ | 우수 | 녹색 |
+| 60-79% | 양호 | 파란색 |
+| 40-59% | 보통 | 노란색 |
+| 0-39% | 개선 필요 | 빨간색 |
+
+**API 응답 형식:**
+```json
+{
+  "success": true,
+  "totalEstimatedScore": 75,
+  "totalMaxScore": 100,
+  "percentage": 75,
+  "sectionScores": [
+    {
+      "section": "사업개요",
+      "relatedEvalItems": ["기술성", "사업화 계획"],
+      "estimatedScore": 25,
+      "maxScore": 30,
+      "feedback": "기술의 혁신성은 잘 설명되어 있어요",
+      "suggestions": ["경쟁사 대비 기술적 우위 수치화"]
+    }
+  ],
+  "overallFeedback": "전반적으로 잘 작성되었어요"
+}
+```
+
+**UI 위치:**
+- `/dashboard/applications/[id]` - 지원서 편집 페이지 우측 사이드바
+
+### 섹션별 작성 가이드 (Phase 1-P2) ✅
+
+공고 평가기준 기반 섹션별 맞춤 작성 가이드를 제공하는 기능.
+
+**아키텍처:**
+```
+섹션 헤더 "작성 가이드" 클릭 → AI 가이드 생성 → 슬라이드 패널 표시
+```
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `app/api/applications/guide/route.ts` | 맞춤 가이드 생성 API |
+| `components/applications/section-guide.tsx` | 가이드 패널 UI (Sheet) |
+| `components/applications/section-editor.tsx` | 가이드 버튼 통합 |
+
+**가이드 내용:**
+- **목적**: 해당 섹션이 왜 중요한지 설명
+- **핵심 포인트**: 반드시 포함해야 할 내용 5-7개
+- **권장 구조**: 소제목별 구성 제안
+- **추천 키워드**: 평가위원이 기대하는 키워드
+- **예시 문구**: 바로 사용할 수 있는 문장
+- **Do/Don't**: 작성 시 주의사항
+- **관련 평가항목**: 해당 섹션과 연관된 평가항목 및 배점
+
+**기본 가이드:**
+평가기준이 없는 공고의 경우 일반적인 정부지원사업 가이드 제공:
+- 사업개요, 기술개발 내용, 사업화 계획 등 주요 섹션 지원
+
+**UI 위치:**
+- `/dashboard/applications/[id]` - 각 섹션 헤더의 "작성 가이드" 버튼
+
+---
+
 ### Phase 4 완료: 사용자 경험 강화 ✅
 
 Phase 4의 모든 작업(Task 9~13)이 완료되었습니다.

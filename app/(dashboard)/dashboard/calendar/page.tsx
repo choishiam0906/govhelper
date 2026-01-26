@@ -13,7 +13,7 @@ import {
   Bookmark,
   AlertTriangle
 } from 'lucide-react'
-import { CalendarView } from './calendar-view'
+import { CalendarWrapper } from './calendar-wrapper'
 
 // 동적 렌더링 강제 (캐싱 비활성화)
 export const dynamic = 'force-dynamic'
@@ -205,8 +205,7 @@ export default async function CalendarPage({
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <CalendarView
-            key={`calendar-${currentYear}-${currentMonth}`}
+          <CalendarWrapper
             year={currentYear}
             month={currentMonth}
             items={allItems}

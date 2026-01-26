@@ -111,13 +111,46 @@ async function handlePost(request: NextRequest) {
       return amount || '미정'
     }
 
+    // 평가기준 정보 포맷팅
+    const formatEvaluationCriteria = (): string => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const evalCriteria = (announcement as any).evaluation_criteria
+      if (!evalCriteria) return ''
+
+      let result = '\n\n## 평가기준\n'
+      result += `총점: ${evalCriteria.totalScore || 100}점\n`
+      if (evalCriteria.passingScore) {
+        result += `합격기준: ${evalCriteria.passingScore}점 이상\n`
+      }
+
+      if (evalCriteria.items && evalCriteria.items.length > 0) {
+        result += '\n평가항목:\n'
+        for (const item of evalCriteria.items) {
+          result += `- ${item.category || '기타'}: ${item.name} (${item.maxScore}점)\n`
+          if (item.description) {
+            result += `  설명: ${item.description}\n`
+          }
+        }
+      }
+
+      if (evalCriteria.bonusItems && evalCriteria.bonusItems.length > 0) {
+        result += '\n가점항목:\n'
+        for (const bonus of evalCriteria.bonusItems) {
+          const sign = bonus.type === 'bonus' ? '+' : '-'
+          result += `- ${bonus.name}: ${sign}${Math.abs(bonus.score)}점 (${bonus.condition})\n`
+        }
+      }
+
+      return result
+    }
+
     const announcementContent = `
 제목: ${announcement.title}
 기관: ${announcement.organization}
 분야: ${announcement.category}
 지원유형: ${announcement.support_type}
 지원금액: ${formatSupportAmount(announcement.support_amount)}
-내용: ${announcement.content || announcement.parsed_content || ''}
+내용: ${announcement.content || announcement.parsed_content || ''}${formatEvaluationCriteria()}
     `.trim()
 
     // 사업계획서 RAG 컨텍스트 조회
