@@ -1,17 +1,7 @@
 /**
  * PDF 처리 유틸리티
- * pdf-parse를 사용하여 PDF에서 텍스트 추출
+ * unpdf를 사용하여 PDF에서 텍스트 추출 (서버리스 환경 호환)
  */
-
-// Node.js 서버 환경에서 필요한 폴리필
-if (typeof globalThis.DOMMatrix === 'undefined') {
-  // @ts-expect-error - DOMMatrix polyfill for Node.js
-  globalThis.DOMMatrix = class DOMMatrix {
-    constructor() {
-      return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
-    }
-  }
-}
 
 export interface PDFExtractResult {
   success: boolean
@@ -31,28 +21,32 @@ export interface PDFExtractResult {
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
   try {
-    // pdf-parse 모듈 로드 (default export 처리)
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParseModule = require('pdf-parse')
-    const pdf = pdfParseModule.default || pdfParseModule
+    // unpdf 모듈 동적 import (ESM 모듈)
+    const { extractText, getDocumentProxy } = await import('unpdf')
 
-    // 커스텀 옵션으로 파싱 (테스트 파일 로드 방지)
-    const options = {
-      // 페이지 렌더링 콜백 비활성화
-      pagerender: undefined,
-    }
+    // ArrayBuffer로 변환
+    const arrayBuffer = buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength
+    )
 
-    const data = await pdf(buffer, options)
+    // PDF 문서 프록시 가져오기 (메타데이터용)
+    const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer))
+    const numPages = pdf.numPages
+
+    // 텍스트 추출
+    const { text } = await extractText(new Uint8Array(arrayBuffer), { mergePages: true })
 
     return {
       success: true,
-      text: data.text,
-      pageCount: data.numpages,
+      text: text || '',
+      pageCount: numPages,
       info: {
-        title: data.info?.Title,
-        author: data.info?.Author,
-        subject: data.info?.Subject,
-        creator: data.info?.Creator,
+        // unpdf는 메타데이터를 직접 제공하지 않음
+        title: undefined,
+        author: undefined,
+        subject: undefined,
+        creator: undefined,
       },
     }
   } catch (error) {
