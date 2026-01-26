@@ -565,20 +565,6 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>기업 소개</CardTitle>
-          <CardDescription>기업에 대한 간단한 소개를 작성해주세요</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            className="w-full min-h-[120px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="주요 사업 내용, 핵심 기술, 비전 등을 작성해주세요"
-            {...register('description')}
-          />
-        </CardContent>
-      </Card>
-
       <div className="flex justify-end">
         <Button type="submit" disabled={loading} size="lg">
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

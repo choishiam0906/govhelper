@@ -256,18 +256,10 @@ export function ProfileContent({ user, company, documents = [] }: ProfileContent
               </div>
             </div>
           )}
-
-          {/* 기업 소개 */}
-          {company.description && (
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">기업 소개</p>
-              <p className="text-sm leading-relaxed">{company.description}</p>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* 사업계획서 업로드 */}
+      {/* 사업계획서 업로드 (기업 소개 대체) */}
       <BusinessPlanUpload
         documents={documents}
         onUploadComplete={() => router.refresh()}

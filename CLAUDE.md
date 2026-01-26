@@ -172,6 +172,13 @@ govhelper-main/
 |--------|----------|-------------|
 | `POST` | `/api/upload/business-plan` | 사업계획서 PDF 업로드 (비공개 버킷) |
 
+### 기업 문서 RAG (Company Documents)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/company-documents` | 회사 문서 목록 조회 |
+| `POST` | `/api/company-documents` | 사업계획서 PDF 업로드 및 RAG 처리 |
+| `DELETE` | `/api/company-documents/[id]` | 문서 삭제 |
+
 ### 관리자 (Admin)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -313,6 +320,8 @@ npm run lint
 - `push_subscriptions`: 웹 푸시 구독 (2026-01-25 추가)
 - `saved_announcement_folders`: 저장 공고 폴더 (2026-01-25 추가)
 - `dashboard_widget_settings`: 대시보드 위젯 설정 (2026-01-26 추가)
+- `company_documents`: 기업 문서 메타데이터 (2026-01-26 추가)
+- `company_document_chunks`: 문서 청크 및 벡터 임베딩 (2026-01-26 추가)
 
 ### companies 테이블 스키마
 ```sql
@@ -723,6 +732,90 @@ Phase 4의 모든 작업(Task 9~13)이 완료되었습니다.
 - 위/아래 버튼으로 순서 변경
 - 초기화 버튼으로 기본값 복원
 - 사용자별 설정 자동 저장
+
+### PDF RAG 시스템: 사업계획서 기반 AI 컨텍스트 ✅
+
+기업 프로필 작성 대신 사업계획서 PDF를 업로드하면 AI가 자동으로 분석하여 매칭/지원서 작성에 활용하는 기능.
+
+**핵심 기술:**
+| 기술 | 설명 |
+|------|------|
+| pdf-parse | PDF 텍스트 추출 (무료 라이브러리) |
+| Gemini text-embedding-004 | 768차원 벡터 임베딩 |
+| pgvector | PostgreSQL 벡터 검색 |
+| Cosine Similarity | 유사도 기반 RAG 검색 |
+
+**아키텍처:**
+```
+PDF 업로드 → 텍스트 추출 → 청크 분할 (800자) → 벡터 임베딩 → DB 저장
+                                                              ↓
+AI 매칭/지원서 작성 ← RAG 검색 (상위 5개 청크) ← 쿼리 임베딩
+```
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `supabase/migrations/025_company_documents_rag.sql` | 문서/청크 테이블, RPC 함수 |
+| `lib/pdf/index.ts` | PDF 텍스트 추출, 청크 분할 유틸리티 |
+| `lib/company-documents/index.ts` | 문서 업로드, 처리, 목록 조회 |
+| `lib/company-documents/rag.ts` | RAG 검색, 컨텍스트 생성 |
+| `app/api/company-documents/route.ts` | 문서 업로드/목록 API |
+| `app/api/company-documents/[id]/route.ts` | 문서 삭제 API |
+| `components/profile/document-upload.tsx` | React Dropzone 기반 업로드 UI |
+
+**데이터베이스 테이블:**
+```sql
+-- 문서 메타데이터
+CREATE TABLE company_documents (
+  id UUID PRIMARY KEY,
+  company_id UUID REFERENCES companies(id),
+  file_name TEXT,
+  file_path TEXT,
+  file_size INTEGER,
+  document_type TEXT DEFAULT 'business_plan',
+  status TEXT DEFAULT 'pending',  -- pending/processing/completed/failed
+  page_count INTEGER,
+  error_message TEXT,
+  created_at TIMESTAMPTZ
+);
+
+-- 문서 청크 + 벡터 임베딩
+CREATE TABLE company_document_chunks (
+  id UUID PRIMARY KEY,
+  document_id UUID REFERENCES company_documents(id),
+  chunk_index INTEGER,
+  content TEXT,
+  embedding VECTOR(768),  -- Gemini 임베딩
+  token_count INTEGER,
+  created_at TIMESTAMPTZ
+);
+
+-- RAG 검색 RPC 함수
+CREATE FUNCTION search_company_context(
+  p_company_id UUID,
+  p_query_embedding VECTOR(768),
+  p_limit INTEGER DEFAULT 5
+) RETURNS TABLE(content TEXT, similarity FLOAT);
+```
+
+**Supabase Storage 버킷:**
+| 버킷명 | 용도 | Public |
+|--------|------|--------|
+| `company-documents` | 사업계획서 PDF 저장 | 비공개 |
+
+**RAG 컨텍스트 연동 API:**
+- `app/api/matching/route.ts` - AI 매칭 분석에 RAG 컨텍스트 주입
+- `app/api/applications/stream/route.ts` - 지원서 생성에 RAG 컨텍스트 주입
+- `app/api/applications/[id]/improve/route.ts` - 섹션 개선에 RAG 컨텍스트 주입
+- `app/api/applications/[id]/improve/stream/route.ts` - 스트리밍 개선에 RAG 컨텍스트 주입
+
+**청크 설정:**
+- 청크 크기: 800자
+- 오버랩: 100자
+- 검색 결과: 상위 5개 청크
+
+**UI 위치:**
+- `/dashboard/profile` - 프로필 페이지 하단 "사업계획서 관리" 섹션
 
 ---
 
