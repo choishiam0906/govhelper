@@ -3,6 +3,16 @@
  * pdf-parse를 사용하여 PDF에서 텍스트 추출
  */
 
+// Node.js 서버 환경에서 필요한 폴리필
+if (typeof globalThis.DOMMatrix === 'undefined') {
+  // @ts-expect-error - DOMMatrix polyfill for Node.js
+  globalThis.DOMMatrix = class DOMMatrix {
+    constructor() {
+      return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }
+    }
+  }
+}
+
 export interface PDFExtractResult {
   success: boolean
   text: string
