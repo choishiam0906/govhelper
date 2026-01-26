@@ -10,6 +10,9 @@ export default function robots(): MetadataRoute.Robots {
         allow: [
           '/',
           '/try',
+          '/faq',
+          '/government-support',
+          '/government-support/*',
           '/login',
           '/register',
           '/about',
