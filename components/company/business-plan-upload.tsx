@@ -57,9 +57,9 @@ export function BusinessPlanUpload({
 
       const file = acceptedFiles[0]
 
-      // 파일 크기 체크 (20MB)
-      if (file.size > 20 * 1024 * 1024) {
-        toast.error('파일 크기는 20MB 이하여야 해요')
+      // 파일 크기 체크 (250MB)
+      if (file.size > 250 * 1024 * 1024) {
+        toast.error('파일 크기는 250MB 이하여야 해요')
         return
       }
 
@@ -235,7 +235,7 @@ export function BusinessPlanUpload({
                     PDF 파일을 드래그하거나 클릭하여 업로드
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    최대 20MB, {maxDocuments}개까지 업로드 가능
+                    최대 250MB, {maxDocuments}개까지 업로드 가능
                   </p>
                 </>
               )}

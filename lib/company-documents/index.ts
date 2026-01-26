@@ -34,9 +34,9 @@ export async function uploadCompanyDocument(
       return { success: false, error: '로그인이 필요해요' }
     }
 
-    // 파일 크기 제한 (20MB)
-    if (file.size > 20 * 1024 * 1024) {
-      return { success: false, error: '파일 크기는 20MB 이하여야 해요' }
+    // 파일 크기 제한 (250MB - Vercel Pro)
+    if (file.size > 250 * 1024 * 1024) {
+      return { success: false, error: '파일 크기는 250MB 이하여야 해요' }
     }
 
     // Storage에 업로드

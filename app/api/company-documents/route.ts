@@ -6,6 +6,15 @@ import {
   getCompanyDocuments,
 } from '@/lib/company-documents'
 
+// 250MB 파일 업로드 허용 (Vercel Pro)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '250mb',
+    },
+  },
+}
+
 /**
  * GET: 회사의 문서 목록 조회
  */
