@@ -31,10 +31,18 @@ export interface PDFExtractResult {
  */
 export async function extractTextFromPDF(buffer: Buffer): Promise<PDFExtractResult> {
   try {
-    // Dynamic import for pdf-parse (CommonJS module)
+    // pdf-parse 모듈 로드 (default export 처리)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdf = require('pdf-parse')
-    const data = await pdf(buffer)
+    const pdfParseModule = require('pdf-parse')
+    const pdf = pdfParseModule.default || pdfParseModule
+
+    // 커스텀 옵션으로 파싱 (테스트 파일 로드 방지)
+    const options = {
+      // 페이지 렌더링 콜백 비활성화
+      pagerender: undefined,
+    }
+
+    const data = await pdf(buffer, options)
 
     return {
       success: true,
