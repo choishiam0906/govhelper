@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/ai/gemini'
 import { getRagEmbeddingCache, setRagEmbeddingCache } from '@/lib/cache'
+import { rerankWithGroq } from './reranker'
 import type {
   SearchResult,
   HybridSearchOptions,
@@ -174,6 +175,7 @@ export async function hybridSearch(
     limit = 10,
     matchThreshold = 0.5,
     k = 60,
+    useRerank = false,
   } = options
 
   try {
@@ -184,9 +186,18 @@ export async function hybridSearch(
     const keywordResults = await keywordSearch(query, 20)
 
     // 3. 결과 병합 (RRF)
-    const merged = mergeResults(vectorResults, keywordResults, k)
+    let merged = mergeResults(vectorResults, keywordResults, k)
 
-    // 4. 상위 N개만 반환
+    // 4. AI 재순위화 (선택적)
+    if (useRerank) {
+      // 상위 50개만 재순위화 (비용/속도 고려)
+      const topForRerank = merged.slice(0, 50)
+      const reranked = await rerankWithGroq(query, topForRerank)
+      // 재순위화되지 않은 나머지는 그대로 추가
+      merged = [...reranked, ...merged.slice(50)]
+    }
+
+    // 5. 상위 N개만 반환
     const finalResults = merged.slice(0, limit)
 
     return {

@@ -73,6 +73,7 @@ export function SemanticSearch() {
   const [searched, setSearched] = useState(false)
   const [searchType, setSearchType] = useState<'semantic' | 'keyword' | 'hybrid'>('hybrid')
   const [useHybrid, setUseHybrid] = useState(true)
+  const [useRerank, setUseRerank] = useState(false)
 
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -92,6 +93,7 @@ export function SemanticSearch() {
           matchThreshold: 0.4,
           matchCount: 20,
           hybrid: useHybrid,
+          rerank: useRerank,
           filters: {
             excludeExpired: true,
           },
@@ -144,18 +146,35 @@ export function SemanticSearch() {
           <Badge variant="secondary" className="text-xs">Beta</Badge>
         </div>
 
-        {/* 하이브리드 검색 토글 */}
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={useHybrid}
-            onChange={(e) => setUseHybrid(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300"
-          />
-          <span className="text-muted-foreground">
-            하이브리드 검색 (벡터 + 키워드)
-          </span>
-        </label>
+        <div className="flex items-center gap-4">
+          {/* 하이브리드 검색 토글 */}
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useHybrid}
+              onChange={(e) => setUseHybrid(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300"
+            />
+            <span className="text-muted-foreground">
+              하이브리드 검색 (벡터 + 키워드)
+            </span>
+          </label>
+
+          {/* AI 재순위화 토글 (하이브리드 활성화 시에만 표시) */}
+          {useHybrid && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useRerank}
+                onChange={(e) => setUseRerank(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300"
+              />
+              <span className="text-muted-foreground">
+                AI 재순위화
+              </span>
+            </label>
+          )}
+        </div>
       </div>
 
       {/* 검색창 */}

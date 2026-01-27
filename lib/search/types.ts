@@ -16,12 +16,14 @@ export interface HybridSearchOptions {
   limit?: number // 최종 반환 개수 (기본: 10)
   matchThreshold?: number // 벡터 검색 최소 유사도 (기본: 0.5)
   k?: number // RRF 파라미터 (기본: 60)
+  useRerank?: boolean // AI 재순위화 사용 여부 (기본: false)
 }
 
 export interface RankedResult extends SearchResult {
   vectorRank?: number // 벡터 검색 순위 (1-based)
   keywordRank?: number // 키워드 검색 순위 (1-based)
   rrfScore: number // RRF 점수
+  rerankScore?: number // AI 재순위화 점수 (0-100)
 }
 
 export interface HybridSearchResult {

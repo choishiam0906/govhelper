@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       matchCount = 20,
       filters = {},
       hybrid = false, // 하이브리드 검색 활성화 플래그
+      rerank = false, // AI 재순위화 활성화 플래그
     } = body
 
     if (!query || query.trim().length < 2) {
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
           limit: matchCount,
           matchThreshold,
           k: 60,
+          useRerank: rerank, // AI 재순위화 옵션 전달
         })
 
         // 필터 적용 (소스, 카테고리 등)
@@ -65,6 +67,10 @@ export async function POST(request: NextRequest) {
             ...result.meta,
             totalResults: filteredResults.length,
             filters,
+          },
+        }, {
+          headers: {
+            'X-Rerank': rerank ? 'HIT' : 'MISS',
           },
         })
       } catch (error) {
