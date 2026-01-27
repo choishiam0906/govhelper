@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { Search, Sparkles, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useMatchingStream } from '@/lib/hooks/use-matching-stream'
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
 
 interface MatchingFormProps {
   companyId: string
@@ -47,6 +48,10 @@ export function MatchingForm({
     reset,
   } = useMatchingStream({
     onComplete: (newMatchId) => {
+      trackFunnelEvent(FUNNEL_EVENTS.MATCHING_COMPLETE, {
+        match_id: newMatchId,
+        company_id: companyId,
+      })
       toast.success('분석이 완료됐어요')
       // 3초 후 자동으로 결과 페이지로 이동
       setTimeout(() => {
@@ -64,6 +69,11 @@ export function MatchingForm({
       return
     }
 
+    trackFunnelEvent(FUNNEL_EVENTS.MATCHING_START, {
+      announcement_id: announcement.id,
+      announcement_title: announcement.title,
+      company_id: companyId,
+    })
 
     setShowDialog(true)
     await startAnalysis(announcement.id, companyId)

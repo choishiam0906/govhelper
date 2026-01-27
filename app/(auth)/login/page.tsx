@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -9,12 +9,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { FUNNEL_EVENTS, trackFunnelEvent } from "@/lib/analytics/events"
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    trackFunnelEvent(FUNNEL_EVENTS.LOGIN_START)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +37,9 @@ export default function LoginPage() {
         return
       }
 
+      trackFunnelEvent(FUNNEL_EVENTS.LOGIN_COMPLETE, {
+        method: 'email',
+      })
       toast.success("로그인했어요")
       router.push("/dashboard")
       router.refresh()
@@ -43,6 +51,9 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
+    trackFunnelEvent(FUNNEL_EVENTS.LOGIN_COMPLETE, {
+      method: 'google',
+    })
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -57,6 +68,9 @@ export default function LoginPage() {
   }
 
   const handleKakaoLogin = async () => {
+    trackFunnelEvent(FUNNEL_EVENTS.LOGIN_COMPLETE, {
+      method: 'kakao',
+    })
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",

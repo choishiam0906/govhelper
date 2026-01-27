@@ -5,6 +5,10 @@ export const FUNNEL_EVENTS = {
   SIGNUP_START: 'funnel_signup_start',
   SIGNUP_COMPLETE: 'funnel_signup_complete',
 
+  // 로그인
+  LOGIN_START: 'funnel_login_start',
+  LOGIN_COMPLETE: 'funnel_login_complete',
+
   // 온보딩
   ONBOARDING_START: 'funnel_onboarding_start',
   ONBOARDING_STEP: 'funnel_onboarding_step',
