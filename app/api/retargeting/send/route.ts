@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgoEnd = new Date(sevenDaysAgo)
     sevenDaysAgoEnd.setHours(23, 59, 59, 999)
 
-    const { data: leads, error: leadsError } = await supabase
+    const { data: leadsRaw, error: leadsError } = await supabase
       .from('guest_leads')
       .select(`
         id,
@@ -44,6 +44,8 @@ export async function GET(request: NextRequest) {
       .gte('created_at', sevenDaysAgoStart.toISOString())
       .lte('created_at', sevenDaysAgoEnd.toISOString())
 
+    const leads = leadsRaw as any[] | null
+
     if (leadsError) {
       throw leadsError
     }
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     const in14Days = new Date(today)
     in14Days.setDate(in14Days.getDate() + 14)
 
-    const { data: urgentAnnouncements } = await supabase
+    const { data: urgentAnnouncementsRaw } = await supabase
       .from('announcements')
       .select('id, title, organization, application_end')
       .eq('status', 'active')
@@ -65,6 +67,8 @@ export async function GET(request: NextRequest) {
       .lte('application_end', in14Days.toISOString())
       .order('application_end', { ascending: true })
       .limit(50)
+
+    const urgentAnnouncements = urgentAnnouncementsRaw as any[] | null
 
     let sentCount = 0
     let errorCount = 0
@@ -123,8 +127,8 @@ export async function GET(request: NextRequest) {
         })
 
         // 이메일 발송 상태 업데이트
-        await supabase
-          .from('guest_matches')
+        await (supabase
+          .from('guest_matches') as any)
           .update({ email_sent: true, email_sent_at: new Date().toISOString() })
           .eq('id', match.id)
 

@@ -18,9 +18,9 @@ export async function GET(request: NextRequest) {
       .eq('email', email)
 
     if (leads && leads.length > 0) {
-      const leadIds = leads.map(l => l.id)
-      await supabase
-        .from('guest_matches')
+      const leadIds = (leads as any[]).map(l => l.id)
+      await (supabase
+        .from('guest_matches') as any)
         .update({ email_sent: true, email_sent_at: new Date().toISOString() })
         .in('lead_id', leadIds)
     }
