@@ -10,6 +10,7 @@ import {
 import { parseEligibilityCriteria } from '@/lib/ai'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
+import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -146,8 +147,11 @@ export async function POST(request: NextRequest) {
       return true
     })
 
-    // 데이터 변환 (배치용)
-    const announcementsToUpsert = uniqueAnnouncements.map(item => {
+    // 데이터 변환 및 중복 감지 (배치용)
+    const announcementsToUpsert = []
+    let skippedDuplicates = 0
+
+    for (const item of uniqueAnnouncements) {
       // 지원 대상 정보 구성 (기업규모 + 업종 + 직원수 + 인증)
       const targetParts = [
         item.cmpScale,
@@ -162,7 +166,7 @@ export async function POST(request: NextRequest) {
         attachmentUrls.push(item.pblancAttach)
       }
 
-      return {
+      const announcement = {
         source: 'smes24',
         source_id: String(item.pblancSeq),
         title: item.pblancNm,
@@ -184,7 +188,23 @@ export async function POST(request: NextRequest) {
         status: 'active',
         updated_at: new Date().toISOString()
       }
-    })
+
+      // 중복 감지
+      const duplicateResult = await detectDuplicate(
+        announcement.title,
+        announcement.organization,
+        announcement.source,
+        supabase
+      )
+
+      if (duplicateResult.isDuplicate) {
+        console.log(`[중복 스킵] ${announcement.title} (유사도: ${(duplicateResult.similarity * 100).toFixed(1)}%, 원본: ${duplicateResult.originalId})`)
+        skippedDuplicates++
+        continue // 중복이면 skip
+      }
+
+      announcementsToUpsert.push(announcement)
+    }
 
     // 배치 upsert + 변경 감지
     let syncResult
@@ -264,6 +284,7 @@ export async function POST(request: NextRequest) {
       message: '동기화 완료',
       stats: {
         total: uniqueAnnouncements.length,
+        skippedDuplicates,
         upserted: syncResult.upserted,
         changesDetected: syncResult.changesDetected,
         notificationsQueued: syncResult.notificationsQueued,

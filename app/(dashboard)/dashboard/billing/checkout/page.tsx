@@ -22,6 +22,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
+import { getProPricing } from '@/lib/ab-test'
+import { createClient } from '@/lib/supabase/client'
 
 type Plan = 'proMonthly' | 'proYearly' | 'premiumMonthly' | 'premiumYearly'
 
@@ -48,6 +50,22 @@ function CheckoutContent() {
   const [isCompleted, setIsCompleted] = useState(false)
   const [paymentInfo, setPaymentInfo] = useState<any>(null)
   const [copied, setCopied] = useState(false)
+
+  // A/B 테스트 가격
+  const [proPricing, setProPricing] = useState({ proMonthly: 5000, proYearly: 50000 })
+
+  // 사용자 정보 및 A/B 테스트 가격 가져오기
+  useEffect(() => {
+    const loadPricing = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const pricing = getProPricing(user.id)
+        setProPricing({ proMonthly: pricing.proMonthly, proYearly: pricing.proYearly })
+      }
+    }
+    loadPricing()
+  }, [])
 
   // 현재 선택된 플랜이 Premium인지 확인
   const isCurrentPlanPremium = plan === 'premiumMonthly' || plan === 'premiumYearly'
@@ -76,11 +94,16 @@ function CheckoutContent() {
       return
     }
 
+    // 현재 플랜의 실제 금액 계산 (A/B 테스트 고려)
+    const actualAmount = plan === 'proMonthly' ? proPricing.proMonthly :
+                         plan === 'proYearly' ? proPricing.proYearly :
+                         PAYMENT_PRICES[plan]
+
     // 구독 시작 이벤트
     trackFunnelEvent(FUNNEL_EVENTS.SUBSCRIPTION_START, {
       plan: plan,
       payment_method: 'bank_transfer',
-      amount: PAYMENT_PRICES[plan],
+      amount: actualAmount,
     })
 
     setLoading(true)
@@ -104,7 +127,7 @@ function CheckoutContent() {
       trackFunnelEvent(FUNNEL_EVENTS.SUBSCRIPTION_COMPLETE, {
         plan: plan,
         payment_method: 'bank_transfer',
-        amount: PAYMENT_PRICES[plan],
+        amount: actualAmount,
         payment_id: result.data.paymentId,
       })
 
@@ -339,7 +362,7 @@ function CheckoutContent() {
                     <p className="text-sm text-muted-foreground">매월 결제</p>
                   </div>
                 </div>
-                <p className="font-bold">{formatPrice(PAYMENT_PRICES.proMonthly)}원/월</p>
+                <p className="font-bold">{formatPrice(proPricing.proMonthly)}원/월</p>
               </Label>
 
               <Label
@@ -354,9 +377,9 @@ function CheckoutContent() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold">{formatPrice(PAYMENT_PRICES.proYearly)}원/년</p>
+                  <p className="font-bold">{formatPrice(proPricing.proYearly)}원/년</p>
                   <p className="text-sm text-muted-foreground">
-                    월 {formatPrice(Math.round(PAYMENT_PRICES.proYearly / 12))}원
+                    월 {formatPrice(Math.round(proPricing.proYearly / 12))}원
                   </p>
                 </div>
               </Label>
@@ -477,7 +500,11 @@ function CheckoutContent() {
           <div className="flex items-center justify-between mb-4">
             <span className="text-muted-foreground">결제 금액</span>
             <span className="text-2xl font-bold">
-              {formatPrice(PAYMENT_PRICES[plan])}원
+              {formatPrice(
+                plan === 'proMonthly' ? proPricing.proMonthly :
+                plan === 'proYearly' ? proPricing.proYearly :
+                PAYMENT_PRICES[plan]
+              )}원
             </span>
           </div>
           <Button

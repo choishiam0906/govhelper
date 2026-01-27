@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { confirmTossPayment } from '@/lib/payments/toss'
+import { isValidABTestAmount } from '@/lib/ab-test'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,11 +42,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify amount matches
-    if ((existingPayment as { amount: number }).amount !== amount) {
+    const paymentAmount = (existingPayment as { amount: number }).amount
+    if (paymentAmount !== amount) {
       return NextResponse.json(
         { success: false, error: 'Amount mismatch' },
         { status: 400 }
       )
+    }
+
+    // A/B 테스트 가격 검증 (Pro 플랜만)
+    // Pro 플랜: 3900 or 5000 허용, Premium: 49000 고정
+    if (amount === 3900 || amount === 5000) {
+      if (!isValidABTestAmount(amount, 'monthly')) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid A/B test amount' },
+          { status: 400 }
+        )
+      }
     }
 
     // Confirm payment with Toss

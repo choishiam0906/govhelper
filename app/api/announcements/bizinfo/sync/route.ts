@@ -10,6 +10,7 @@ import {
 import { parseEligibilityCriteria } from '@/lib/ai'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
+import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
 
 // 기업마당 API 설정
 const BIZINFO_API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do'
@@ -162,12 +163,15 @@ export async function POST(request: NextRequest) {
       return true
     })
 
-    // 데이터 변환 (배치용)
-    const announcementsToUpsert = uniqueAnnouncements.map(item => {
+    // 데이터 변환 및 중복 감지 (배치용)
+    const announcementsToUpsert = []
+    let skippedDuplicates = 0
+
+    for (const item of uniqueAnnouncements) {
       const { startDate, endDate } = parseRequestDate(item.reqstBeginEndDe)
       const cleanContent = stripHtml(item.bsnsSumryCn)
 
-      return {
+      const announcement = {
         source: 'bizinfo',
         source_id: item.pblancId,
         title: item.pblancNm,
@@ -187,7 +191,23 @@ export async function POST(request: NextRequest) {
         status: 'active',
         updated_at: new Date().toISOString()
       }
-    })
+
+      // 중복 감지
+      const duplicateResult = await detectDuplicate(
+        announcement.title,
+        announcement.organization,
+        announcement.source,
+        supabase
+      )
+
+      if (duplicateResult.isDuplicate) {
+        console.log(`[중복 스킵] ${announcement.title} (유사도: ${(duplicateResult.similarity * 100).toFixed(1)}%, 원본: ${duplicateResult.originalId})`)
+        skippedDuplicates++
+        continue // 중복이면 skip
+      }
+
+      announcementsToUpsert.push(announcement)
+    }
 
     // 배치 upsert + 변경 감지
     let syncResult
@@ -267,6 +287,7 @@ export async function POST(request: NextRequest) {
         fetched: allAnnouncements.length,
         active: activeAnnouncements.length,
         unique: uniqueAnnouncements.length,
+        skippedDuplicates,
         upserted: syncResult.upserted,
         changesDetected: syncResult.changesDetected,
         notificationsQueued: syncResult.notificationsQueued,

@@ -12,9 +12,11 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || ''
     const source = searchParams.get('source') || ''
     const status = searchParams.get('status') || 'active'
+    const sort = searchParams.get('sort') || 'created_at' // 정렬 옵션: created_at, quality_score
+    const minQualityScore = searchParams.get('minQualityScore') ? parseInt(searchParams.get('minQualityScore')!) : undefined
 
     // 캐시 파라미터
-    const cacheParams = { page, limit, search, category, source, status }
+    const cacheParams = { page, limit, search, category, source, status, sort, minQualityScore }
 
     // 1. 캐시 조회
     const cachedData = await getAnnouncementsListCache(cacheParams)
@@ -48,11 +50,25 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
+    // 최소 품질 점수 필터
+    if (minQualityScore !== undefined) {
+      query = query.gte('quality_score', minQualityScore)
+    }
+
     // Pagination
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    query = query.range(from, to).order('created_at', { ascending: false })
+    // 정렬 옵션 적용
+    if (sort === 'quality_score') {
+      // 품질순: quality_score 내림차순, NULL은 최하위
+      query = query.order('quality_score', { ascending: false, nullsFirst: false })
+    } else {
+      // 기본: 생성일 내림차순
+      query = query.order('created_at', { ascending: false })
+    }
+
+    query = query.range(from, to)
 
     const { data, error, count } = await query
 

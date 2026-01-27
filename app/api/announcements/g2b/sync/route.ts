@@ -9,6 +9,7 @@ import {
 } from '@/lib/rate-limit'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
+import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
 
 // 나라장터 API 설정
 const G2B_API_URL = 'https://apis.data.go.kr/1230000/ad/BidPublicInfoService'
@@ -207,15 +208,18 @@ export async function POST(request: NextRequest) {
       return true
     })
 
-    // DB 저장 형식으로 변환
-    const bidsToUpsert = uniqueBids.map(item => {
+    // DB 저장 형식으로 변환 및 중복 감지
+    const bidsToUpsert = []
+    let skippedDuplicates = 0
+
+    for (const item of uniqueBids) {
       // 참가자격 정보 조합 (공고종류 + 입찰방식)
       const targetParts = [
         item.ntceKindNm,
         item.bidMethdNm,
       ].filter(Boolean)
 
-      return {
+      const bid = {
         source: 'g2b',
         source_id: `${item.bidNtceNo}-${item.bidNtceOrd}`,
         title: item.bidNtceNm || '',
@@ -239,7 +243,23 @@ export async function POST(request: NextRequest) {
         status: 'active',
         updated_at: new Date().toISOString()
       }
-    })
+
+      // 중복 감지
+      const duplicateResult = await detectDuplicate(
+        bid.title,
+        bid.organization,
+        bid.source,
+        supabase
+      )
+
+      if (duplicateResult.isDuplicate) {
+        console.log(`[중복 스킵] ${bid.title} (유사도: ${(duplicateResult.similarity * 100).toFixed(1)}%, 원본: ${duplicateResult.originalId})`)
+        skippedDuplicates++
+        continue // 중복이면 skip
+      }
+
+      bidsToUpsert.push(bid)
+    }
 
     // 배치 upsert + 변경 감지
     let syncResult
@@ -279,6 +299,7 @@ export async function POST(request: NextRequest) {
         fetched: allBids.length,
         active: activeBids.length,
         unique: uniqueBids.length,
+        skippedDuplicates,
         upserted: syncResult.upserted,
         changesDetected: syncResult.changesDetected,
         notificationsQueued: syncResult.notificationsQueued,

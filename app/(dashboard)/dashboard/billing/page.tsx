@@ -8,6 +8,7 @@ import { PAYMENT_PRICES } from '@/lib/payments'
 import { PricingCard } from '@/components/billing/pricing-card'
 import { PLAN_INFO, PlanType } from '@/lib/queries/dashboard'
 import { BillingPageClient } from '@/components/billing/billing-page-client'
+import { getProPricing } from '@/lib/ab-test'
 
 // 계좌 정보
 const BANK_ACCOUNT = {
@@ -20,6 +21,9 @@ export default async function BillingPage() {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
+
+  // A/B 테스트 가격 가져오기
+  const pricing = user ? getProPricing(user.id) : { proMonthly: 5000, proYearly: 50000, variant: 'control' as const }
 
   // 구독 정보 조회
   const { data: subscriptionData } = await supabase
@@ -85,7 +89,7 @@ export default async function BillingPage() {
 
   return (
     <>
-      <BillingPageClient currentPlan={currentPlan} />
+      <BillingPageClient currentPlan={currentPlan} pricing={pricing} />
       <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">결제 및 구독</h1>
@@ -117,7 +121,7 @@ export default async function BillingPage() {
               </p>
               <Button asChild>
                 <Link href="/dashboard/billing/checkout?plan=pro">
-                  Pro로 업그레이드 (월 ₩5,000)
+                  Pro로 업그레이드 (월 ₩{formatPrice(pricing.proMonthly)})
                 </Link>
               </Button>
             </div>
@@ -201,7 +205,7 @@ export default async function BillingPage() {
           <PricingCard
             name="Pro"
             description="커피 한 잔 가격으로 전체 매칭"
-            price={PAYMENT_PRICES.proMonthly}
+            price={pricing.proMonthly}
             period="monthly"
             features={[
               'Free 플랜의 모든 기능',
@@ -280,7 +284,7 @@ export default async function BillingPage() {
           <div className="grid grid-cols-2 gap-2">
             <Button asChild variant="outline">
               <Link href="/dashboard/billing/checkout?plan=pro">
-                Pro 구독 (₩5,000/월)
+                Pro 구독 (₩{formatPrice(pricing.proMonthly)}/월)
               </Link>
             </Button>
             <Button asChild>

@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { detectChanges, saveChanges, queueChangeNotifications } from './change-detector'
+import { calculateQualityScore, getQualityGrade } from './quality-score'
 
 interface AnnouncementToUpsert {
   source: string
@@ -105,10 +106,35 @@ export async function syncWithChangeDetection(
     }
   }
 
+  // 품질 점수 계산 및 추가
+  const announcementsWithQuality = announcements.map(ann => {
+    const scoreResult = calculateQualityScore({
+      id: ann.source_id, // 임시 ID (upsert 후 실제 ID 사용)
+      title: ann.title,
+      organization: ann.organization || null,
+      source: ann.source,
+      status: ann.status,
+      content: ann.content || null,
+      parsed_content: null,
+      eligibility_criteria: null,
+      application_start: ann.application_start || null,
+      application_end: ann.application_end || null,
+      support_amount: ann.support_amount || null,
+      attachment_urls: ann.attachment_urls || null,
+    })
+    const gradeResult = getQualityGrade(scoreResult.totalScore)
+
+    return {
+      ...ann,
+      quality_score: scoreResult.totalScore,
+      quality_grade: gradeResult.grade,
+    }
+  })
+
   // 배치 upsert
   const { count, error: upsertError } = await supabase
     .from('announcements')
-    .upsert(announcements, {
+    .upsert(announcementsWithQuality, {
       onConflict: 'source,source_id',
       count: 'exact'
     })

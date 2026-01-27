@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import { calculateQualityScore } from '../lib/announcements/quality-score'
+import { calculateQualityScore, getQualityGrade } from '../lib/announcements/quality-score'
 
 // .env.local에서 환경변수 로드
 import * as dotenv from 'dotenv'
@@ -25,6 +25,9 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+// 배치 업데이트 크기
+const BATCH_SIZE = 50
 
 interface AnnouncementData {
   id: string
@@ -77,13 +80,17 @@ async function updateQualityScores() {
 
     console.log(`✅ ${announcements.length}개 공고 조회 완료\n`)
 
-    // 품질 점수 계산 및 통계
+    // 품질 점수 계산 및 DB 업데이트
+    console.log('🔄 품질 점수 계산 및 DB 업데이트 중...')
     const scores: number[] = []
     const byGrade = { A: 0, B: 0, C: 0, D: 0 }
     const bySource: Record<string, { count: number; totalScore: number }> = {}
+    const updateData: Array<{ id: string; quality_score: number; quality_grade: string }> = []
 
     announcements.forEach((announcement: AnnouncementData) => {
       const scoreResult = calculateQualityScore(announcement)
+      const gradeResult = getQualityGrade(scoreResult.totalScore)
+
       scores.push(scoreResult.totalScore)
 
       // 등급별 집계
@@ -99,7 +106,40 @@ async function updateQualityScores() {
       }
       bySource[source].count++
       bySource[source].totalScore += scoreResult.totalScore
+
+      // DB 업데이트 데이터 수집
+      updateData.push({
+        id: announcement.id,
+        quality_score: scoreResult.totalScore,
+        quality_grade: gradeResult.grade,
+      })
     })
+
+    // 배치 업데이트 실행
+    let updatedCount = 0
+    for (let i = 0; i < updateData.length; i += BATCH_SIZE) {
+      const batch = updateData.slice(i, i + BATCH_SIZE)
+
+      const { error } = await supabase
+        .from('announcements')
+        .upsert(
+          batch.map(item => ({
+            id: item.id,
+            quality_score: item.quality_score,
+            quality_grade: item.quality_grade,
+          })),
+          { onConflict: 'id' }
+        )
+
+      if (error) {
+        console.error(`❌ 배치 업데이트 오류 (${i}-${i + batch.length}):`, error)
+      } else {
+        updatedCount += batch.length
+        console.log(`  ✓ ${updatedCount}/${updateData.length} 업데이트 완료`)
+      }
+    }
+
+    console.log(`✅ DB 업데이트 완료: ${updatedCount}개 공고\n`)
 
     // 통계 출력
     const average = scores.reduce((sum, s) => sum + s, 0) / scores.length

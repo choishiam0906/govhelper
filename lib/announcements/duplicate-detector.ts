@@ -1,266 +1,285 @@
+import { SupabaseClient } from '@supabase/supabase-js'
+
+export interface DuplicateResult {
+  isDuplicate: boolean
+  originalId?: string       // 원본 공고 ID
+  similarity: number        // 유사도 (0-1)
+  matchType: 'exact_title' | 'similar_title' | 'none'
+}
+
 /**
- * 중복 공고 감지 시스템
+ * 제목 정규화
+ * - 공백 정규화 (연속 공백 → 단일 공백)
+ * - 괄호 안 연도/차수 제거: "[2026년]", "(제3차)", "[3차]"
+ * - 특수문자 제거: ※, ★, ●, ■, □, ▶
+ * - 앞뒤 공백 trim
+ */
+function normalizeTitle(title: string): string {
+  return title
+    // 괄호 안 연도/차수 제거
+    .replace(/\[?\d{4}년\]?/g, '')            // [2026년], 2026년
+    .replace(/[\(\[]\s*제?\s*\d+\s*차\s*[\)\]]/g, '') // (제3차), [3차]
+    // 특수문자 제거
+    .replace(/[※★●■□▶]/g, '')
+    // 연속 공백 → 단일 공백
+    .replace(/\s+/g, ' ')
+    // 앞뒤 공백 trim
+    .trim()
+}
+
+/**
+ * Levenshtein 거리 기반 유사도 계산
+ * @returns 0-1 사이의 유사도 (1에 가까울수록 유사)
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1
+
+  const len1 = str1.length
+  const len2 = str2.length
+
+  if (len1 === 0) return 0
+  if (len2 === 0) return 0
+
+  // Levenshtein 거리 계산
+  const matrix: number[][] = []
+
+  for (let i = 0; i <= len1; i++) {
+    matrix[i] = [i]
+  }
+
+  for (let j = 0; j <= len2; j++) {
+    matrix[0][j] = j
+  }
+
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,      // deletion
+        matrix[i][j - 1] + 1,      // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      )
+    }
+  }
+
+  const distance = matrix[len1][len2]
+  const maxLength = Math.max(len1, len2)
+
+  // 유사도 = 1 - (거리 / 최대 길이)
+  return 1 - (distance / maxLength)
+}
+
+/**
+ * 제목 기반 중복 감지
+ * 1. 정확한 제목 일치 (정규화 후)
+ * 2. 유사도 90% 이상 (레벤슈타인 거리)
  *
- * 제목 유사도 계산 및 중복 후보 탐지
+ * @param title - 검사할 제목
+ * @param organization - 기관명
+ * @param source - 소스 (자신의 소스는 제외)
+ * @param supabase - Supabase 클라이언트
  */
+export async function detectDuplicate(
+  title: string,
+  organization: string,
+  source: string,
+  supabase: SupabaseClient
+): Promise<DuplicateResult> {
 
-/**
- * 중복 공고 후보
- */
-export interface DuplicateCandidate {
-  originalId: string
-  duplicateId: string
-  similarityScore: number // 0-100
-  matchReasons: string[] // ['title_similar', 'same_org', 'same_deadline']
-}
+  const normalizedTitle = normalizeTitle(title)
 
-/**
- * 중복 감지 옵션
- */
-export interface DuplicateDetectionOptions {
-  similarityThreshold?: number // 기본: 90
-  dateDiffDays?: number // 마감일 차이 허용 (기본: 3일)
-}
+  // 1. 정확한 제목 매칭 (같은 소스 제외, 같은 기관)
+  // 정규화된 제목을 직접 비교하기 위해 모든 활성 공고 조회
+  const { data: activeAnnouncements, error } = await supabase
+    .from('announcements')
+    .select('id, title, organization, source')
+    .eq('status', 'active')
+    .eq('organization', organization)
+    .neq('source', source)
 
-/**
- * Levenshtein Distance 계산
- * 두 문자열 간의 편집 거리 반환
- */
-function levenshteinDistance(str1: string, str2: string): number {
-  const m = str1.length
-  const n = str2.length
-  const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0))
+  if (error) {
+    console.error('중복 감지 쿼리 오류:', error)
+    return { isDuplicate: false, similarity: 0, matchType: 'none' }
+  }
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i
-  for (let j = 0; j <= n; j++) dp[0][j] = j
+  if (!activeAnnouncements || activeAnnouncements.length === 0) {
+    return { isDuplicate: false, similarity: 0, matchType: 'none' }
+  }
 
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (str1[i - 1] === str2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1]
-      } else {
-        dp[i][j] = Math.min(
-          dp[i - 1][j] + 1,     // 삭제
-          dp[i][j - 1] + 1,     // 삽입
-          dp[i - 1][j - 1] + 1  // 교체
-        )
+  // 정규화된 제목으로 정확 매칭
+  for (const ann of activeAnnouncements) {
+    const annNormalized = normalizeTitle(ann.title)
+
+    if (annNormalized === normalizedTitle) {
+      console.log(`[중복 감지] 정확 매칭: "${title}" (원본: ${ann.id})`)
+      return {
+        isDuplicate: true,
+        originalId: ann.id,
+        similarity: 1.0,
+        matchType: 'exact_title'
       }
     }
   }
 
-  return dp[m][n]
+  // 2. 유사도 90% 이상 매칭
+  for (const ann of activeAnnouncements) {
+    const annNormalized = normalizeTitle(ann.title)
+    const similarity = calculateSimilarity(normalizedTitle, annNormalized)
+
+    if (similarity >= 0.90) {
+      console.log(`[중복 감지] 유사 매칭 (${(similarity * 100).toFixed(1)}%): "${title}" (원본: ${ann.id})`)
+      return {
+        isDuplicate: true,
+        originalId: ann.id,
+        similarity,
+        matchType: 'similar_title'
+      }
+    }
+  }
+
+  return { isDuplicate: false, similarity: 0, matchType: 'none' }
 }
 
 /**
- * Jaccard Similarity 계산
- * 두 문자열을 단어 집합으로 변환하여 유사도 계산
+ * 중복 후보 타입
  */
-function jaccardSimilarity(str1: string, str2: string): number {
-  const set1 = new Set(str1.split(/\s+/))
-  const set2 = new Set(str2.split(/\s+/))
-
-  const arr1 = Array.from(set1)
-  const arr2 = Array.from(set2)
-  const intersection = new Set(arr1.filter(x => set2.has(x)))
-  const union = new Set(arr1.concat(arr2))
-
-  if (union.size === 0) return 0
-  return (intersection.size / union.size) * 100
+export interface DuplicateCandidate {
+  originalId: string
+  duplicateId: string
+  similarity: number
+  matchType: 'exact_title' | 'similar_title'
+  originalTitle?: string
+  duplicateTitle?: string
 }
 
 /**
- * 문자열 정규화
- * - 특수문자 제거
- * - 연속 공백 제거
- * - 소문자 변환
+ * 중복 그룹 타입
  */
-export function normalizeString(str: string): string {
-  return str
-    .replace(/[^\w\s가-힣]/g, '') // 특수문자 제거
-    .replace(/\s+/g, ' ')          // 연속 공백 제거
-    .trim()
-    .toLowerCase()
+export interface DuplicateGroup {
+  ids: string[]
+  titles: string[]
+  count: number
 }
 
 /**
- * 제목 유사도 계산
- * Levenshtein Distance와 Jaccard Similarity의 가중 평균
- */
-export function calculateTitleSimilarity(title1: string, title2: string): number {
-  const normalized1 = normalizeString(title1)
-  const normalized2 = normalizeString(title2)
-
-  // 동일한 경우 100% 반환
-  if (normalized1 === normalized2) return 100
-
-  // Levenshtein Distance 기반 유사도
-  const maxLen = Math.max(normalized1.length, normalized2.length)
-  const levDistance = levenshteinDistance(normalized1, normalized2)
-  const levSimilarity = ((maxLen - levDistance) / maxLen) * 100
-
-  // Jaccard Similarity
-  const jaccardSim = jaccardSimilarity(normalized1, normalized2)
-
-  // 가중 평균 (Levenshtein 60%, Jaccard 40%)
-  return levSimilarity * 0.6 + jaccardSim * 0.4
-}
-
-/**
- * 마감일 유사도 체크
- */
-export function isSimilarDeadline(
-  date1: string | null,
-  date2: string | null,
-  diffDays: number = 3
-): boolean {
-  if (!date1 || !date2) return false
-
-  const d1 = new Date(date1)
-  const d2 = new Date(date2)
-
-  const diffMs = Math.abs(d1.getTime() - d2.getTime())
-  const diffDaysActual = diffMs / (1000 * 60 * 60 * 24)
-
-  return diffDaysActual <= diffDays
-}
-
-/**
- * 중복 후보 탐지
- *
- * @param announcements 공고 목록
- * @param options 감지 옵션
- * @returns 중복 후보 목록
+ * 공고 목록에서 중복 후보 감지
+ * @param announcements - 검사할 공고 목록
+ * @param options - 감지 옵션
  */
 export function detectDuplicates(
   announcements: Array<{
     id: string
     title: string
     organization: string
-    application_end: string | null
+    source: string
   }>,
-  options: DuplicateDetectionOptions = {}
+  options: {
+    similarityThreshold?: number  // 유사도 임계값 (기본: 90)
+    dateDiffDays?: number         // 날짜 차이 임계값 (현재 미사용)
+  } = {}
 ): DuplicateCandidate[] {
-  const {
-    similarityThreshold = 90,
-    dateDiffDays = 3,
-  } = options
+  const { similarityThreshold = 90 } = options
+  const threshold = similarityThreshold / 100 // 0.9
 
   const duplicates: DuplicateCandidate[] = []
-  const seen = new Set<string>()
+  const processed = new Set<string>()
 
   for (let i = 0; i < announcements.length; i++) {
+    const ann1 = announcements[i]
+    if (processed.has(ann1.id)) continue
+
+    const normalized1 = normalizeTitle(ann1.title)
+
     for (let j = i + 1; j < announcements.length; j++) {
-      const a1 = announcements[i]
-      const a2 = announcements[j]
+      const ann2 = announcements[j]
+      if (processed.has(ann2.id)) continue
 
-      // 이미 처리한 쌍 건너뛰기
-      const pairKey = [a1.id, a2.id].sort().join('-')
-      if (seen.has(pairKey)) continue
+      // 같은 소스는 제외
+      if (ann1.source === ann2.source) continue
 
-      const matchReasons: string[] = []
-      let totalScore = 0
+      // 같은 기관이 아니면 제외
+      if (ann1.organization !== ann2.organization) continue
 
-      // 1. 제목 유사도 (가중치: 50%)
-      const titleSimilarity = calculateTitleSimilarity(a1.title, a2.title)
-      if (titleSimilarity >= 70) {
-        matchReasons.push('title_similar')
-        totalScore += titleSimilarity * 0.5
-      } else {
-        continue // 제목 유사도가 낮으면 중복 아님
-      }
+      const normalized2 = normalizeTitle(ann2.title)
 
-      // 2. 동일 기관 (가중치: 30%)
-      if (a1.organization === a2.organization) {
-        matchReasons.push('same_org')
-        totalScore += 30
-      }
-
-      // 3. 유사한 마감일 (가중치: 20%)
-      if (isSimilarDeadline(a1.application_end, a2.application_end, dateDiffDays)) {
-        matchReasons.push('same_deadline')
-        totalScore += 20
-      }
-
-      // 4. 임계값 이상인 경우만 중복 후보로 추가
-      if (totalScore >= similarityThreshold) {
+      // 정확 매칭
+      if (normalized1 === normalized2) {
         duplicates.push({
-          originalId: a1.id,
-          duplicateId: a2.id,
-          similarityScore: Math.round(totalScore),
-          matchReasons,
+          originalId: ann1.id,
+          duplicateId: ann2.id,
+          similarity: 1.0,
+          matchType: 'exact_title',
+          originalTitle: ann1.title,
+          duplicateTitle: ann2.title,
         })
-        seen.add(pairKey)
+        continue
+      }
+
+      // 유사도 매칭
+      const similarity = calculateSimilarity(normalized1, normalized2)
+      if (similarity >= threshold) {
+        duplicates.push({
+          originalId: ann1.id,
+          duplicateId: ann2.id,
+          similarity,
+          matchType: 'similar_title',
+          originalTitle: ann1.title,
+          duplicateTitle: ann2.title,
+        })
       }
     }
   }
 
-  // 점수 높은 순으로 정렬
-  return duplicates.sort((a, b) => b.similarityScore - a.similarityScore)
+  return duplicates
 }
 
 /**
- * 중복 그룹 생성
- * 연결된 중복 공고를 그룹으로 묶음
+ * 중복 후보를 그룹으로 묶기
+ * @param duplicates - 중복 후보 목록
  */
-export function groupDuplicates(
-  duplicates: DuplicateCandidate[]
-): Array<{ ids: string[]; score: number }> {
-  const graph = new Map<string, Set<string>>()
+export function groupDuplicates(duplicates: DuplicateCandidate[]): DuplicateGroup[] {
+  const groups: Map<string, Set<string>> = new Map()
+  const idToGroup: Map<string, string> = new Map()
 
-  // 그래프 구성
+  // Union-Find 알고리즘으로 그룹화
   for (const dup of duplicates) {
-    if (!graph.has(dup.originalId)) {
-      graph.set(dup.originalId, new Set())
-    }
-    if (!graph.has(dup.duplicateId)) {
-      graph.set(dup.duplicateId, new Set())
-    }
-    graph.get(dup.originalId)!.add(dup.duplicateId)
-    graph.get(dup.duplicateId)!.add(dup.originalId)
-  }
+    const { originalId, duplicateId } = dup
 
-  // DFS로 연결 컴포넌트 찾기
-  const visited = new Set<string>()
-  const groups: Array<{ ids: string[]; score: number }> = []
+    const group1 = idToGroup.get(originalId)
+    const group2 = idToGroup.get(duplicateId)
 
-  function dfs(node: string, group: string[]) {
-    visited.add(node)
-    group.push(node)
-
-    const neighbors = graph.get(node)
-    if (neighbors) {
-      const neighborsArray = Array.from(neighbors)
-      for (const neighbor of neighborsArray) {
-        if (!visited.has(neighbor)) {
-          dfs(neighbor, group)
-        }
+    if (!group1 && !group2) {
+      // 새로운 그룹 생성
+      const groupId = originalId
+      const members = new Set([originalId, duplicateId])
+      groups.set(groupId, members)
+      idToGroup.set(originalId, groupId)
+      idToGroup.set(duplicateId, groupId)
+    } else if (group1 && !group2) {
+      // group1에 duplicateId 추가
+      groups.get(group1)!.add(duplicateId)
+      idToGroup.set(duplicateId, group1)
+    } else if (!group1 && group2) {
+      // group2에 originalId 추가
+      groups.get(group2)!.add(originalId)
+      idToGroup.set(originalId, group2)
+    } else if (group1 !== group2) {
+      // 두 그룹 병합
+      const members1 = groups.get(group1!)!
+      const members2 = groups.get(group2!)!
+      const merged = new Set([...members1, ...members2])
+      groups.set(group1!, merged)
+      groups.delete(group2!)
+      for (const id of members2) {
+        idToGroup.set(id, group1!)
       }
     }
   }
 
-  const graphEntries = Array.from(graph.entries())
-  for (const [node] of graphEntries) {
-    if (!visited.has(node)) {
-      const group: string[] = []
-      dfs(node, group)
-
-      if (group.length >= 2) {
-        // 그룹 평균 점수 계산
-        const scores = duplicates
-          .filter(d =>
-            group.includes(d.originalId) && group.includes(d.duplicateId)
-          )
-          .map(d => d.similarityScore)
-
-        const avgScore = scores.length > 0
-          ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
-          : 0
-
-        groups.push({ ids: group, score: avgScore })
-      }
-    }
-  }
-
-  // 점수 높은 순으로 정렬
-  return groups.sort((a, b) => b.score - a.score)
+  // 그룹을 배열로 변환
+  return Array.from(groups.values()).map(ids => ({
+    ids: Array.from(ids),
+    titles: [],
+    count: ids.size,
+  }))
 }
