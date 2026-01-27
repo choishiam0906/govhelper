@@ -1,7 +1,10 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+'use client'
+
+import { useEffect } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   Search,
   TrendingUp,
@@ -14,12 +17,20 @@ import {
   BarChart3,
   Clock,
   Award,
-} from "lucide-react";
-import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section";
-import { NewsletterForm } from "@/components/newsletter/newsletter-form";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+} from "lucide-react"
+import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section"
+import { NewsletterForm } from "@/components/newsletter/newsletter-form"
+import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { FUNNEL_EVENTS, trackFunnelEvent } from "@/lib/analytics/events"
 
 export default function Home() {
+  useEffect(() => {
+    // 랜딩 페이지 조회 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.LANDING_VIEW, {
+      page_title: 'GovHelper - 정부지원금 AI 매칭',
+    })
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background dark:from-background dark:to-muted/20">
       {/* Header */}

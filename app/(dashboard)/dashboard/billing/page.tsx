@@ -7,6 +7,7 @@ import { CreditCard, Calendar, Crown, AlertTriangle, Building2, Mail } from 'luc
 import { PAYMENT_PRICES } from '@/lib/payments'
 import { PricingCard } from '@/components/billing/pricing-card'
 import { PLAN_INFO, PlanType } from '@/lib/queries/dashboard'
+import { BillingPageClient } from '@/components/billing/billing-page-client'
 
 // 계좌 정보
 const BANK_ACCOUNT = {
@@ -83,7 +84,9 @@ export default async function BillingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <BillingPageClient currentPlan={currentPlan} />
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">결제 및 구독</h1>
         <p className="text-muted-foreground mt-1">
@@ -334,5 +337,6 @@ export default async function BillingPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }

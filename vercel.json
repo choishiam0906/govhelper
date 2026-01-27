@@ -50,6 +50,9 @@
     },
     "app/api/notifications/send-recommendations/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/notifications/retargeting/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -132,6 +135,10 @@
     {
       "path": "/api/notifications/send-recommendations",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/notifications/retargeting",
+      "schedule": "0 0 * * *"
     }
   ]
 }

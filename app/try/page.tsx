@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useUTM } from '@/lib/hooks/use-utm'
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
 
 // 업종 목록
 const INDUSTRIES = [
@@ -157,6 +158,50 @@ export default function TryPage() {
 
   const progress = ((step - 1) / 3) * 100
 
+  // 페이지 로드 시 시작 이벤트 및 Step 1 시작 이벤트
+  useEffect(() => {
+    // 비회원 매칭 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_START, {
+      page_title: '무료 매칭 분석',
+    })
+    // Step 1 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_1_START, {
+      step: 1,
+      step_name: '사업자번호 입력',
+    })
+  }, [])
+
+  // Step 변경 시 Step별 시작 이벤트
+  useEffect(() => {
+    if (step === 2) {
+      trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_2_START, {
+        step: 2,
+        step_name: '기업정보 입력',
+      })
+    } else if (step === 3) {
+      trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_3_START, {
+        step: 3,
+        step_name: '이메일 입력',
+      })
+    }
+  }, [step])
+
+  // 페이지 이탈 시 포기 이벤트 (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (step < 4) {
+        trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_ABANDON, {
+          abandoned_step: step,
+          abandoned_step_name: step === 1 ? '사업자번호 입력' : step === 2 ? '기업정보 입력' : '이메일 입력',
+          time_on_step: Date.now(), // 실제로는 step 시작 시간과의 차이를 계산해야 하지만 간단히 현재 시간 기록
+        })
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [step])
+
   const updateFormData = (key: keyof FormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [key]: value }))
   }
@@ -256,6 +301,19 @@ export default function TryPage() {
       return
     }
 
+    // Step 1 완료 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_1_COMPLETE, {
+      step: 1,
+      has_business_number: bizNum.length === 10,
+      business_lookup_success: lookupResult?.success || false,
+    })
+
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP, {
+      step: 2,
+      step_name: '기업 정보 입력',
+      has_business_number: bizNum.length === 10,
+    })
+
     setStep(2)
   }
 
@@ -263,6 +321,21 @@ export default function TryPage() {
   const handleSkipBusinessNumber = () => {
     setSkipBusinessNumber(true)
     setLookupResult(null)
+
+    // Step 1 완료 이벤트 (스킵)
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_1_COMPLETE, {
+      step: 1,
+      has_business_number: false,
+      skipped: true,
+    })
+
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP, {
+      step: 2,
+      step_name: '기업 정보 입력',
+      has_business_number: false,
+      skipped: true,
+    })
+
     setStep(2)
   }
 
@@ -284,6 +357,26 @@ export default function TryPage() {
       toast.error('소재지를 선택해주세요')
       return
     }
+
+    // Step 2 완료 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_2_COMPLETE, {
+      step: 2,
+      industry: formData.industry,
+      employee_count: parseInt(formData.employeeCount) || 0,
+      location: formData.location,
+      has_annual_revenue: !!formData.annualRevenue,
+      has_founded_date: !!formData.foundedDate,
+      certifications_count: formData.certifications.length,
+    })
+
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP, {
+      step: 3,
+      step_name: '이메일 입력',
+      industry: formData.industry,
+      employee_count: formData.employeeCount,
+      location: formData.location,
+    })
+
     setStep(3)
   }
 
@@ -293,6 +386,12 @@ export default function TryPage() {
       toast.error('올바른 이메일을 입력해주세요')
       return
     }
+
+    // Step 3 완료 이벤트 (분석 요청 전)
+    trackFunnelEvent(FUNNEL_EVENTS.TRY_STEP_3_COMPLETE, {
+      step: 3,
+      email_domain: formData.email.split('@')[1],
+    })
 
     setStep(4)
     setLoading(true)
@@ -317,6 +416,14 @@ export default function TryPage() {
       const result = await response.json()
 
       if (result.success) {
+        // 비회원 매칭 완료 이벤트
+        trackFunnelEvent(FUNNEL_EVENTS.TRY_COMPLETE, {
+          email_domain: formData.email.split('@')[1],
+          industry: formData.industry,
+          location: formData.location,
+          match_count: result.data.matchCount || 0,
+        })
+
         router.push(`/try/result/${result.data.resultId}`)
       } else {
         toast.error(result.error || '분석 중 오류가 발생했어요')

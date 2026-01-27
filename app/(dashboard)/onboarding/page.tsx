@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
 
 // 통합 기업정보 조회 결과 타입
 interface UnifiedBusinessInfo {
@@ -219,6 +220,13 @@ export default function OnboardingPage() {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    // 온보딩 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.ONBOARDING_START, {
+      page_title: '기업 정보 등록',
+    })
+  }, [])
+
   const {
     register,
     handleSubmit,
@@ -403,6 +411,13 @@ export default function OnboardingPage() {
       if (!result.success) {
         throw new Error(result.error || '저장하지 못했어요')
       }
+
+      // 온보딩 완료 이벤트
+      trackFunnelEvent(FUNNEL_EVENTS.ONBOARDING_COMPLETE, {
+        has_business_number: !!data.businessNumber,
+        is_registered: data.isRegisteredBusiness,
+        requires_approval: result.requiresApproval,
+      })
 
       toast.success(result.message)
 

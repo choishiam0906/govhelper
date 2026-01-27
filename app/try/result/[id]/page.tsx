@@ -23,6 +23,7 @@ import {
   Star
 } from 'lucide-react'
 import Link from 'next/link'
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
 
 interface MatchResult {
   rank: number
@@ -63,6 +64,21 @@ export default function ResultPage() {
   useEffect(() => {
     fetchResult()
   }, [params.id])
+
+  // 결과 페이지 조회 이벤트 (데이터 로드 후)
+  useEffect(() => {
+    if (data) {
+      trackFunnelEvent(FUNNEL_EVENTS.TRY_RESULT_VIEW, {
+        result_id: data.id,
+        match_count: data.matches.length,
+        top_score: data.matches[0]?.score || 0,
+        blurred_count: data.matches.filter(m => m.blurred).length,
+        visible_count: data.matches.filter(m => !m.blurred).length,
+        company_industry: data.company.industry,
+        company_location: data.company.location,
+      })
+    }
+  }, [data])
 
   const fetchResult = async () => {
     try {
@@ -170,7 +186,15 @@ export default function ResultPage() {
             </div>
             <span className="font-bold text-xl">GovHelper</span>
           </Link>
-          <Button size="sm" asChild>
+          <Button
+            size="sm"
+            asChild
+            onClick={() => {
+              trackFunnelEvent(FUNNEL_EVENTS.TRY_SIGNUP_CLICK, {
+                source: 'header',
+              })
+            }}
+          >
             <Link href="/register">회원가입</Link>
           </Button>
         </div>
@@ -236,7 +260,17 @@ export default function ResultPage() {
                       <p className="text-center text-sm text-muted-foreground mb-4">
                         매칭률 <span className={`font-bold ${getScoreColor(match.score)}`}>{match.score}점</span>
                       </p>
-                      <Button size="sm" asChild>
+                      <Button
+                        size="sm"
+                        asChild
+                        onClick={() => {
+                          trackFunnelEvent(FUNNEL_EVENTS.TRY_SIGNUP_CLICK, {
+                            source: 'blurred_card',
+                            rank: match.rank,
+                            score: match.score,
+                          })
+                        }}
+                      >
                         <Link href="/register">
                           회원가입하고 확인하기
                           <ArrowRight className="h-4 w-4 ml-1" />
@@ -384,7 +418,16 @@ export default function ResultPage() {
               회원가입하시면 1위 지원사업까지 확인할 수 있어요
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button variant="secondary" size="lg" asChild>
+              <Button
+                variant="secondary"
+                size="lg"
+                asChild
+                onClick={() => {
+                  trackFunnelEvent(FUNNEL_EVENTS.TRY_SIGNUP_CLICK, {
+                    source: 'cta_card',
+                  })
+                }}
+              >
                 <Link href="/register">
                   무료 회원가입
                   <ArrowRight className="h-4 w-4 ml-2" />

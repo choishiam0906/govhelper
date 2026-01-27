@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { FUNNEL_EVENTS, trackFunnelEvent } from "@/lib/analytics/events"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -16,6 +17,13 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // 회원가입 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_START, {
+      page_title: '회원가입',
+    })
+  }, [])
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +55,12 @@ export default function RegisterPage() {
         return
       }
 
+      // 회원가입 완료 이벤트
+      trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_COMPLETE, {
+        method: 'email',
+        email_domain: email.split('@')[1],
+      })
+
       toast.success("인증 이메일을 보냈어요. 이메일을 확인해 주세요")
       router.push("/login")
     } catch (error) {
@@ -57,6 +71,11 @@ export default function RegisterPage() {
   }
 
   const handleGoogleLogin = async () => {
+    // Google 회원가입 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_START, {
+      method: 'google',
+    })
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -71,6 +90,11 @@ export default function RegisterPage() {
   }
 
   const handleKakaoLogin = async () => {
+    // 카카오 회원가입 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.SIGNUP_START, {
+      method: 'kakao',
+    })
+
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",

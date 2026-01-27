@@ -71,7 +71,8 @@ export function SemanticSearch() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [searchType, setSearchType] = useState<'semantic' | 'keyword'>('semantic')
+  const [searchType, setSearchType] = useState<'semantic' | 'keyword' | 'hybrid'>('hybrid')
+  const [useHybrid, setUseHybrid] = useState(true)
 
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -90,6 +91,7 @@ export function SemanticSearch() {
           query: query.trim(),
           matchThreshold: 0.4,
           matchCount: 20,
+          hybrid: useHybrid,
           filters: {
             excludeExpired: true,
           },
@@ -135,10 +137,25 @@ export function SemanticSearch() {
   return (
     <div className="space-y-6">
       {/* AI 검색 헤더 */}
-      <div className="flex items-center gap-2 text-primary">
-        <Sparkles className="w-5 h-5" />
-        <span className="font-medium">AI 시맨틱 검색</span>
-        <Badge variant="secondary" className="text-xs">Beta</Badge>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-primary">
+          <Sparkles className="w-5 h-5" />
+          <span className="font-medium">AI 시맨틱 검색</span>
+          <Badge variant="secondary" className="text-xs">Beta</Badge>
+        </div>
+
+        {/* 하이브리드 검색 토글 */}
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={useHybrid}
+            onChange={(e) => setUseHybrid(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300"
+          />
+          <span className="text-muted-foreground">
+            하이브리드 검색 (벡터 + 키워드)
+          </span>
+        </label>
       </div>
 
       {/* 검색창 */}
@@ -220,7 +237,11 @@ export function SemanticSearch() {
             </p>
             {results.length > 0 && (
               <Badge variant="outline">
-                {searchType === 'semantic' ? 'AI 시맨틱 검색' : '키워드 검색'}
+                {searchType === 'hybrid'
+                  ? '하이브리드 검색 (벡터+키워드)'
+                  : searchType === 'semantic'
+                  ? 'AI 시맨틱 검색'
+                  : '키워드 검색'}
               </Badge>
             )}
           </div>

@@ -184,6 +184,160 @@ export const ELIGIBILITY_FEW_SHOT_EXAMPLES = `
   "summary": "경남 소재 중소·중견기업, 직원 10인 이상, 이노비즈/메인비즈 필수",
   "confidence": 0.92
 }
+
+---
+
+## 예시 4: 수출/해외진출 지원사업
+
+### 공고 내용
+"2024년 중소기업 수출지원 프로그램. 지원 대상: 제조업/IT서비스업 중소기업, 최근 3년간 수출 실적 보유, 전체 매출 중 수출 비중 30% 이상, 직원수 30인 이상, 연매출 300억 이하. 수출유망중소기업 인증 보유 우대."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업"],
+  "employeeCount": { "min": 30, "max": null, "description": "직원수 30인 이상" },
+  "revenue": { "min": null, "max": 30000000000, "description": "연매출 300억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": ["제조업", "IT서비스업"], "excluded": [], "description": "제조업, IT서비스업" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": [],
+  "additionalRequirements": ["최근 3년간 수출 실적 보유", "전체 매출 중 수출 비중 30% 이상", "수출유망중소기업 인증 보유 우대 (필수 아님)"],
+  "exclusions": [],
+  "summary": "제조업/IT서비스업 중소기업, 수출 실적 및 수출 비중 30% 이상",
+  "confidence": 0.88
+}
+
+---
+
+## 예시 5: 고용/일자리 지원사업
+
+### 공고 내용
+"2024년 신규 고용 창출 지원사업. 지원 대상: 중소기업, 최근 6개월 내 정규직 신규 채용 3명 이상, 고용보험 가입 기업, 연매출 100억 이하. 청년(만 39세 이하) 채용 시 가점. 고용유지 의무 2년."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업"],
+  "employeeCount": { "min": null, "max": null, "description": "직원수 제한 없음" },
+  "revenue": { "min": null, "max": 10000000000, "description": "연매출 100억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": [], "excluded": [], "description": "업종 제한 없음" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": [],
+  "additionalRequirements": ["최근 6개월 내 정규직 신규 채용 3명 이상", "고용보험 가입 기업", "청년(만 39세 이하) 채용 시 가점", "고용유지 의무 2년"],
+  "exclusions": [],
+  "summary": "중소기업 대상, 신규 정규직 채용 3명 이상, 고용유지 의무 2년",
+  "confidence": 0.90
+}
+
+---
+
+## 예시 6: 소상공인 지원사업
+
+### 공고 내용
+"2024년 소상공인 경영 안정화 지원. 지원 대상: 상시근로자 5인 미만 소상공인, 연매출 8천만원 이상 10억 이하, 업력 1년 이상, 도소매업·음식점업·서비스업 가능. 프랜차이즈 가맹점은 제외."
+
+### 올바른 출력
+{
+  "companyTypes": ["소상공인"],
+  "employeeCount": { "min": null, "max": 4, "description": "상시근로자 5인 미만" },
+  "revenue": { "min": 80000000, "max": 1000000000, "description": "연매출 8천만원 이상 10억 이하" },
+  "businessAge": { "min": 1, "max": null, "description": "업력 1년 이상" },
+  "industries": { "included": ["도소매업", "음식점업", "서비스업"], "excluded": [], "description": "도소매업, 음식점업, 서비스업" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": [],
+  "additionalRequirements": [],
+  "exclusions": ["프랜차이즈 가맹점"],
+  "summary": "소상공인 대상, 상시근로자 5인 미만, 연매출 8천만~10억",
+  "confidence": 0.93
+}
+
+---
+
+## 예시 7: 환경/ESG 지원사업
+
+### 공고 내용
+"2024년 탄소중립 실천 기업 지원사업. 지원 대상: 제조업 중소기업, 녹색기업 인증 또는 환경경영시스템(ISO 14001) 인증 보유, 연매출 500억 이하, 직원수 50인 이상. 최근 2년간 온실가스 배출량 감축 실적 필수."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업"],
+  "employeeCount": { "min": 50, "max": null, "description": "직원수 50인 이상" },
+  "revenue": { "min": null, "max": 50000000000, "description": "연매출 500억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": ["제조업"], "excluded": [], "description": "제조업" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": ["녹색기업 인증", "ISO 14001"],
+  "additionalRequirements": ["최근 2년간 온실가스 배출량 감축 실적 필수"],
+  "exclusions": [],
+  "summary": "제조업 중소기업, 녹색기업/ISO 14001 인증, 온실가스 감축 실적 필수",
+  "confidence": 0.91
+}
+
+---
+
+## 예시 8: 농식품/6차산업 지원사업
+
+### 공고 내용
+"2024년 농식품 기업 육성 지원사업. 지원 대상: 농업법인 또는 식품제조업 중소기업, 식품제조가공업 허가 보유, 직원수 10인 이상, 연매출 50억 이하, HACCP 인증 보유 우대. 도시 지역 소재 기업은 제외."
+
+### 올바른 출력
+{
+  "companyTypes": ["농업법인", "중소기업"],
+  "employeeCount": { "min": 10, "max": null, "description": "직원수 10인 이상" },
+  "revenue": { "min": null, "max": 5000000000, "description": "연매출 50억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": ["식품제조업"], "excluded": [], "description": "식품제조업" },
+  "regions": { "included": [], "excluded": ["서울", "부산", "대구", "인천", "광주", "대전", "울산"], "description": "도시 지역 제외" },
+  "requiredCertifications": [],
+  "additionalRequirements": ["식품제조가공업 허가 보유", "HACCP 인증 보유 우대 (필수 아님)"],
+  "exclusions": ["도시 지역 소재 기업"],
+  "summary": "농업법인/식품제조업 중소기업, 식품제조가공업 허가 필수",
+  "confidence": 0.89
+}
+
+---
+
+## 예시 9: 여성/청년 특화 지원사업
+
+### 공고 내용
+"2024년 여성기업 R&D 지원사업. 지원 대상: 여성기업 인증 보유 기업, 대표자 만 19세 이상, 창업 7년 이내, 직원수 제한 없음, 연매출 30억 이하. IT·바이오·문화콘텐츠 분야 가능."
+
+### 올바른 출력
+{
+  "companyTypes": ["여성기업"],
+  "employeeCount": { "min": null, "max": null, "description": "직원수 제한 없음" },
+  "revenue": { "min": null, "max": 3000000000, "description": "연매출 30억 이하" },
+  "businessAge": { "min": null, "max": 7, "description": "창업 7년 이내" },
+  "industries": { "included": ["IT", "바이오", "문화콘텐츠"], "excluded": [], "description": "IT, 바이오, 문화콘텐츠" },
+  "regions": { "included": ["전국"], "excluded": [], "description": "전국 (지역 제한 없음)" },
+  "requiredCertifications": ["여성기업 인증"],
+  "additionalRequirements": ["대표자 만 19세 이상"],
+  "exclusions": [],
+  "summary": "여성기업 인증 필수, 창업 7년 이내, IT/바이오/문화콘텐츠",
+  "confidence": 0.94
+}
+
+---
+
+## 예시 10: 디지털 전환 지원사업
+
+### 공고 내용
+"2024년 제조업 스마트공장 구축 지원사업. 지원 대상: 제조업 중소기업, 직원수 20인 이상 300인 미만, 연매출 100억 이상 1,000억 이하, 스마트공장 기초 또는 중간 수준 구축 이력 보유. 비제조업 및 수도권 과밀억제권역 기업 제외."
+
+### 올바른 출력
+{
+  "companyTypes": ["중소기업"],
+  "employeeCount": { "min": 20, "max": 299, "description": "직원수 20인 이상 300인 미만" },
+  "revenue": { "min": 10000000000, "max": 100000000000, "description": "연매출 100억 이상 1,000억 이하" },
+  "businessAge": { "min": null, "max": null, "description": "업력 제한 없음" },
+  "industries": { "included": ["제조업"], "excluded": ["비제조업"], "description": "제조업 (비제조업 제외)" },
+  "regions": { "included": [], "excluded": ["서울", "인천", "경기일부"], "description": "수도권 과밀억제권역 제외" },
+  "requiredCertifications": [],
+  "additionalRequirements": ["스마트공장 기초 또는 중간 수준 구축 이력 보유"],
+  "exclusions": ["비제조업", "수도권 과밀억제권역 기업"],
+  "summary": "제조업 중소기업, 직원 20~299인, 연매출 100억~1,000억, 스마트공장 이력 필수",
+  "confidence": 0.87
+}
 `
 
 export const ELIGIBILITY_PARSING_PROMPT = (

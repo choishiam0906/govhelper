@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
 
 type Plan = 'proMonthly' | 'proYearly' | 'premiumMonthly' | 'premiumYearly'
 
@@ -51,6 +52,14 @@ function CheckoutContent() {
   // 현재 선택된 플랜이 Premium인지 확인
   const isCurrentPlanPremium = plan === 'premiumMonthly' || plan === 'premiumYearly'
 
+  useEffect(() => {
+    // 구독 결제 페이지 조회 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.SUBSCRIPTION_VIEW, {
+      page_title: '구독 결제',
+      plan: planParam || 'unknown',
+    })
+  }, [planParam])
+
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('ko-KR').format(amount)
   }
@@ -66,6 +75,13 @@ function CheckoutContent() {
       toast.error('입금자명을 입력해주세요')
       return
     }
+
+    // 구독 시작 이벤트
+    trackFunnelEvent(FUNNEL_EVENTS.SUBSCRIPTION_START, {
+      plan: plan,
+      payment_method: 'bank_transfer',
+      amount: PAYMENT_PRICES[plan],
+    })
 
     setLoading(true)
     try {
@@ -83,6 +99,14 @@ function CheckoutContent() {
       if (!result.success) {
         throw new Error(result.error || '결제 요청에 실패했습니다')
       }
+
+      // 구독 완료 이벤트 (입금 신청 완료)
+      trackFunnelEvent(FUNNEL_EVENTS.SUBSCRIPTION_COMPLETE, {
+        plan: plan,
+        payment_method: 'bank_transfer',
+        amount: PAYMENT_PRICES[plan],
+        payment_id: result.data.paymentId,
+      })
 
       setPaymentInfo(result.data)
       setIsCompleted(true)

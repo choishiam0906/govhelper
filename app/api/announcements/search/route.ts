@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateEmbedding } from '@/lib/ai/gemini'
 import { getRagEmbeddingCache, setRagEmbeddingCache } from '@/lib/cache'
+import { hybridSearch, vectorSearchOnly } from '@/lib/search'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest) {
       matchThreshold = 0.5,
       matchCount = 20,
       filters = {},
+      hybrid = false, // 하이브리드 검색 활성화 플래그
     } = body
 
     if (!query || query.trim().length < 2) {
@@ -28,6 +30,51 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // 하이브리드 검색 사용
+    if (hybrid) {
+      try {
+        const result = await hybridSearch(query, {
+          limit: matchCount,
+          matchThreshold,
+          k: 60,
+        })
+
+        // 필터 적용 (소스, 카테고리 등)
+        let filteredResults = result.results
+
+        if (filters.source) {
+          filteredResults = filteredResults.filter((r) => r.source === filters.source)
+        }
+
+        if (filters.category) {
+          filteredResults = filteredResults.filter((r) => r.category === filters.category)
+        }
+
+        // 마감되지 않은 공고만
+        if (filters.excludeExpired) {
+          const today = new Date().toISOString().split('T')[0]
+          filteredResults = filteredResults.filter((r) =>
+            !r.application_end || r.application_end >= today
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: filteredResults,
+          meta: {
+            ...result.meta,
+            totalResults: filteredResults.length,
+            filters,
+          },
+        })
+      } catch (error) {
+        console.error('Hybrid search error:', error)
+        // 하이브리드 검색 실패 시 키워드 검색으로 폴백
+        return fallbackSearch(supabase, query, filters, matchCount)
+      }
+    }
+
+    // 기존 벡터 검색 로직 (hybrid=false)
     // 검색어를 임베딩으로 변환 (캐시 우선 조회)
     let queryEmbedding = await getRagEmbeddingCache(query)
     let embeddingFromCache = false
