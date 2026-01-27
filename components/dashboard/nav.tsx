@@ -100,30 +100,35 @@ export function DashboardNav({ userEmail }: DashboardNavProps) {
   const isAdmin = userEmail && ADMIN_EMAILS.includes(userEmail)
 
   return (
-    <nav className="hidden lg:flex flex-col w-64 min-w-[256px] flex-shrink-0 border-r bg-card min-h-[calc(100vh-64px)] p-4">
+    <nav className="hidden lg:flex flex-col w-64 min-w-[256px] flex-shrink-0 border-r bg-card min-h-[calc(100vh-64px)] p-4" role="navigation" aria-label="주요 메뉴">
       <div className="space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors whitespace-nowrap",
-              pathname === item.href
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.title}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors whitespace-nowrap",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <item.icon className="h-4 w-4" aria-hidden="true" />
+              {item.title}
+            </Link>
+          )
+        })}
 
         {/* 관리자 메뉴 */}
         {isAdmin && (
           <>
-            <div className="my-4 border-t" />
+            <div className="my-4 border-t" role="separator" aria-label="관리자 메뉴 구분선" />
             <Link
               href="/admin/payments"
+              aria-current={pathname === "/admin/payments" ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors whitespace-nowrap",
                 pathname === "/admin/payments"
@@ -131,7 +136,7 @@ export function DashboardNav({ userEmail }: DashboardNavProps) {
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Shield className="h-4 w-4" />
+              <Shield className="h-4 w-4" aria-hidden="true" />
               관리자 페이지
             </Link>
           </>

@@ -21,11 +21,14 @@ function DropdownMenuPortal({
 }
 
 function DropdownMenuTrigger({
+  "aria-label": ariaLabel,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      aria-label={ariaLabel}
+      aria-haspopup="menu"
       {...props}
     />
   )

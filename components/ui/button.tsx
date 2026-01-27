@@ -41,6 +41,8 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  children,
+  "aria-label": ariaLabel,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
@@ -48,14 +50,27 @@ function Button({
   }) {
   const Comp = asChild ? Slot : "button"
 
+  // 아이콘만 있는 버튼(children이 없거나 SVG만 있음) 감지
+  const hasOnlyIcon = size?.includes("icon") || (
+    React.Children.count(children) === 1 &&
+    React.isValidElement(children) &&
+    typeof children.type !== "string"
+  )
+
+  // aria-label이 없고 아이콘만 있는 경우 경고
+  const needsAriaLabel = hasOnlyIcon && !ariaLabel && !props["aria-labelledby"]
+
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      aria-label={ariaLabel}
       {...props}
-    />
+    >
+      {children}
+    </Comp>
   )
 }
 

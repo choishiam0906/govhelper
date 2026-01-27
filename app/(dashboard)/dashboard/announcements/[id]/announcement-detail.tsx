@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import DOMPurify from 'isomorphic-dompurify'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -297,7 +298,18 @@ export function AnnouncementDetail({
   }
 
   const sourceUrl = extractSourceUrl(announcement.parsed_content || announcement.content)
-  const cleanedContent = removeSourceUrlFromContent(announcement.parsed_content || announcement.content)
+  const rawContent = removeSourceUrlFromContent(announcement.parsed_content || announcement.content)
+
+  // XSS 방지를 위한 HTML sanitization
+  const cleanedContent = useMemo(() => {
+    if (!rawContent) return null
+    return DOMPurify.sanitize(rawContent, {
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'b', 'i', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                     'ul', 'ol', 'li', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class', 'style'],
+      ALLOW_DATA_ATTR: false,
+    })
+  }, [rawContent])
 
   return (
     <div className="space-y-6">

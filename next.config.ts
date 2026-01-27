@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
+import bundleAnalyzer from "@next/bundle-analyzer";
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 const nextConfig: NextConfig = {
   // Turbopack 설정 (빈 객체로 설정하여 Turbopack 사용)
@@ -76,4 +81,5 @@ const sentryWebpackPluginOptions = {
   tunnelRoute: "/monitoring",
 };
 
-export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);
+// Bundle Analyzer와 Sentry를 함께 적용
+export default withSentryConfig(withBundleAnalyzer(nextConfig), sentryWebpackPluginOptions);

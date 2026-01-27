@@ -5,19 +5,14 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2, CheckCircle, XCircle, Search } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+
+// 분할된 컴포넌트 임포트
+import { CompanyFormBasic } from './CompanyFormBasic'
+import { CompanyFormDetails } from './CompanyFormDetails'
+import { CompanyFormCertifications } from './CompanyFormCertifications'
 
 // 통합 기업정보 조회 결과 타입
 interface UnifiedBusinessInfo {
@@ -66,51 +61,6 @@ const companyFormSchema = z.object({
 })
 
 type CompanyFormData = z.infer<typeof companyFormSchema>
-
-// 업종 목록
-const industries = [
-  { value: 'software', label: 'SW 개발' },
-  { value: 'ai', label: 'AI/빅데이터' },
-  { value: 'biotech', label: '바이오/의료' },
-  { value: 'manufacturing', label: '제조업' },
-  { value: 'commerce', label: '유통/커머스' },
-  { value: 'fintech', label: '핀테크' },
-  { value: 'contents', label: '콘텐츠/미디어' },
-  { value: 'education', label: '에듀테크' },
-  { value: 'energy', label: '에너지/환경' },
-  { value: 'other', label: '기타' },
-]
-
-// 지역 목록
-const locations = [
-  { value: 'seoul', label: '서울' },
-  { value: 'gyeonggi', label: '경기' },
-  { value: 'incheon', label: '인천' },
-  { value: 'busan', label: '부산' },
-  { value: 'daegu', label: '대구' },
-  { value: 'daejeon', label: '대전' },
-  { value: 'gwangju', label: '광주' },
-  { value: 'ulsan', label: '울산' },
-  { value: 'sejong', label: '세종' },
-  { value: 'gangwon', label: '강원' },
-  { value: 'chungbuk', label: '충북' },
-  { value: 'chungnam', label: '충남' },
-  { value: 'jeonbuk', label: '전북' },
-  { value: 'jeonnam', label: '전남' },
-  { value: 'gyeongbuk', label: '경북' },
-  { value: 'gyeongnam', label: '경남' },
-  { value: 'jeju', label: '제주' },
-]
-
-// 인증 목록
-const certificationOptions = [
-  { value: 'venture', label: '벤처기업' },
-  { value: 'innobiz', label: '이노비즈' },
-  { value: 'mainbiz', label: '메인비즈' },
-  { value: 'womanEnterprise', label: '여성기업' },
-  { value: 'socialEnterprise', label: '사회적기업' },
-  { value: 'researchInstitute', label: '기업부설연구소' },
-]
 
 // 지역명 → 영문 코드 매핑
 const locationMapping: Record<string, string> = {
@@ -366,205 +316,55 @@ export function CompanyForm({ initialData, onSuccess, mode = 'create' }: Company
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* 기본 정보 */}
       <Card>
         <CardHeader>
           <CardTitle>기본 정보</CardTitle>
           <CardDescription>기업의 기본 정보를 입력해 주세요</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 기업명 */}
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              기업명 <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="name"
-              placeholder="기업명"
-              {...register('name')}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
-          </div>
-
-          {/* 사업자등록번호 */}
-          <div className="space-y-2">
-            <Label htmlFor="businessNumber">사업자등록번호</Label>
-            <div className="flex gap-2">
-              <Input
-                id="businessNumber"
-                placeholder="000-00-00000"
-                {...register('businessNumber')}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={verifyBusinessNumber}
-                disabled={verifying}
-              >
-                {verifying ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                <span className="ml-1">조회</span>
-              </Button>
-            </div>
-            {lookupResult && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">
-                    {lookupResult.companyName || '기업 정보 확인됨'}
-                  </span>
-                  {lookupResult.corporationType && lookupResult.corporationType !== '알 수 없음' && (
-                    <Badge variant="outline" className="text-xs bg-white">
-                      {lookupResult.corporationType}
-                    </Badge>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
-                  {lookupResult.ceoName && (
-                    <div>대표자: {lookupResult.ceoName}</div>
-                  )}
-                  {lookupResult.businessType && (
-                    <div>업태: {lookupResult.businessType}</div>
-                  )}
-                  {lookupResult.industryName && (
-                    <div>종목: {lookupResult.industryName}</div>
-                  )}
-                  {lookupResult.companySize && lookupResult.companySize !== '알 수 없음' && (
-                    <div>규모: {lookupResult.companySize}</div>
-                  )}
-                  {lookupResult.ntsStatus && (
-                    <div>상태: {lookupResult.ntsStatus}</div>
-                  )}
-                  {lookupResult.taxType && (
-                    <div>과세유형: {lookupResult.taxType}</div>
-                  )}
-                </div>
-                {lookupResult.sources && lookupResult.sources.length > 0 && (
-                  <div className="flex items-center gap-1 pt-1 border-t border-green-200">
-                    <span className="text-xs text-green-600">출처:</span>
-                    {lookupResult.sources.map((source) => (
-                      <Badge key={source} variant="secondary" className="text-xs">
-                        {source.toUpperCase()}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {lookupError && (
-              <div className="flex items-center gap-2 mt-2">
-                <XCircle className="h-4 w-4 text-red-500" />
-                <span className="text-sm text-red-500">
-                  {lookupError}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* 업종 */}
-          <div className="space-y-2">
-            <Label>업종</Label>
-            <Select
-              value={watch('industry') || ''}
-              onValueChange={(value) => setValue('industry', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="업종 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {industries.map((industry) => (
-                  <SelectItem key={industry.value} value={industry.value}>
-                    {industry.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 설립일 & 직원수 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="foundedDate">설립일</Label>
-              <Input
-                id="foundedDate"
-                type="date"
-                {...register('foundedDate')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="employeeCount">직원 수</Label>
-              <Input
-                id="employeeCount"
-                type="number"
-                placeholder="0"
-                {...register('employeeCount')}
-              />
-            </div>
-          </div>
-
-          {/* 소재지 */}
-          <div className="space-y-2">
-            <Label>소재지</Label>
-            <Select
-              value={watch('location') || ''}
-              onValueChange={(value) => setValue('location', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="지역 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location.value} value={location.value}>
-                    {location.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 연 매출 */}
-          <div className="space-y-2">
-            <Label htmlFor="annualRevenue">연 매출 (만원)</Label>
-            <Input
-              id="annualRevenue"
-              type="text"
-              placeholder="예: 50000 (5억원)"
-              {...register('annualRevenue')}
-            />
-          </div>
+        <CardContent>
+          <CompanyFormBasic
+            register={register}
+            errors={errors}
+            watch={watch}
+            verifying={verifying}
+            lookupResult={lookupResult}
+            lookupError={lookupError}
+            onVerify={verifyBusinessNumber}
+          />
         </CardContent>
       </Card>
 
+      {/* 상세 정보 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>상세 정보</CardTitle>
+          <CardDescription>업종, 직원수, 소재지 등을 입력해 주세요</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CompanyFormDetails
+            register={register}
+            setValue={setValue}
+            watch={watch}
+          />
+        </CardContent>
+      </Card>
+
+      {/* 보유 인증 */}
       <Card>
         <CardHeader>
           <CardTitle>보유 인증</CardTitle>
           <CardDescription>보유하고 있는 인증을 선택해주세요</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {certificationOptions.map((cert) => (
-              <button
-                key={cert.value}
-                type="button"
-                onClick={() => toggleCertification(cert.value)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCertifications.includes(cert.value)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted hover:bg-muted/80'
-                }`}
-              >
-                {cert.label}
-              </button>
-            ))}
-          </div>
+          <CompanyFormCertifications
+            selectedCertifications={selectedCertifications}
+            onToggle={toggleCertification}
+          />
         </CardContent>
       </Card>
 
+      {/* 제출 버튼 */}
       <div className="flex justify-end">
         <Button type="submit" disabled={loading} size="lg">
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

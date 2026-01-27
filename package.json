@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "analyze": "ANALYZE=true next build",
+    "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server next build",
+    "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser next build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -49,6 +52,7 @@
     "groq-sdk": "^0.37.0",
     "html2canvas": "^1.4.1",
     "hwp.js": "^0.0.3",
+    "isomorphic-dompurify": "^2.35.0",
     "jspdf": "^4.0.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
@@ -70,11 +74,13 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.1.5",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/adm-zip": "^0.5.7",
+    "@types/dompurify": "^3.0.5",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",

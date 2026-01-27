@@ -43,7 +43,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
       <div className="flex h-16 items-center px-4 lg:px-6">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden">
+            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="메뉴 열기">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -52,21 +52,21 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </SheetContent>
         </Sheet>
 
-        <Link href="/dashboard" className="flex items-center gap-2 ml-2 lg:ml-0">
+        <Link href="/dashboard" className="flex items-center gap-2 ml-2 lg:ml-0" aria-label="GovHelper 홈으로 이동">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">G</span>
           </div>
           <span className="font-bold text-xl hidden sm:inline">GovHelper</span>
         </Link>
 
-        <div className="ml-auto flex items-center gap-2">
+        <nav className="ml-auto flex items-center gap-2" role="navigation" aria-label="사용자 메뉴">
           <ThemeToggle />
           <NotificationCenter />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full" aria-label="사용자 메뉴 열기">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={user.user_metadata?.avatar_url} />
+                  <AvatarImage src={user.user_metadata?.avatar_url} alt={`${user.user_metadata?.full_name || "사용자"}의 프로필 사진`} />
                   <AvatarFallback>{getInitials(user.email || "U")}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -104,7 +104,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </nav>
       </div>
     </header>
   )

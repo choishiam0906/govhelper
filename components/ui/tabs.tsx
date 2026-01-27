@@ -20,11 +20,14 @@ function Tabs({
 
 function TabsList({
   className,
+  "aria-label": ariaLabel,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
+      role="tablist"
+      aria-label={ariaLabel || "탭 목록"}
       className={cn(
         "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
         className
