@@ -100,7 +100,6 @@ export async function POST(
           const contentJson = JSON.parse(application.content || '{}')
           const sectionName = contentJson.sections?.[validatedData.sectionIndex]?.section || ''
           companyContext = await getCompanyContextForApplication(supabase, companyData.id, sectionName)
-          console.log('[Improve] RAG context retrieved:', companyContext.length, 'chars')
         }
       } catch (ragError) {
         console.error('[Improve] RAG context error (continuing without):', ragError)

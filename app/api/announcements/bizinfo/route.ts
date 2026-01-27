@@ -99,8 +99,6 @@ export async function GET(request: NextRequest) {
 
     const apiUrl = `${BIZINFO_API_URL}?${params.toString()}`
 
-    console.log(`📡 기업마당 API 호출: page=${pageIndex}, limit=${pageUnit}`)
-
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {

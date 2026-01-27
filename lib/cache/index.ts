@@ -298,7 +298,6 @@ export async function invalidateAnnouncementsCache(): Promise<void> {
     // Upstash Redis에서는 SCAN을 사용한 패턴 삭제가 제한적이므로
     // 일반적으로 TTL에 의존하거나, 특정 키를 명시적으로 삭제
     // 여기서는 동기화 시 자연스럽게 5분 후 만료됨
-    console.log('[Cache] Announcements cache will expire in 5 minutes')
   } catch (error) {
     console.error('[Cache] Failed to invalidate announcements cache:', error)
   }

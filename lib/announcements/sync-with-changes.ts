@@ -80,7 +80,6 @@ export async function syncWithChangeDetection(
     )
 
     if (changes.length > 0) {
-      console.log(`📝 변경 감지: ${newAnn.title} (${changes.length}건)`)
 
       // 변경 사항 저장
       const { saved } = await saveChanges(supabase, changes)

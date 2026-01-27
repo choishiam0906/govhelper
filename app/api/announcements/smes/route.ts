@@ -61,7 +61,6 @@ export async function GET(request: NextRequest) {
     // 중소벤처24 API 호출
     const apiUrl = `${SMES_API_URL}?token=${SMES_API_TOKEN}&strDt=${startDate}&endDt=${endDate}`
 
-    console.log(`📡 SMES API 호출: ${startDate} ~ ${endDate}`)
 
     const response = await fetch(apiUrl, {
       method: 'GET',

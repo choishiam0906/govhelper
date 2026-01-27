@@ -78,7 +78,6 @@ export async function GET(request: NextRequest) {
 
     const apiUrl = `${KSTARTUP_API_URL}?${params.toString()}`
 
-    console.log(`📡 K-Startup API 호출: page=${page}, limit=${perPage}`)
 
     const response = await fetch(apiUrl, {
       method: 'GET',

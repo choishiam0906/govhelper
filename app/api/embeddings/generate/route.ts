@@ -117,7 +117,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`🔄 임베딩 생성 시작: ${announcementsToProcess.length}건 (병렬 처리)`)
 
     // 병렬 배치 처리
     const results = await parallelBatchWithRetry(
@@ -145,14 +144,12 @@ export async function POST(request: NextRequest) {
           throw new Error(`DB 저장 실패: ${upsertError.message}`)
         }
 
-        console.log(`✅ ${announcement.id}: 임베딩 생성 완료`)
         return embedding
       },
       {
         concurrency: CONCURRENCY,
         delayBetweenBatches: DELAY_BETWEEN_BATCHES,
         onProgress: (completed, total) => {
-          console.log(`📊 진행률: ${completed}/${total} (${Math.round(completed / total * 100)}%)`)
         }
       },
       2 // 최대 2회 재시도
@@ -166,7 +163,6 @@ export async function POST(request: NextRequest) {
       errors.push(`${ann.id}: ${r.error?.message || '알 수 없는 오류'}`)
     })
 
-    console.log(`✅ 임베딩 생성 완료: ${summary.succeeded}건 성공, ${summary.failed}건 실패`)
 
     return NextResponse.json({
       success: true,

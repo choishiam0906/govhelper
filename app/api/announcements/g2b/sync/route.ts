@@ -134,8 +134,6 @@ export async function POST(request: NextRequest) {
     const inqryBgnDt = getDateStr(7) + '0000'
     const inqryEndDt = getDateStr(0) + '2359'
 
-    console.log('📡 나라장터 동기화 시작')
-
     const allBids: (G2BBidItem & { bidType: string })[] = []
 
     // 각 유형별로 API 호출
@@ -263,8 +261,6 @@ export async function POST(request: NextRequest) {
       .lt('application_end', todayStr)
 
     const duration = Date.now() - startTime
-
-    console.log(`✅ 나라장터 동기화 완료: ${uniqueBids.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, ${duration}ms`)
 
     // 동기화 로그 저장
     if (logId) {

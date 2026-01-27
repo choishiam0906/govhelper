@@ -158,7 +158,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`🔍 지원자격 파싱 시작: ${announcements.length}건 (병렬 처리)`)
 
     // 병렬 배치 처리 (동시 5개, 배치 간 500ms 딜레이)
     const results = await parallelBatchWithRetry(
@@ -180,14 +179,12 @@ export async function POST(request: NextRequest) {
           throw new Error(`DB 업데이트 실패: ${updateError.message}`)
         }
 
-        console.log(`✅ ${ann.id}: 지원자격 파싱 완료 (신뢰도: ${criteria.confidence})`)
         return criteria
       },
       {
         concurrency: 5,
         delayBetweenBatches: 500,
         onProgress: (completed, total) => {
-          console.log(`📊 진행률: ${completed}/${total} (${Math.round(completed / total * 100)}%)`)
         }
       },
       2 // 최대 2회 재시도
@@ -196,7 +193,6 @@ export async function POST(request: NextRequest) {
     const summary = summarizeBatchResults(results)
     const duration = Date.now() - startTime
 
-    console.log(`✅ 지원자격 파싱 완료: ${summary.succeeded}건 성공, ${summary.failed}건 실패, ${duration}ms`)
 
     return NextResponse.json({
       success: true,

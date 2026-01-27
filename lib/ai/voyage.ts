@@ -52,7 +52,6 @@ export async function generateEmbeddingWithVoyage(text: string): Promise<number[
     // 앞 768개만 사용 (차원 축소)
     const adjustedEmbedding = embedding.slice(0, 768)
 
-    console.log(`[Voyage] Generated embedding: ${embedding.length}D → ${adjustedEmbedding.length}D`)
     return adjustedEmbedding
   } catch (error) {
     console.error('Voyage embedding error:', error)
@@ -96,7 +95,6 @@ export async function generateEmbeddingsBatchWithVoyage(texts: string[]): Promis
       item.embedding.slice(0, 768)
     )
 
-    console.log(`[Voyage] Generated ${embeddings.length} embeddings (adjusted to 768D)`)
     return embeddings
   } catch (error) {
     console.error('Voyage batch embedding error:', error)

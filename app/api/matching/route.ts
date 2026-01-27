@@ -33,7 +33,6 @@ async function handlePost(request: NextRequest) {
     try {
       const cachedResult = await getMatchingCache(companyId, announcementId)
       if (cachedResult) {
-        console.log('[Matching] Cache hit:', companyId, announcementId)
         return NextResponse.json(
           {
             success: true,
@@ -47,7 +46,6 @@ async function handlePost(request: NextRequest) {
           }
         )
       }
-      console.log('[Matching] Cache miss:', companyId, announcementId)
     } catch (cacheError) {
       console.error('[Matching] Cache error (continuing without cache):', cacheError)
       // 캐시 실패 시 기존 로직으로 fallback
@@ -164,7 +162,6 @@ async function handlePost(request: NextRequest) {
           announcement.title,
           announcement.content || announcement.parsed_content || ''
         )
-        console.log('[Matching] RAG context retrieved:', companyDocumentContext.length, 'chars')
       }
     } catch (ragError) {
       console.error('[Matching] RAG context error (continuing without):', ragError)
@@ -242,7 +239,6 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
     // 9. 캐시에 저장 (7일 TTL)
     try {
       await setMatchingCache(companyId, announcementId, resultData)
-      console.log('[Matching] Cached result:', companyId, announcementId)
     } catch (cacheError) {
       console.error('[Matching] Failed to cache result:', cacheError)
       // 캐시 저장 실패는 무시 (결과는 정상 반환)

@@ -88,7 +88,6 @@ export function getAvailableProvider(): AIProvider {
 
 // 프로바이더 정보 로깅
 function logProvider(functionName: string, provider: AIProvider) {
-  console.log(`[AI] ${functionName} using ${provider.toUpperCase()}`)
 }
 
 // Groq 사용 가능 여부 체크 및 오류 메시지
@@ -273,7 +272,6 @@ export async function parseEligibilityCriteriaBatch(
 export async function generateEmbedding(text: string): Promise<number[]> {
   // 1. Gemini 시도
   try {
-    console.log('[AI] generateEmbedding using GEMINI')
     return await generateEmbeddingGemini(text)
   } catch (geminiError) {
     console.warn('[AI] Gemini embedding failed:', geminiError)
@@ -282,7 +280,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   // 2. Voyage 폴백
   if (isVoyageAvailable()) {
     try {
-      console.log('[AI] generateEmbedding falling back to VOYAGE')
       return await generateEmbeddingWithVoyage(text)
     } catch (voyageError) {
       console.error('[AI] Voyage embedding also failed:', voyageError)

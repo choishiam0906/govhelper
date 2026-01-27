@@ -45,7 +45,6 @@ interface UseBusinessLookupReturn {
  *   const result = await lookupByBusinessNumber(businessNumber)
  *   if (result.success) {
  *     // 기업 정보 사용
- *     console.log(result.data.companyName)
  *   }
  * }
  */

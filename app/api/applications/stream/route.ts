@@ -177,7 +177,6 @@ export async function POST(request: NextRequest) {
           company.id,
           announcement.title
         )
-        console.log('[Application Stream] RAG context retrieved:', companyDocContext.length, 'chars')
       }
     } catch (ragError) {
       console.error('[Application Stream] RAG context error (continuing without):', ragError)

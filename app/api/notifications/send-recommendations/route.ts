@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    console.log(`신규 공고 ${newAnnouncements.length}건 발견`)
 
     // 스마트 알림이 활성화된 사용자 + 회사 정보 조회
     const { data: usersWithCompaniesData, error: usersError } = await supabase
@@ -227,7 +226,6 @@ export async function GET(request: NextRequest) {
         await supabase.from('notification_logs').insert(logsToInsert as any)
 
         sentCount++
-        console.log(`${company.name}님에게 ${newRecommendations.length}건 추천 알림 발송`)
       } catch (userError) {
         console.error(`사용자 ${company.user_id} 처리 오류:`, userError)
         errors.push(`User ${company.user_id}: ${userError}`)

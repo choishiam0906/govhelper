@@ -219,7 +219,6 @@ export async function POST(request: NextRequest) {
         .limit(10)
 
       if (unparsedAnnouncements && unparsedAnnouncements.length > 0) {
-        console.log(`🤖 AI 자동 분류 시작: ${unparsedAnnouncements.length}건`)
 
         for (const ann of unparsedAnnouncements) {
           try {
@@ -235,7 +234,6 @@ export async function POST(request: NextRequest) {
               .eq('id', ann.id)
 
             aiParsed++
-            console.log(`✅ AI 분류 완료: ${ann.id} (신뢰도: ${criteria.confidence})`)
 
             // Rate limiting: Gemini API 요청 간 딜레이
             await new Promise(resolve => setTimeout(resolve, 1000))
@@ -250,7 +248,6 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    console.log(`✅ SMES 동기화 완료: ${uniqueAnnouncements.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, AI 분류: ${aiParsed}건, ${duration}ms`)
 
     // 동기화 로그 저장
     if (logId) {

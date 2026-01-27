@@ -103,8 +103,6 @@ export async function GET(request: NextRequest) {
     const inqryBgnDt = searchParams.get('startDate') || get30DaysAgoStr()
     const inqryEndDt = searchParams.get('endDate') || getTodayStr()
 
-    console.log(`📡 나라장터 API 호출: bidType=${bidType}, page=${page}, limit=${limit}`)
-
     // 조회할 입찰 유형 결정
     const typesToFetch = bidType === 'all'
       ? Object.keys(BID_ENDPOINTS)

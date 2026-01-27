@@ -10,7 +10,6 @@ export function ServiceWorkerRegister() {
         navigator.serviceWorker
           .register('/sw.js')
           .then((registration) => {
-            console.log('[PWA] Service Worker registered:', registration.scope)
 
             // 업데이트 확인
             registration.addEventListener('updatefound', () => {
@@ -19,7 +18,6 @@ export function ServiceWorkerRegister() {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                     // 새 버전 사용 가능 알림
-                    console.log('[PWA] New version available')
                   }
                 })
               }

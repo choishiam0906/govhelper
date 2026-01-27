@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`🔍 첨부파일 스크래핑 시작: ${announcements.length}건`)
 
     let scraped = 0
     let failed = 0
@@ -91,7 +90,6 @@ export async function POST(request: NextRequest) {
         } else {
           scraped++
           if (attachmentUrls.length > 0) {
-            console.log(`✅ ${ann.id}: ${attachmentUrls.length}개 첨부파일 발견`)
           }
         }
 
@@ -111,7 +109,6 @@ export async function POST(request: NextRequest) {
 
     const duration = Date.now() - startTime
 
-    console.log(`✅ 첨부파일 스크래핑 완료: ${scraped}건 성공, ${failed}건 실패, ${duration}ms`)
 
     return NextResponse.json({
       success: true,

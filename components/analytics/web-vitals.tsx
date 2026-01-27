@@ -36,14 +36,7 @@ export function WebVitals() {
     const { id, name, value, delta, navigationType } = metric as WebVitalsMetric
     const rating = getRating(name, value)
 
-    // 콘솔 로깅 (개발 환경)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Web Vitals] ${name}:`, {
-        value: Math.round(name === 'CLS' ? value * 1000 : value),
-        rating,
-        delta: Math.round(delta),
-      })
-    }
+    // 콘솔 로깅 제거 (프로덕션 최적화)
 
     // GA4로 전송
     trackEvent('web_vitals', name, rating, Math.round(name === 'CLS' ? value * 1000 : value))

@@ -49,7 +49,6 @@ export async function GET() {
     if (diffSeconds > CACHE_TTL) {
       // 비동기로 통계 갱신 (응답은 즉시 반환)
       supabase.rpc('update_public_statistics').then(() => {
-        console.log('Statistics updated in background')
       })
     }
 

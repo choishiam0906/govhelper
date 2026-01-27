@@ -50,7 +50,6 @@ export interface CertificationResult {
  * @example
  * const result = await lookupCertifications(supabase, '123-45-67890')
  * if (result) {
- *   console.log(result.certifications.length) // 보유 인증 개수
  * }
  */
 export async function lookupCertifications(
@@ -109,7 +108,6 @@ export async function lookupCertifications(
  * @example
  * const hasVenture = await hasCertification(supabase, '123-45-67890', 'venture')
  * if (hasVenture) {
- *   console.log('벤처인증 보유 기업')
  * }
  */
 export async function hasCertification(
@@ -134,7 +132,6 @@ export async function hasCertification(
  *
  * @example
  * const type = inferCertificationType('벤처기업확인서')
- * console.log(type) // 'venture'
  */
 export function inferCertificationType(certName: string): CertificationType | null {
   const name = certName.toLowerCase().replace(/\s+/g, '')

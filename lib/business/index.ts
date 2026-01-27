@@ -54,11 +54,6 @@ const DEFAULT_OPTIONS: BusinessLookupOptions = {
  * @example
  * const result = await lookupBusiness('123-45-67890')
  * if (result.success) {
- *   console.log(result.data.companyName)       // 회사명
- *   console.log(result.data.businessType)      // 정보통신업
- *   console.log(result.data.industryName)      // 응용 소프트웨어 개발 및 공급업
- *   console.log(result.data.companySize)       // 중소기업
- *   console.log(result.data.corporationType)   // 주식회사
  * }
  */
 export async function lookupBusiness(

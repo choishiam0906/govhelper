@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
     // 자동 결제 취소 처리 (빌링키가 있는 경우)
     if (subscription.billing_key) {
       // TODO: PG사별 자동결제 해지 API 호출
-      console.log('TODO: Cancel recurring billing for:', subscription.billing_key)
     }
 
     return NextResponse.json({

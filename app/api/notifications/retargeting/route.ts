@@ -51,11 +51,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!leads || leads.length === 0) {
-      console.log('[Retargeting] No leads to retarget')
       return NextResponse.json({ message: 'No leads to retarget', sent: 0 })
     }
 
-    console.log(`[Retargeting] Found ${leads.length} leads to retarget`)
 
     let sentCount = 0
     const errors: string[] = []
@@ -104,7 +102,6 @@ export async function POST(request: NextRequest) {
         }
 
         if (!announcements || announcements.length === 0) {
-          console.log(`[Retargeting] No urgent announcements for lead ${lead.id}`)
           continue
         }
 
@@ -160,14 +157,12 @@ export async function POST(request: NextRequest) {
         }
 
         sentCount++
-        console.log(`[Retargeting] Email sent to ${lead.email} (${matchedAnnouncements.length} announcements)`)
       } catch (error) {
         console.error(`[Retargeting] Error processing lead ${lead.id}:`, error)
         errors.push(`Lead ${lead.id}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     }
 
-    console.log(`[Retargeting] Completed. Sent: ${sentCount}/${leads.length}`)
 
     return NextResponse.json({
       message: 'Retargeting emails sent',

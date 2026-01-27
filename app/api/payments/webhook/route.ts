@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const method = request.headers.get('x-payment-method') || detectPaymentMethod(body)
 
-    console.log(`Webhook received from ${method}:`, JSON.stringify(body, null, 2))
 
     const supabase = await createClient()
 

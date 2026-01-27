@@ -167,14 +167,7 @@ export async function analyzeABTestResults() {
   // 매칭 분석 프롬프트의 모든 버전 메트릭 조회
   const metrics = await getPromptMetrics('matching_analysis')
 
-  console.log('=== 매칭 분석 프롬프트 A/B 테스트 결과 ===')
   for (const metric of metrics) {
-    console.log(`\n버전 ID: ${metric.versionId}`)
-    console.log(`총 사용 횟수: ${metric.totalUsage}회`)
-    console.log(`평균 매칭 점수: ${metric.averageScore.toFixed(2)}점`)
-    console.log(`평균 응답 시간: ${metric.averageResponseTime.toFixed(0)}ms`)
-    console.log(`성공률: ${metric.successRate.toFixed(1)}%`)
-    console.log(`에러율: ${metric.errorRate.toFixed(1)}%`)
   }
 
   // 가장 성능이 좋은 버전 찾기
@@ -182,6 +175,4 @@ export async function analyzeABTestResults() {
     curr.averageScore > prev.averageScore ? curr : prev
   )
 
-  console.log(`\n🏆 최고 성능 버전: ${bestVersion.versionId}`)
-  console.log(`평균 점수: ${bestVersion.averageScore.toFixed(2)}점`)
 }

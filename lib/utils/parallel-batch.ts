@@ -102,7 +102,6 @@ export async function parallelBatchWithRetry<T, R>(
     return results
   }
 
-  console.log(`🔄 ${failedItems.length}건 재시도 중... (남은 재시도: ${maxRetries - 1})`)
 
   // 재시도 (딜레이 증가)
   await new Promise(resolve => setTimeout(resolve, 2000))

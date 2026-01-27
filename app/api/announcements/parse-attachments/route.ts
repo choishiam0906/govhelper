@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`📄 첨부파일 파싱 시작: ${announcements.length}건`)
 
     let parsed = 0
     let failed = 0
@@ -81,7 +80,6 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        console.log(`📄 파싱 중: ${ann.title} (${attachmentUrls.length}개 파일)`)
 
         // 첨부파일 파싱
         const parseResult = await parseMultipleDocuments(attachmentUrls)
@@ -113,9 +111,6 @@ export async function POST(request: NextRequest) {
           failed++
         } else {
           parsed++
-          console.log(
-            `✅ 파싱 완료: ${ann.title} (${cleanedContent.length}자)`
-          )
         }
 
         // Rate limiting
@@ -133,10 +128,6 @@ export async function POST(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime
-
-    console.log(
-      `✅ 첨부파일 파싱 완료: ${parsed}건 성공, ${failed}건 실패, ${duration}ms`
-    )
 
     return NextResponse.json({
       success: true,
@@ -204,10 +195,6 @@ export async function GET(request: NextRequest) {
         parsedLength: (announcement.content || '').length,
       })
     }
-
-    console.log(
-      `📄 단일 파싱: ${announcement.title} (${attachmentUrls.length}개 파일)`
-    )
 
     // 첨부파일 파싱
     const parseResult = await parseMultipleDocuments(attachmentUrls)
