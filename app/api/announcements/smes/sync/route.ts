@@ -9,6 +9,7 @@ import {
 } from '@/lib/rate-limit'
 import { parseEligibilityCriteria } from '@/lib/ai'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
+import { startSync, endSync } from '@/lib/sync/logger'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
   }
 
   const startTime = Date.now()
+  const logId = await startSync('smes')
 
   try {
     const supabase = getSupabaseAdmin()
@@ -250,6 +252,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ SMES 동기화 완료: ${uniqueAnnouncements.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, AI 분류: ${aiParsed}건, ${duration}ms`)
 
+    // 동기화 로그 저장
+    if (logId) {
+      await endSync(logId, {
+        total_fetched: uniqueAnnouncements.length,
+        new_added: syncResult.upserted,
+        updated: syncResult.changesDetected,
+        failed: 0,
+      })
+    }
+
     return NextResponse.json({
       success: true,
       message: '동기화 완료',
@@ -266,6 +278,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('SMES 동기화 오류:', error)
+
+    // 동기화 실패 로그 저장
+    if (logId) {
+      await endSync(
+        logId,
+        { total_fetched: 0, new_added: 0, updated: 0, failed: 0 },
+        error instanceof Error ? error.message : '동기화 중 오류가 발생했습니다'
+      )
+    }
+
     return NextResponse.json(
       { success: false, error: '동기화 중 오류가 발생했습니다' },
       { status: 500 }

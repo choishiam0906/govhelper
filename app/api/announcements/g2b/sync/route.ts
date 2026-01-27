@@ -8,6 +8,7 @@ import {
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
+import { startSync, endSync } from '@/lib/sync/logger'
 
 // 나라장터 API 설정
 const G2B_API_URL = 'https://apis.data.go.kr/1230000/ad/BidPublicInfoService'
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
   }
 
   const startTime = Date.now()
+  const logId = await startSync('g2b')
 
   try {
     if (!G2B_API_KEY) {
@@ -264,6 +266,16 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ 나라장터 동기화 완료: ${uniqueBids.length}건, 변경: ${syncResult.changesDetected}건, 알림: ${syncResult.notificationsQueued}건, ${duration}ms`)
 
+    // 동기화 로그 저장
+    if (logId) {
+      await endSync(logId, {
+        total_fetched: uniqueBids.length,
+        new_added: syncResult.upserted,
+        updated: syncResult.changesDetected,
+        failed: 0,
+      })
+    }
+
     return NextResponse.json({
       success: true,
       message: '나라장터 동기화 완료',
@@ -281,6 +293,16 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('G2B 동기화 오류:', error)
+
+    // 동기화 실패 로그 저장
+    if (logId) {
+      await endSync(
+        logId,
+        { total_fetched: 0, new_added: 0, updated: 0, failed: 0 },
+        error instanceof Error ? error.message : '동기화 중 오류가 발생했어요.'
+      )
+    }
+
     return NextResponse.json(
       { success: false, error: '동기화 중 오류가 발생했어요.' },
       { status: 500 }
