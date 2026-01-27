@@ -8,7 +8,11 @@ import {
   getPromotionDaysRemaining,
   PLAN_INFO,
   type PlanType,
+  getUserPlan,
+  checkFeatureAccess,
+  checkUsageLimit,
 } from "@/lib/queries/dashboard";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 describe("프로모션 설정 (PROMOTION_CONFIG)", () => {
   it("프로모션이 비활성화 상태여야 한다", () => {
@@ -195,6 +199,274 @@ describe("PlanType 타입", () => {
     const validPlans: PlanType[] = ["free", "pro", "premium"];
     validPlans.forEach((plan) => {
       expect(Object.keys(PLAN_INFO)).toContain(plan);
+    });
+  });
+});
+
+describe("getUserPlan", () => {
+  let mockSupabase: SupabaseClient;
+
+  beforeEach(() => {
+    mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+    } as any;
+  });
+
+  it("사용자의 플랜을 조회해야 한다 (Pro)", async () => {
+    (mockSupabase.single as any).mockResolvedValue({
+      data: { plan: "pro" },
+      error: null,
+    });
+
+    const plan = await getUserPlan(mockSupabase, "user-123");
+    expect(plan).toBe("pro");
+  });
+
+  it("사용자의 플랜을 조회해야 한다 (Premium)", async () => {
+    (mockSupabase.single as any).mockResolvedValue({
+      data: { plan: "premium" },
+      error: null,
+    });
+
+    const plan = await getUserPlan(mockSupabase, "user-456");
+    expect(plan).toBe("premium");
+  });
+
+  it("구독이 없으면 free를 반환해야 한다", async () => {
+    (mockSupabase.single as any).mockResolvedValue({
+      data: null,
+      error: { code: "PGRST116", message: "No rows found" },
+    });
+
+    const plan = await getUserPlan(mockSupabase, "user-789");
+    expect(plan).toBe("free");
+  });
+
+  it("에러 발생 시 free를 반환해야 한다", async () => {
+    (mockSupabase.single as any).mockResolvedValue({
+      data: null,
+      error: { code: "ERROR", message: "Database error" },
+    });
+
+    const plan = await getUserPlan(mockSupabase, "user-error");
+    expect(plan).toBe("free");
+  });
+});
+
+describe("checkFeatureAccess", () => {
+  let mockSupabase: SupabaseClient;
+
+  beforeEach(() => {
+    mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+    } as any;
+  });
+
+  describe("Free 사용자", () => {
+    beforeEach(() => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: null,
+        error: { code: "PGRST116" },
+      });
+    });
+
+    it("검색 기능은 허용되어야 한다", async () => {
+      const result = await checkFeatureAccess(mockSupabase, "user-free", "search");
+      expect(result.allowed).toBe(true);
+      expect(result.plan).toBe("free");
+    });
+
+    it("매칭 전체 공개는 차단되어야 한다", async () => {
+      const result = await checkFeatureAccess(mockSupabase, "user-free", "matchingFull");
+      expect(result.allowed).toBe(false);
+      expect(result.plan).toBe("free");
+      expect(result.requiredPlan).toBe("pro");
+    });
+
+    it("지원서 작성은 차단되어야 한다", async () => {
+      const result = await checkFeatureAccess(mockSupabase, "user-free", "application");
+      expect(result.allowed).toBe(false);
+      expect(result.plan).toBe("free");
+      expect(result.requiredPlan).toBe("premium");
+    });
+  });
+
+  describe("Pro 사용자", () => {
+    beforeEach(() => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "pro" },
+        error: null,
+      });
+    });
+
+    it("매칭 전체 공개가 허용되어야 한다", async () => {
+      const result = await checkFeatureAccess(mockSupabase, "user-pro", "matchingFull");
+      expect(result.allowed).toBe(true);
+      expect(result.plan).toBe("pro");
+    });
+
+    it("지원서 작성은 차단되어야 한다", async () => {
+      const result = await checkFeatureAccess(mockSupabase, "user-pro", "application");
+      expect(result.allowed).toBe(false);
+      expect(result.plan).toBe("pro");
+      expect(result.requiredPlan).toBe("premium");
+    });
+  });
+
+  describe("Premium 사용자", () => {
+    beforeEach(() => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "premium" },
+        error: null,
+      });
+    });
+
+    it("모든 기능이 허용되어야 한다", async () => {
+      const features: (keyof typeof PLAN_INFO.free.features)[] = [
+        "search",
+        "semanticSearch",
+        "matching",
+        "matchingFull",
+        "application",
+      ];
+
+      for (const feature of features) {
+        const result = await checkFeatureAccess(mockSupabase, "user-premium", feature);
+        expect(result.allowed).toBe(true);
+        expect(result.plan).toBe("premium");
+      }
+    });
+  });
+});
+
+describe("checkUsageLimit", () => {
+  let mockSupabase: SupabaseClient;
+
+  beforeEach(() => {
+    mockSupabase = {
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
+    } as any;
+  });
+
+  describe("매칭 분석", () => {
+    it("Free 사용자는 매칭 분석이 허용되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: null,
+        error: { code: "PGRST116" },
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-free",
+        "company-123",
+        "matching"
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.matchingFull).toBe(false); // Free는 전체 공개 안됨
+      expect(result.plan).toBe("free");
+    });
+
+    it("Pro 사용자는 매칭 전체 공개가 허용되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "pro" },
+        error: null,
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-pro",
+        "company-456",
+        "matching"
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.matchingFull).toBe(true);
+      expect(result.plan).toBe("pro");
+    });
+
+    it("Premium 사용자는 매칭 전체 공개가 허용되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "premium" },
+        error: null,
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-premium",
+        "company-789",
+        "matching"
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.matchingFull).toBe(true);
+      expect(result.plan).toBe("premium");
+    });
+  });
+
+  describe("지원서 작성", () => {
+    it("Free 사용자는 지원서 작성이 차단되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: null,
+        error: { code: "PGRST116" },
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-free",
+        "company-123",
+        "application"
+      );
+
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
+      expect(result.limit).toBe(0);
+      expect(result.plan).toBe("free");
+    });
+
+    it("Pro 사용자는 지원서 작성이 차단되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "pro" },
+        error: null,
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-pro",
+        "company-456",
+        "application"
+      );
+
+      expect(result.allowed).toBe(false);
+      expect(result.plan).toBe("pro");
+    });
+
+    it("Premium 사용자는 지원서 작성이 허용되어야 한다", async () => {
+      (mockSupabase.single as any).mockResolvedValue({
+        data: { plan: "premium" },
+        error: null,
+      });
+
+      const result = await checkUsageLimit(
+        mockSupabase,
+        "user-premium",
+        "company-789",
+        "application"
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(-1); // 무제한
+      expect(result.limit).toBe(-1); // 무제한
+      expect(result.plan).toBe("premium");
     });
   });
 });
