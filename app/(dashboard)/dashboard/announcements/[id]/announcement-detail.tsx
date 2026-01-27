@@ -41,6 +41,7 @@ import { DownloadPDFButton } from './download-pdf-button'
 import { ChangeHistory } from '@/components/announcements/change-history'
 import { EvaluationCriteriaDisplay } from '@/components/announcements/evaluation-criteria'
 import { CompetitionPredictionCard } from '@/components/announcements/competition-prediction'
+import { CompetitionAnalysis } from '@/components/matching/competition-analysis'
 import { EvaluationCriteria } from '@/types'
 
 interface EligibilityCriteria {
@@ -469,6 +470,11 @@ export function AnnouncementDetail({
           announcementId={announcement.id}
           className="lg:w-72 shrink-0"
         />
+
+        {/* 경쟁 분석 카드 */}
+        <div className="lg:w-72 shrink-0">
+          <CompetitionAnalysis announcementId={announcement.id} />
+        </div>
       </div>
 
       {/* 탭 콘텐츠 */}

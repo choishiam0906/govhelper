@@ -49,3 +49,9 @@ scripts/data/*.zip
 
 # Supabase 임시 파일 (민감 정보 포함)
 supabase/.temp/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

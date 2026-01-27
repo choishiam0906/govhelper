@@ -56,6 +56,9 @@
     },
     "app/api/retargeting/send/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/announcements/local/sync/route.ts": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -146,6 +149,10 @@
     {
       "path": "/api/retargeting/send",
       "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/announcements/local/sync",
+      "schedule": "0 4 * * *"
     }
   ]
 }

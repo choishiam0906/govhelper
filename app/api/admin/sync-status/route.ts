@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 전체 소스별 동기화 현황 조회
-    const sources = ['smes', 'bizinfo', 'kstartup', 'g2b']
+    const sources = ['smes', 'bizinfo', 'kstartup', 'g2b', 'local']
     const summaries = await Promise.all(
       sources.map(async (src) => {
         const summary = await getSourceSummary(src, days)
