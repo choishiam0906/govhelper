@@ -15,6 +15,21 @@ export async function GET(request: Request) {
       if (type === 'recovery' || next === '/reset-password') {
         return NextResponse.redirect(`${origin}/reset-password`)
       }
+
+      // 신규 사용자 온보딩 체크
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+
+        if (!company) {
+          return NextResponse.redirect(`${origin}/onboarding`)
+        }
+      }
+
       return NextResponse.redirect(`${origin}${next}`)
     }
   }

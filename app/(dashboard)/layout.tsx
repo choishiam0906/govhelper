@@ -47,7 +47,7 @@ export default async function DashboardLayout({
     const company = companyData as { id: string; approval_status: string } | null
 
     if (!company) {
-      redirect("/dashboard/profile")
+      redirect("/onboarding")
     }
 
     // 승인 대기 중인 사용자는 승인 대기 페이지로 리다이렉트

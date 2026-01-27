@@ -425,10 +425,7 @@ export default function OnboardingPage() {
       if (result.requiresApproval) {
         router.push('/dashboard/pending-approval')
       } else {
-        router.refresh()
-        setTimeout(() => {
-          window.location.href = '/dashboard'
-        }, 100)
+        window.location.href = '/dashboard'
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '문제가 생겼어요')
