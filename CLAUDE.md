@@ -675,6 +675,71 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
+## 최근 완료 작업 (2026-01-27)
+
+### SEO 강화 - 검색 상위 노출 최적화 ✅
+
+검색엔진(구글, 네이버) 상위 노출을 위한 SEO 최적화 작업 완료.
+
+**1. 동적 사이트맵 및 메타데이터**
+| 파일 | 설명 |
+|------|------|
+| `app/sitemap.ts` | 동적 사이트맵 (정적 페이지 + 활성 공고 1,000개) |
+| `app/robots.ts` | 동적 robots.txt (크롤링 허용/차단 규칙) |
+| `app/(dashboard)/dashboard/announcements/[id]/page.tsx` | 공고별 동적 메타데이터 (generateMetadata) |
+| `components/seo/announcement-json-ld.tsx` | GovernmentService, Event JSON-LD 스키마 |
+
+**2. FAQ 페이지 및 스키마**
+| 파일 | 설명 |
+|------|------|
+| `app/faq/page.tsx` | FAQ 페이지 (15개 질문, 4개 카테고리) |
+| `components/seo/faq-json-ld.tsx` | FAQPage JSON-LD 스키마 (구글 리치 스니펫) |
+
+**3. 카테고리별 SEO 랜딩 페이지**
+| URL | 타겟 키워드 |
+|-----|-------------|
+| `/government-support` | 정부지원사업, 정부지원금 |
+| `/government-support/startup` | 스타트업 정부지원, 창업 지원금, TIPS |
+| `/government-support/sme` | 중소기업 정부지원, 스마트공장 |
+| `/government-support/rnd` | R&D 지원, 연구개발 지원금 |
+
+**4. BreadcrumbList 스키마**
+- `components/seo/breadcrumb-json-ld.tsx` - 검색 결과에 경로 표시
+
+**5. OG 이미지 개선**
+| 파일 | 설명 |
+|------|------|
+| `app/opengraph-image.tsx` | 동적 OG 이미지 생성 (1200x630 PNG) |
+| `app/twitter-image.tsx` | Twitter Card 이미지 |
+
+- SVG → PNG로 변경하여 카카오톡 등 호환성 개선
+- 로고, 타이틀, 통합 플랫폼 뱃지 포함
+
+**6. 검색엔진 등록**
+| 플랫폼 | 상태 | 인증 코드 |
+|--------|------|----------|
+| 구글 서치 콘솔 | ✅ 완료 | `OXyvAkI7jlx0snbsqkgWfafA-W9mhQEEebRkoXKVKcQ` |
+| 네이버 서치어드바이저 | ✅ 완료 | `b60637b6fb0b46cdc7246d75242bc5762a0cbded` |
+
+**커밋 목록:**
+- `90ad67e` SEO 강화 - 동적 사이트맵 및 메타데이터
+- `dfd86a3` SEO 강화 - 검색 상위 노출을 위한 페이지 추가
+- `697ad40` 구글 서치 콘솔 인증 메타태그 추가
+- `27b6f2c` OG 이미지 개선 - PNG 동적 생성으로 변경
+
+### 다크 모드 지원 ✅
+
+next-themes를 활용한 다크 모드 지원 추가.
+
+| 파일 | 설명 |
+|------|------|
+| `components/theme/theme-provider.tsx` | next-themes ThemeProvider 래퍼 |
+| `components/theme/theme-toggle.tsx` | 테마 전환 드롭다운 (light/dark/system) |
+| `app/layout.tsx` | ThemeProvider 적용, suppressHydrationWarning |
+| `components/dashboard/header.tsx` | ThemeToggle 버튼 추가 |
+
+---
+
 ## 최근 완료 작업 (2026-01-26)
 
 ### 평가기준 자동 추출 시스템 (Phase 1-P0) ✅
