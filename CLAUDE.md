@@ -250,6 +250,12 @@ RESEND_API_KEY=
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # VAPID 공개키 (npx web-push generate-vapid-keys)
 VAPID_PRIVATE_KEY=             # VAPID 비밀키
 
+# Error Monitoring (Sentry)
+NEXT_PUBLIC_SENTRY_DSN=        # Sentry DSN (sentry.io에서 발급)
+SENTRY_ORG=                    # Sentry 조직 이름
+SENTRY_PROJECT=                # Sentry 프로젝트 이름
+SENTRY_AUTH_TOKEN=             # Sentry Auth Token (소스맵 업로드용)
+
 # App
 NEXT_PUBLIC_APP_URL=https://govhelpers.com
 ADMIN_EMAILS=             # 쉼표로 구분된 관리자 이메일
