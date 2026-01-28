@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // CI에서 제외할 폴더
+    "scripts/**",
   ]),
 ]);
 

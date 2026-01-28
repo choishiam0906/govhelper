@@ -15,7 +15,7 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
 
     // 제외 패턴
-    exclude: ["node_modules", ".next", "dist"],
+    exclude: ["node_modules", ".next", "dist", "e2e"],
 
     // 셋업 파일
     setupFiles: ["./vitest.setup.ts"],

@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # 린트 체크 (경고 수준 - 실패해도 빌드 진행)
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint -- --max-warnings 500
+
+  # 단위 테스트
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:run
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # 빌드 테스트 (핵심 검증 - 반드시 통과해야 함)
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    env:
+      # 빌드에 필요한 환경변수 (더미값)
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+      NEXT_PUBLIC_APP_URL: https://govhelpers.com
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: G-XXXXXXX
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: dummy-vapid-key
+      NEXT_PUBLIC_SENTRY_DSN: ''
+      # Sentry 소스맵 업로드 비활성화 (CI에서는 불필요)
+      SENTRY_AUTH_TOKEN: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 1
