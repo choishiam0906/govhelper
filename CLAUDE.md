@@ -688,10 +688,14 @@ USING (bucket_id = 'business-plans' AND auth.uid()::text = (storage.foldername(n
 
 ---
 
-### P9 - 장기 보류
+### P9 - 장기 보류 (사업자등록 이후)
+- [ ] 네이버 로그인 (OAuth) - 네이버 개발자 사업자 등록 필요
+- [ ] A/B 테스트 인프라 개선 (범용 프레임워크) - 사업자 등록 후 데이터 축적 필요
+- [ ] 네이버페이 연동 - 사업자등록증 필요
 - [ ] 카카오페이 결제 연동 (사업자등록증 필요)
 - [ ] 모바일 앱 (React Native/Expo)
 - [ ] 모바일 푸시 알림 (FCM) - 모바일 앱 의존
+- [ ] 팀/엔터프라이즈 플랜 (사업자등록 이후)
 
 ### Supabase 설정 - 완료
 - [x] DB 마이그레이션 실행: `supabase/migrations/003_add_company_approval.sql`

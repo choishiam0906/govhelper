@@ -20,7 +20,7 @@ export const LOCAL_SOURCES: LocalSource[] = [
     id: 'seoul',
     name: '서울특별시',
     url: 'https://www.seoul.go.kr/main/index.jsp',
-    enabled: false,
+    enabled: true,
     description: '서울시 중소기업 및 소상공인 지원사업'
   },
   {
@@ -76,7 +76,7 @@ export const LOCAL_SOURCES: LocalSource[] = [
     id: 'gyeonggi',
     name: '경기도',
     url: 'https://www.gg.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '경기도 중소기업 및 소상공인 지원사업'
   },
   {
