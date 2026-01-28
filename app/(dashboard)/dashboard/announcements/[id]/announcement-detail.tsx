@@ -271,17 +271,14 @@ export function AnnouncementDetail({
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* 경쟁률 예측 카드 */}
+      {/* 경쟁 분석 섹션 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CompetitionPredictionCard
           announcementId={announcement.id}
-          className="lg:w-72 shrink-0"
         />
-
-        {/* 경쟁 분석 카드 */}
-        <div className="lg:w-72 shrink-0">
-          <CompetitionAnalysis announcementId={announcement.id} />
-        </div>
+        <CompetitionAnalysis announcementId={announcement.id} />
       </div>
 
       {/* 탭 콘텐츠 */}

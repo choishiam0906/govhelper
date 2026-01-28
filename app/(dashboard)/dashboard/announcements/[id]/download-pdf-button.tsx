@@ -1,18 +1,15 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, Loader2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Download, Loader2, FileText, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
-
-// html2canvas와 jspdf를 동적으로 로드하여 번들 크기 감소
-const loadPDFLibraries = async () => {
-  const [html2canvas, jsPDF] = await Promise.all([
-    import('html2canvas').then(mod => mod.default),
-    import('jspdf').then(mod => mod.jsPDF)
-  ])
-  return { html2canvas, jsPDF }
-}
 
 interface Announcement {
   id: string
@@ -28,241 +25,116 @@ interface Announcement {
   parsed_content: string | null
   source: string
   status: string
+  attachment_urls?: string[] | null
 }
 
 interface DownloadPDFButtonProps {
   announcement: Announcement
 }
 
-// 출처 라벨
-const sourceLabels: Record<string, string> = {
-  bizinfo: '기업마당',
-  kstartup: 'K-Startup',
-  narajangteo: '나라장터',
-  datagoKr: '공공데이터',
-  g2b: '나라장터',
-  hrd: 'HRD Korea',
-  smes24: '중소벤처24',
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '-'
-  return new Date(dateStr).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-// HTML 태그 제거
-function stripHtml(html: string | null): string {
-  if (!html) return ''
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
+function getFileName(url: string, index: number): string {
+  try {
+    const decoded = decodeURIComponent(url.split('/').pop() || '')
+    // URL 파라미터 제거
+    const name = decoded.split('?')[0]
+    if (name && name.length > 3) return name
+  } catch {}
+  return `첨부파일 ${index + 1}`
 }
 
 export function DownloadPDFButton({ announcement }: DownloadPDFButtonProps) {
-  const [isGenerating, setIsGenerating] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [attachments, setAttachments] = useState<string[]>(
+    announcement.attachment_urls || []
+  )
 
-  const handleDownload = async () => {
-    if (!contentRef.current) return
+  const fetchAttachments = async (): Promise<string[]> => {
+    const response = await fetch(
+      `/api/announcements/scrape-attachments?id=${announcement.id}`
+    )
+    const result = await response.json()
+    if (result.success && result.attachments?.length > 0) {
+      setAttachments(result.attachments)
+      return result.attachments
+    }
+    return []
+  }
 
-    setIsGenerating(true)
+  const handleClick = async () => {
+    // 이미 첨부파일이 있으면 바로 처리
+    if (attachments.length > 0) return
 
+    // 없으면 스크래핑 시도
+    setIsLoading(true)
     try {
-      // 라이브러리를 동적으로 로드
-      const { html2canvas, jsPDF } = await loadPDFLibraries()
-
-      // 숨겨진 콘텐츠를 일시적으로 표시
-      contentRef.current.style.display = 'block'
-      contentRef.current.style.position = 'absolute'
-      contentRef.current.style.left = '-9999px'
-      contentRef.current.style.top = '0'
-
-      // 캔버스로 변환
-      const canvas = await html2canvas(contentRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      })
-
-      // 다시 숨김
-      contentRef.current.style.display = 'none'
-
-      // PDF 생성
-      const imgWidth = 210 // A4 너비 (mm)
-      const pageHeight = 297 // A4 높이 (mm)
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-      let heightLeft = imgHeight
-      let position = 0
-
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const imgData = canvas.toDataURL('image/png')
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-
-      // 여러 페이지 처리
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      const urls = await fetchAttachments()
+      if (urls.length === 0) {
+        toast.info('이 공고에는 첨부파일이 없어요')
+      } else {
+        toast.success(`${urls.length}개의 첨부파일을 찾았어요`)
       }
-
-      // 파일 저장
-      const fileName = `공고_${announcement.title.slice(0, 30)}_${new Date().toISOString().split('T')[0]}.pdf`
-      pdf.save(fileName)
-    } catch (error) {
-      console.error('PDF 생성 오류:', error)
-      toast.error('PDF 생성 중 오류가 발생했어요')
+    } catch {
+      toast.error('첨부파일을 가져오지 못했어요')
     } finally {
-      setIsGenerating(false)
+      setIsLoading(false)
     }
   }
 
-  const content = stripHtml(announcement.parsed_content || announcement.content)
+  const openFile = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
 
-  return (
-    <>
+  if (isLoading) {
+    return (
+      <Button variant="outline" className="w-full" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        첨부파일 검색 중...
+      </Button>
+    )
+  }
+
+  // 첨부파일이 1개면 바로 다운로드
+  if (attachments.length === 1) {
+    return (
       <Button
         variant="outline"
         className="w-full"
-        onClick={handleDownload}
-        disabled={isGenerating}
+        onClick={() => openFile(attachments[0])}
       >
-        {isGenerating ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            생성 중...
-          </>
-        ) : (
-          <>
-            <Download className="h-4 w-4 mr-2" />
-            PDF 다운로드
-          </>
-        )}
+        <Download className="h-4 w-4 mr-2" />
+        첨부파일 다운로드
       </Button>
+    )
+  }
 
-      {/* PDF용 숨겨진 콘텐츠 */}
-      <div ref={contentRef} style={{ display: 'none', width: '800px', padding: '40px', backgroundColor: '#fff' }}>
-        {/* 헤더 */}
-        <div style={{ borderBottom: '3px solid #2563eb', paddingBottom: '20px', marginBottom: '30px' }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <span style={{
-              padding: '4px 10px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              backgroundColor: '#2563eb',
-              color: '#fff',
-            }}>
-              {sourceLabels[announcement.source] || announcement.source}
-            </span>
-            {announcement.category && (
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #e5e7eb',
-              }}>
-                {announcement.category}
-              </span>
-            )}
-            {announcement.support_type && (
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-              }}>
-                {announcement.support_type}
-              </span>
-            )}
-            {announcement.status === 'closed' && (
-              <span style={{
-                padding: '4px 10px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor: '#fee2e2',
-                color: '#991b1b',
-              }}>
-                마감
-              </span>
-            )}
-          </div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '12px' }}>
-            {announcement.title}
-          </h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            {announcement.organization || '-'}
-          </p>
-        </div>
+  // 첨부파일이 여러 개면 드롭다운
+  if (attachments.length > 1) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full">
+            <Download className="h-4 w-4 mr-2" />
+            첨부파일 ({attachments.length}개)
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-72">
+          {attachments.map((url, i) => (
+            <DropdownMenuItem key={i} onClick={() => openFile(url)}>
+              <FileText className="h-4 w-4 mr-2 shrink-0" />
+              <span className="truncate">{getFileName(url, i)}</span>
+              <ExternalLink className="h-3 w-3 ml-auto shrink-0 text-muted-foreground" />
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
 
-        {/* 기본 정보 */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '20px',
-          marginBottom: '30px',
-          backgroundColor: '#f9fafb',
-          padding: '20px',
-          borderRadius: '8px',
-        }}>
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>접수 기간</div>
-            <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
-              {formatDate(announcement.application_start)} ~ {formatDate(announcement.application_end)}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>지원금액</div>
-            <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
-              {announcement.support_amount || '-'}
-            </div>
-          </div>
-          {announcement.target_company && (
-            <div style={{ gridColumn: 'span 2' }}>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>지원 대상</div>
-              <div style={{ fontSize: '14px', color: '#111827' }}>
-                {announcement.target_company}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 공고 내용 */}
-        <div style={{ marginBottom: '30px' }}>
-          <h2 style={{
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: '#111827',
-            marginBottom: '16px',
-            paddingBottom: '8px',
-            borderBottom: '1px solid #e5e7eb',
-          }}>
-            공고 내용
-          </h2>
-          <div style={{
-            fontSize: '13px',
-            color: '#374151',
-            lineHeight: '1.8',
-            whiteSpace: 'pre-wrap',
-          }}>
-            {content || '상세 내용이 없습니다'}
-          </div>
-        </div>
-
-        {/* 푸터 */}
-        <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', textAlign: 'center' }}>
-          <p style={{ fontSize: '11px', color: '#9ca3af' }}>
-            GovHelper | govhelpers.com | {new Date().toLocaleDateString('ko-KR')} 생성
-          </p>
-        </div>
-      </div>
-    </>
+  // 첨부파일 없으면 가져오기 버튼
+  return (
+    <Button variant="outline" className="w-full" onClick={handleClick}>
+      <Download className="h-4 w-4 mr-2" />
+      첨부파일 다운로드
+    </Button>
   )
 }

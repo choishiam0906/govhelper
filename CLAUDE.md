@@ -2176,6 +2176,31 @@ reqLogger.info('매칭 분석 요청', { userId: '...' })
 
 2026-01-22 → 2026-01-28 기준으로 전체 업데이트.
 
+### 첨부파일 다운로드 개선 (2026-01-28) ✅
+
+공고 상세 페이지의 "PDF 다운로드" 버튼을 원본 공고 사이트 첨부파일 다운로드로 변경.
+
+**변경된 파일:**
+| 파일 | 설명 |
+|------|------|
+| `app/(dashboard)/dashboard/announcements/[id]/download-pdf-button.tsx` | PDF 생성 → 원본 첨부파일 다운로드로 변경 |
+| `lib/scraping/attachment-scraper.ts` | 4개 소스 스크래퍼 패턴 강화 |
+| `app/(dashboard)/dashboard/announcements/[id]/announcement-detail.tsx` | 헤더 레이아웃 수정 (경쟁 카드 분리) |
+
+**스크래퍼 패턴 개선:**
+| 소스 | 추가된 패턴 |
+|------|------------|
+| 기업마당 (bizinfo) | `getImageFile` 다운로드 패턴 |
+| 중소벤처24 (smes) | `getImageFile` 다운로드 패턴 |
+| K-Startup | `getImageFile`, `atchFile`, `fileDownHwp`, `fn_FileHwpDw()` JS 함수 파싱 |
+| 나라장터 (G2B) | SSO 인증 필요 → 원본 상세 URL 반환, switch 케이스 추가 |
+
+**첨부파일 다운로드 버튼 동작:**
+- DB에 첨부파일이 있으면 바로 다운로드
+- 없으면 클릭 시 원본 사이트에서 스크래핑 후 표시
+- 1개: 바로 새 탭에서 열기
+- 여러 개: 드롭다운 메뉴로 선택
+
 ### Supabase 마이그레이션 (미실행) ⚠️
 
 아래 마이그레이션을 Supabase 대시보드에서 수동 실행 필요:

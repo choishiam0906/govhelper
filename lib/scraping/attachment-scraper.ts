@@ -65,6 +65,7 @@ export async function scrapeBizinfoAttachments(detailUrl: string): Promise<strin
         href.includes('/download/') ||
         href.includes('fileDown') ||
         href.includes('atchFile') ||
+        href.includes('getImageFile') ||
         text.includes('첨부') ||
         text.includes('다운로드')
       ) {
@@ -114,6 +115,7 @@ export async function scrapeSMESAttachments(detailUrl: string): Promise<string[]
         href.includes('/cmm/fms/') ||
         href.includes('fileDown') ||
         href.includes('atchFile') ||
+        href.includes('getImageFile') ||
         text.includes('첨부') ||
         text.includes('다운로드')
       ) {
@@ -150,6 +152,7 @@ export async function scrapeKStartupAttachments(detailUrl: string): Promise<stri
     const html = await response.text()
     const attachments: string[] = []
 
+    // 1. <a href> 태그에서 파일 다운로드 링크 추출
     const linkPattern = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi
     let match
 
@@ -161,6 +164,9 @@ export async function scrapeKStartupAttachments(detailUrl: string): Promise<stri
         ATTACHMENT_EXTENSIONS.test(href) ||
         href.includes('/download/') ||
         href.includes('fileDown') ||
+        href.includes('getImageFile') ||
+        href.includes('atchFile') ||
+        href.includes('fileDownHwp') ||
         text.includes('첨부') ||
         text.includes('다운로드')
       ) {
@@ -171,6 +177,19 @@ export async function scrapeKStartupAttachments(detailUrl: string): Promise<stri
       }
     }
 
+    // 2. fn_FileHwpDw() JavaScript 함수 호출에서 파일명 추출
+    //    K-Startup은 fn_FileHwpDw('파일명.hwp') → /web/comm/fileDownHwp.do?orgFileNm=파일명.hwp
+    const jsDownloadPattern = /fn_FileHwpDw\s*\(\s*['"]([^'"]+)['"]\s*\)/gi
+    let jsMatch
+
+    while ((jsMatch = jsDownloadPattern.exec(html)) !== null) {
+      const fileName = jsMatch[1]
+      const downloadUrl = `https://www.k-startup.go.kr/web/comm/fileDownHwp.do?orgFileNm=${encodeURIComponent(fileName)}`
+      if (!attachments.includes(downloadUrl)) {
+        attachments.push(downloadUrl)
+      }
+    }
+
     return attachments
   } catch (error) {
     console.error('K-Startup scraping error:', error)
@@ -178,10 +197,14 @@ export async function scrapeKStartupAttachments(detailUrl: string): Promise<stri
   }
 }
 
-// 나라장터(G2B) 상세페이지에서 첨부파일 추출
-export async function scrapeG2BAttachments(bidNtceNo: string, bidNtceOrd: string): Promise<string[]> {
-  // G2B는 상세페이지 접근이 복잡하므로 API를 통해 처리
-  // 실제 구현시에는 G2B 파일 다운로드 API 활용 필요
+// 나라장터(G2B) - SSO 인증 필요로 서버 스크래핑 불가
+// 원본 사이트 URL을 반환하여 사용자가 직접 접근하도록 안내
+export async function scrapeG2BAttachments(detailUrl: string): Promise<string[]> {
+  // G2B는 SSO 로그인이 필요하여 서버에서 직접 스크래핑 불가
+  // 상세 URL이 있으면 그것을 반환하여 사용자가 원본 사이트에서 다운로드하도록 안내
+  if (detailUrl) {
+    return [detailUrl]
+  }
   return []
 }
 
@@ -194,6 +217,8 @@ export async function scrapeAttachments(source: string, detailUrl: string): Prom
       return scrapeSMESAttachments(detailUrl)
     case 'kstartup':
       return scrapeKStartupAttachments(detailUrl)
+    case 'g2b':
+      return scrapeG2BAttachments(detailUrl)
     default:
       return []
   }
@@ -214,6 +239,7 @@ export function extractDetailUrl(content: string, source: string): string | null
     bizinfo: /https?:\/\/www\.bizinfo\.go\.kr[^\s]*/i,
     smes24: /https?:\/\/www\.smes\.go\.kr[^\s]*/i,
     kstartup: /https?:\/\/www\.k-startup\.go\.kr[^\s]*/i,
+    g2b: /https?:\/\/(?:www\.)?g2b\.go\.kr[^\s]*/i,
   }
 
   const pattern = patterns[source]
