@@ -27,35 +27,35 @@ export const LOCAL_SOURCES: LocalSource[] = [
     id: 'busan',
     name: '부산광역시',
     url: 'https://www.busan.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '부산시 중소기업 및 스타트업 지원사업'
   },
   {
     id: 'daegu',
     name: '대구광역시',
     url: 'https://www.daegu.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '대구시 중소기업 및 창업 지원사업'
   },
   {
     id: 'incheon',
     name: '인천광역시',
     url: 'https://www.incheon.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '인천시 중소기업 및 소상공인 지원사업'
   },
   {
     id: 'gwangju',
     name: '광주광역시',
     url: 'https://www.gwangju.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '광주시 중소기업 및 스타트업 지원사업'
   },
   {
     id: 'daejeon',
     name: '대전광역시',
     url: 'https://www.daejeon.go.kr/',
-    enabled: false,
+    enabled: true,
     description: '대전시 중소기업 및 창업 지원사업'
   },
   {

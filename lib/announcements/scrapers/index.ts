@@ -6,6 +6,11 @@
 
 import { seoulScraper } from './seoul'
 import { gyeonggiScraper } from './gyeonggi'
+import { busanScraper } from './busan'
+import { incheonScraper } from './incheon'
+import { daeguScraper } from './daegu'
+import { gwangjuScraper } from './gwangju'
+import { daejeonScraper } from './daejeon'
 import { ScraperResult, ScraperOptions } from './types'
 
 export * from './types'
@@ -25,10 +30,14 @@ export interface LocalScraper {
 export const scrapers: Record<string, LocalScraper> = {
   seoul: seoulScraper,
   gyeonggi: gyeonggiScraper,
+  busan: busanScraper,
+  incheon: incheonScraper,
+  daegu: daeguScraper,
+  gwangju: gwangjuScraper,
+  daejeon: daejeonScraper,
   // 향후 추가될 지자체 스크래퍼
-  // busan: busanScraper,
-  // daegu: daeguScraper,
-  // incheon: incheonScraper,
+  // ulsan: ulsanScraper,
+  // sejong: sejongScraper,
   // ...
 }
 
