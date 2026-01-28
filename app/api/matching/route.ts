@@ -5,13 +5,17 @@ import { Tables, InsertTables, Json } from '@/types/database'
 import { withRateLimit } from '@/lib/api-utils'
 import { getMatchingCache, setMatchingCache } from '@/lib/cache'
 import { getCompanyContextForMatching, hasCompanyDocuments } from '@/lib/company-documents/rag'
+import { createRequestLogger } from '@/lib/logger'
 
 async function handlePost(request: NextRequest) {
+  const log = createRequestLogger(request, 'matching')
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
+      log.warn('인증되지 않은 요청')
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -21,7 +25,10 @@ async function handlePost(request: NextRequest) {
     const body = await request.json()
     const { announcementId, companyId, businessPlanId } = body
 
+    log.info('매칭 요청 시작', { userId: user.id, announcementId, companyId, businessPlanId })
+
     if (!announcementId || !companyId) {
+      log.warn('필수 필드 누락', { announcementId, companyId })
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -33,6 +40,7 @@ async function handlePost(request: NextRequest) {
     try {
       const cachedResult = await getMatchingCache(companyId, announcementId)
       if (cachedResult) {
+        log.info('캐시 히트', { companyId, announcementId })
         return NextResponse.json(
           {
             success: true,
@@ -46,8 +54,11 @@ async function handlePost(request: NextRequest) {
           }
         )
       }
+      log.debug('캐시 미스', { companyId, announcementId })
     } catch (cacheError) {
-      console.error('[Matching] Cache error (continuing without cache):', cacheError)
+      log.warn('캐시 조회 실패 (계속 진행)', {
+        error: cacheError instanceof Error ? cacheError.message : 'Unknown error'
+      })
       // 캐시 실패 시 기존 로직으로 fallback
     }
 
@@ -59,12 +70,14 @@ async function handlePost(request: NextRequest) {
       .single()
 
     if (announcementError || !announcementData) {
+      log.warn('공고 조회 실패', { announcementId, error: announcementError?.message })
       return NextResponse.json(
         { success: false, error: 'Announcement not found' },
         { status: 404 }
       )
     }
     const announcement = announcementData as Tables<'announcements'>
+    log.debug('공고 조회 완료', { announcementId, title: announcement.title })
 
     // 3. Fetch company profile
     const { data: companyData, error: companyError } = await supabase
@@ -74,12 +87,14 @@ async function handlePost(request: NextRequest) {
       .single()
 
     if (companyError || !companyData) {
+      log.warn('기업 조회 실패', { companyId, error: companyError?.message })
       return NextResponse.json(
         { success: false, error: 'Company not found' },
         { status: 404 }
       )
     }
     const company = companyData as Tables<'companies'>
+    log.debug('기업 조회 완료', { companyId, name: company.name })
 
     // 4. Fetch business plan if provided
     let businessPlan: Tables<'business_plans'> | null = null
@@ -156,15 +171,22 @@ async function handlePost(request: NextRequest) {
     try {
       const hasDocuments = await hasCompanyDocuments(supabase, companyId)
       if (hasDocuments) {
+        log.debug('RAG 컨텍스트 조회 시작', { companyId })
         companyDocumentContext = await getCompanyContextForMatching(
           supabase,
           companyId,
           announcement.title,
           announcement.content || announcement.parsed_content || ''
         )
+        log.info('RAG 컨텍스트 조회 완료', {
+          companyId,
+          contextLength: companyDocumentContext.length
+        })
       }
     } catch (ragError) {
-      console.error('[Matching] RAG context error (continuing without):', ragError)
+      log.warn('RAG 컨텍스트 조회 실패 (계속 진행)', {
+        error: ragError instanceof Error ? ragError.message : 'Unknown error'
+      })
     }
 
     const companyProfile = `
@@ -187,11 +209,18 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
       : '사업계획서 없음'
 
     // 6. Perform AI analysis
+    log.info('AI 매칭 분석 시작', {
+      announcementId,
+      companyId,
+      hasBusinessPlan: !!businessPlan,
+      hasRAGContext: !!companyDocumentContext
+    })
     const analysis = await analyzeMatch(
       announcementContent,
       companyProfile,
       businessPlanContent
     )
+    log.info('AI 매칭 분석 완료', { score: analysis.overallScore })
 
     // overallScore 유효성 검사 및 정규화
     let validScore = 0
@@ -222,12 +251,18 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
       .single()
 
     if (matchError) {
-      console.error('Match save error:', matchError)
+      log.error('매칭 결과 저장 실패', {
+        error: matchError.message,
+        companyId,
+        announcementId
+      })
       return NextResponse.json(
         { success: false, error: 'Failed to save match result' },
         { status: 500 }
       )
     }
+
+    log.debug('매칭 결과 저장 완료', { matchId: matchResult.id })
 
 
     // 8. 결과 데이터 준비
@@ -239,10 +274,19 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
     // 9. 캐시에 저장 (7일 TTL)
     try {
       await setMatchingCache(companyId, announcementId, resultData)
+      log.debug('캐시 저장 완료', { companyId, announcementId })
     } catch (cacheError) {
-      console.error('[Matching] Failed to cache result:', cacheError)
+      log.warn('캐시 저장 실패 (결과는 정상 반환)', {
+        error: cacheError instanceof Error ? cacheError.message : 'Unknown error'
+      })
       // 캐시 저장 실패는 무시 (결과는 정상 반환)
     }
+
+    log.info('매칭 요청 완료', {
+      companyId,
+      announcementId,
+      score: validScore
+    })
 
     return NextResponse.json(
       {
@@ -257,7 +301,10 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
       }
     )
   } catch (error) {
-    console.error('Matching error:', error)
+    log.error('매칭 요청 실패', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
