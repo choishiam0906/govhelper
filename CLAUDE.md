@@ -12,7 +12,7 @@
 |------|------|
 | **라이브 URL** | https://govhelpers.com |
 | **GitHub** | https://github.com/choishiam0906/govhelper |
-| **진행도** | 98% 완성 |
+| **진행도** | 99% 완성 |
 | **상태** | 프로덕션 운영 중 |
 
 ---
@@ -2089,6 +2089,97 @@ recharts 라이브러리를 사용한 관리자 대시보드 통계 시각화:
 - 해결: Supabase Dashboard > Authentication > URL Configuration 수정
   - Site URL: `https://govhelpers.com`
   - Redirect URLs: `https://govhelpers.com/auth/callback` 추가
+
+---
+
+## 최근 완료 작업 (2026-01-28)
+
+### 코드 품질 개선 ✅
+
+#### 1. 테스트 커버리지 강화 (324개 → 649개)
+
+10개 신규 테스트 파일 추가로 테스트 수 2배 확대.
+
+**추가된 테스트 파일:**
+
+| 파일 | 테스트 수 | 테스트 대상 |
+|------|----------|------------|
+| `__tests__/lib/business/unified-lookup.test.ts` | ~30개 | 통합 사업자 조회 (NTS/NPS/DART) |
+| `__tests__/lib/company-documents/rag-system.test.ts` | ~25개 | RAG 검색, 청크 분할, 임베딩 |
+| `__tests__/lib/email/resend.test.ts` | ~20개 | Resend 이메일 발송 |
+| `__tests__/lib/evaluation/criteria-extraction.test.ts` | ~25개 | 평가기준 AI 추출 |
+| `__tests__/lib/feedback/feedback-system.test.ts` | ~20개 | 피드백 수집/관리 |
+| `__tests__/lib/hwpx/hwpx-generation.test.ts` | ~20개 | HWPX 한글 문서 생성 |
+| `__tests__/lib/matching/ai-matching.test.ts` | ~30개 | AI 매칭 분석 |
+| `__tests__/lib/newsletter/subscription.test.ts` | ~25개 | 뉴스레터 구독/발송 |
+| `__tests__/lib/pdf/pdf-parsing.test.ts` | ~20개 | PDF 텍스트 추출/파싱 |
+| `__tests__/lib/tracking/application-tracking.test.ts` | ~25개 | 지원 이력 추적, D-day |
+
+**전체 테스트 현황:**
+```bash
+npm test
+# Test Files  25 passed (30)
+# Tests  649 passed | 1 skipped (650)
+```
+
+#### 2. 구조화된 로깅 시스템 ✅
+
+외부 의존성 없이 JSON 형식의 구조화된 로그 시스템 구현.
+
+**구성 요소:**
+| 파일 | 설명 |
+|------|------|
+| `lib/logger/index.ts` | 로거 유틸리티 (JSON 포맷, traceId, 레벨별 출력) |
+| `lib/logger/README.md` | 로거 사용 가이드 |
+
+**기능:**
+- JSON 포맷 출력: timestamp, level, message, traceId, module, metadata
+- 요청별 traceId 자동 생성 (crypto.randomUUID)
+- 로그 레벨: debug, info, warn, error
+- 프로덕션: info 이상만 출력 / 개발: 전체 출력
+- child logger: `logger.child({ module: 'sync' })`
+
+**적용된 API:**
+| API | 설명 |
+|-----|------|
+| `app/api/announcements/smes/sync/route.ts` | 중소벤처24 동기화 |
+| `app/api/announcements/bizinfo/sync/route.ts` | 기업마당 동기화 |
+| `app/api/matching/route.ts` | AI 매칭 분석 |
+| `app/api/payments/toss/confirm/route.ts` | Toss 결제 확인 |
+
+**사용법:**
+```typescript
+import { createLogger, createRequestLogger } from '@/lib/logger'
+
+// 모듈별 로거
+const logger = createLogger({ module: 'sync' })
+logger.info('동기화 시작', { source: 'smes', count: 50 })
+
+// 요청별 로거 (traceId 자동 생성)
+const reqLogger = createRequestLogger('matching')
+reqLogger.info('매칭 분석 요청', { userId: '...' })
+```
+
+#### 3. 중복 마이그레이션 파일 정리 ✅
+
+| 변경 | 내용 |
+|------|------|
+| `028_prompt_versions.sql` 삭제 | 027과 중복된 파일 제거 |
+| `027_prompt_versions.sql` 수정 | 컬럼명 `response_time_ms` → `response_time` (코드와 일치) |
+| 초기 데이터 통합 | 028의 INSERT 문을 027에 병합 (6개 프롬프트 버전) |
+
+#### 4. todolist.md 최신화 ✅
+
+2026-01-22 → 2026-01-28 기준으로 전체 업데이트.
+
+### Supabase 마이그레이션 (미실행) ⚠️
+
+아래 마이그레이션을 Supabase 대시보드에서 수동 실행 필요:
+
+| 파일 | 설명 | 상태 |
+|------|------|------|
+| `027_prompt_versions.sql` | 프롬프트 버전 관리 + 사용 로그 + 메트릭 뷰 | ⚠️ 미실행 |
+| `029_quality_score_column.sql` | 공고 품질 점수/등급 컬럼 | ⚠️ 미실행 |
 
 ---
 
