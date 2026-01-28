@@ -12,6 +12,7 @@ import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
 import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
 import { createRequestLogger } from '@/lib/logger'
+import { fetchWithRetry } from '@/lib/api/retry'
 
 // 기업마당 API 설정
 const BIZINFO_API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do'
@@ -142,15 +143,20 @@ export async function POST(request: NextRequest) {
 
     const apiUrl = `${BIZINFO_API_URL}?${params.toString()}`
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    })
+    const response = await fetchWithRetry(
+      apiUrl,
+      {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 2000,
+        backoff: 'exponential',
+      }
+    )
 
-    if (!response.ok) {
-      log.error('기업마당 API 호출 실패', { status: response.status, url: apiUrl })
-      throw new Error(`Bizinfo API error: ${response.status}`)
-    }
+    log.debug('기업마당 API 호출 성공', { status: response.status })
 
     const result: BizinfoResponse = await response.json()
 

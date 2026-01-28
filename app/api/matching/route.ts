@@ -6,6 +6,7 @@ import { withRateLimit } from '@/lib/api-utils'
 import { getMatchingCache, setMatchingCache } from '@/lib/cache'
 import { getCompanyContextForMatching, hasCompanyDocuments } from '@/lib/company-documents/rag'
 import { createRequestLogger } from '@/lib/logger'
+import { apiSuccess, apiError, unauthorized, notFound, badRequest } from '@/lib/api/error-handler'
 
 async function handlePost(request: NextRequest) {
   const log = createRequestLogger(request, 'matching')
@@ -16,10 +17,7 @@ async function handlePost(request: NextRequest) {
 
     if (!user) {
       log.warn('인증되지 않은 요청')
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return unauthorized('로그인이 필요해요')
     }
 
     const body = await request.json()
@@ -29,10 +27,7 @@ async function handlePost(request: NextRequest) {
 
     if (!announcementId || !companyId) {
       log.warn('필수 필드 누락', { announcementId, companyId })
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
+      return badRequest('공고 ID와 기업 ID는 필수예요')
     }
 
 
@@ -41,18 +36,9 @@ async function handlePost(request: NextRequest) {
       const cachedResult = await getMatchingCache(companyId, announcementId)
       if (cachedResult) {
         log.info('캐시 히트', { companyId, announcementId })
-        return NextResponse.json(
-          {
-            success: true,
-            data: cachedResult,
-            fromCache: true,
-          },
-          {
-            headers: {
-              'X-Matching-Cache': 'HIT',
-            },
-          }
-        )
+        const response = apiSuccess({ ...cachedResult, fromCache: true })
+        response.headers.set('X-Matching-Cache', 'HIT')
+        return response
       }
       log.debug('캐시 미스', { companyId, announcementId })
     } catch (cacheError) {
@@ -71,10 +57,7 @@ async function handlePost(request: NextRequest) {
 
     if (announcementError || !announcementData) {
       log.warn('공고 조회 실패', { announcementId, error: announcementError?.message })
-      return NextResponse.json(
-        { success: false, error: 'Announcement not found' },
-        { status: 404 }
-      )
+      return notFound('공고를 찾을 수 없어요')
     }
     const announcement = announcementData as Tables<'announcements'>
     log.debug('공고 조회 완료', { announcementId, title: announcement.title })
@@ -88,10 +71,7 @@ async function handlePost(request: NextRequest) {
 
     if (companyError || !companyData) {
       log.warn('기업 조회 실패', { companyId, error: companyError?.message })
-      return NextResponse.json(
-        { success: false, error: 'Company not found' },
-        { status: 404 }
-      )
+      return notFound('기업 정보를 찾을 수 없어요')
     }
     const company = companyData as Tables<'companies'>
     log.debug('기업 조회 완료', { companyId, name: company.name })
@@ -256,10 +236,7 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
         companyId,
         announcementId
       })
-      return NextResponse.json(
-        { success: false, error: 'Failed to save match result' },
-        { status: 500 }
-      )
+      return apiError('매칭 결과 저장에 실패했어요', 'DATABASE_ERROR', 500)
     }
 
     log.debug('매칭 결과 저장 완료', { matchId: matchResult.id })
@@ -288,27 +265,15 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
       score: validScore
     })
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: resultData,
-        fromCache: false,
-      },
-      {
-        headers: {
-          'X-Matching-Cache': 'MISS',
-        },
-      }
-    )
+    const response = apiSuccess({ ...resultData, fromCache: false })
+    response.headers.set('X-Matching-Cache', 'MISS')
+    return response
   } catch (error) {
     log.error('매칭 요청 실패', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     })
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiError('매칭 분석 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }
 

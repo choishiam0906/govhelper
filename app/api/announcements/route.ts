@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAnnouncementsListCache, setAnnouncementsListCache } from '@/lib/cache'
+import { apiSuccess, apiError } from '@/lib/api/error-handler'
 
 // 정적 데이터 5분 캐싱 (Next.js 라우트 레벨 캐싱)
 export const revalidate = 300
@@ -93,15 +94,11 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query
 
     if (error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      )
+      return apiError(error.message || '공고 조회에 실패했어요', 'DATABASE_ERROR', 500)
     }
 
-    const responseData = {
-      success: true,
-      data,
+    const resultData = {
+      announcements: data,
       pagination: {
         page,
         limit,
@@ -111,20 +108,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. 캐시 저장 (5분 TTL)
-    await setAnnouncementsListCache(cacheParams, responseData)
+    await setAnnouncementsListCache(cacheParams, resultData)
 
-    const response = NextResponse.json(responseData, {
-      headers: {
-        'X-Cache': 'MISS',
-        // 공개 읽기 API - 5분 캐싱 (s-maxage=300), stale-while-revalidate로 사용자 경험 개선
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
-      }
-    })
+    const response = apiSuccess(resultData)
+    response.headers.set('X-Cache', 'MISS')
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
     return response
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
+    return apiError('공고 목록 조회 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }

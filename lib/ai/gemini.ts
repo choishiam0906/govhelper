@@ -7,6 +7,7 @@ import {
   SECTION_IMPROVEMENT_PROMPT,
   EVALUATION_EXTRACTION_PROMPT,
 } from './prompts'
+import { withRetry } from '@/lib/api/retry'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
@@ -43,7 +44,19 @@ export async function analyzeMatchWithGemini(
   const prompt = MATCHING_ANALYSIS_PROMPT(announcementContent, companyProfile, businessPlan)
 
   try {
-    const result = await model.generateContent(prompt)
+    const result = await withRetry(
+      () => model.generateContent(prompt),
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        backoff: 'exponential',
+        retryOn: (error: any) => {
+          // 429 Rate Limit이나 500+ 서버 오류만 재시도
+          const status = error?.status || error?.response?.status
+          return status === 429 || status >= 500
+        },
+      }
+    )
     const response = await result.response
     const text = response.text()
 
@@ -106,7 +119,18 @@ export async function parseEligibilityCriteria(
   const prompt = ELIGIBILITY_PARSING_PROMPT(announcementTitle, announcementContent, targetCompany)
 
   try {
-    const result = await model.generateContent(prompt)
+    const result = await withRetry(
+      () => model.generateContent(prompt),
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        backoff: 'exponential',
+        retryOn: (error: any) => {
+          const status = error?.status || error?.response?.status
+          return status === 429 || status >= 500
+        },
+      }
+    )
     const response = await result.response
     const text = response.text()
 
@@ -257,7 +281,18 @@ export async function extractEvaluationCriteria(
   const prompt = EVALUATION_EXTRACTION_PROMPT(announcementTitle, announcementContent)
 
   try {
-    const result = await model.generateContent(prompt)
+    const result = await withRetry(
+      () => model.generateContent(prompt),
+      {
+        maxRetries: 3,
+        baseDelay: 1000,
+        backoff: 'exponential',
+        retryOn: (error: any) => {
+          const status = error?.status || error?.response?.status
+          return status === 429 || status >= 500
+        },
+      }
+    )
     const response = await result.response
     const text = response.text()
 

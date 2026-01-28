@@ -10,6 +10,8 @@ import {
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
 import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
+import { fetchWithRetry } from '@/lib/api/retry'
+import { createRequestLogger } from '@/lib/logger'
 
 // 나라장터 API 설정
 const G2B_API_URL = 'https://apis.data.go.kr/1230000/ad/BidPublicInfoService'
@@ -156,15 +158,18 @@ export async function POST(request: NextRequest) {
         const apiUrl = `${G2B_API_URL}${endpoint}?${params.toString()}`
 
         try {
-          const response = await fetch(apiUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-          })
-
-          if (!response.ok) {
-            console.error(`G2B API error (${type}):`, response.status)
-            break
-          }
+          const response = await fetchWithRetry(
+            apiUrl,
+            {
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+            },
+            {
+              maxRetries: 3,
+              baseDelay: 2000,
+              backoff: 'exponential',
+            }
+          )
 
           const result: G2BResponse = await response.json()
 

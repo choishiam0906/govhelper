@@ -112,6 +112,16 @@ class Logger {
 export const logger = new Logger()
 
 /**
+ * 모듈별 로거 생성
+ * @param options 로거 옵션 (module, traceId)
+ * @returns Logger 인스턴스
+ */
+export function createLogger(options?: { module?: string; traceId?: string }): Logger {
+  if (!options) return logger
+  return new Logger(options.module, options.traceId)
+}
+
+/**
  * Trace ID 생성 (crypto.randomUUID 사용)
  */
 export function generateTraceId(): string {

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { generateApplicationDraft } from '@/lib/ai/claude'
 import { checkUsageLimit } from '@/lib/queries/dashboard'
 import { z } from 'zod'
+import { apiSuccess, apiError, unauthorized, badRequest } from '@/lib/api/error-handler'
 
 // 지원서 생성 스키마
 const createApplicationSchema = z.object({
@@ -17,10 +18,7 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: '인증이 필요합니다' },
-        { status: 401 }
-      )
+      return unauthorized('로그인이 필요해요')
     }
 
     // 지원서 목록 조회
@@ -48,22 +46,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Applications fetch error:', error)
-      return NextResponse.json(
-        { success: false, error: '지원서 목록 조회에 실패했습니다' },
-        { status: 500 }
-      )
+      return apiError('지원서 목록 조회에 실패했어요', 'DATABASE_ERROR', 500)
     }
 
-    return NextResponse.json({
-      success: true,
-      data,
-    })
+    return apiSuccess({ applications: data })
   } catch (error) {
     console.error('Applications GET error:', error)
-    return NextResponse.json(
-      { success: false, error: '서버 오류가 발생했습니다' },
-      { status: 500 }
-    )
+    return apiError('지원서 목록 조회 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }
 
@@ -75,10 +64,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: '인증이 필요합니다' },
-        { status: 401 }
-      )
+      return unauthorized('로그인이 필요해요')
     }
 
     const body = await request.json()
@@ -94,19 +80,13 @@ export async function POST(request: NextRequest) {
     const company = companyData as any
 
     if (!company) {
-      return NextResponse.json(
-        { success: false, error: '기업 정보가 필요합니다' },
-        { status: 400 }
-      )
+      return badRequest('기업 정보가 필요해요')
     }
 
     // 사용량 체크
     const usage = await checkUsageLimit(supabase, user.id, company.id, 'application')
     if (!usage.allowed) {
-      return NextResponse.json(
-        { success: false, error: '이번 달 사용량을 초과했습니다' },
-        { status: 403 }
-      )
+      return apiError('이번 달 사용량을 초과했어요', 'PLAN_LIMIT_EXCEEDED', 403)
     }
 
     // 매칭 결과 조회 (공고 정보 포함)
@@ -134,10 +114,7 @@ export async function POST(request: NextRequest) {
     const match = matchData as any
 
     if (matchError || !match) {
-      return NextResponse.json(
-        { success: false, error: '매칭 결과를 찾을 수 없습니다' },
-        { status: 404 }
-      )
+      return apiError('매칭 결과를 찾을 수 없어요', 'NOT_FOUND', 404)
     }
 
     // 기존 지원서가 있는지 확인
@@ -151,10 +128,7 @@ export async function POST(request: NextRequest) {
     const existingApp = existingAppData as { id: string } | null
 
     if (existingApp) {
-      return NextResponse.json(
-        { success: false, error: '이미 지원서가 존재합니다', existingId: existingApp.id },
-        { status: 400 }
-      )
+      return apiError('이미 지원서가 존재해요', 'CONFLICT', 409)
     }
 
     const announcement = match.announcements as any
@@ -224,28 +198,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Application insert error:', insertError)
-      return NextResponse.json(
-        { success: false, error: '지원서 생성에 실패했습니다' },
-        { status: 500 }
-      )
+      return apiError('지원서 생성에 실패했어요', 'DATABASE_ERROR', 500)
     }
 
-    return NextResponse.json({
-      success: true,
-      data: application,
-    })
+    return apiSuccess({ application })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: '잘못된 요청입니다', details: (error as any).errors },
-        { status: 400 }
-      )
+      return badRequest('잘못된 요청이에요')
     }
 
     console.error('Application POST error:', error)
-    return NextResponse.json(
-      { success: false, error: '서버 오류가 발생했습니다' },
-      { status: 500 }
-    )
+    return apiError('지원서 생성 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }

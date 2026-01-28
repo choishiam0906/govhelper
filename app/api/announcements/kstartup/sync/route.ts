@@ -11,6 +11,8 @@ import { parseEligibilityCriteria } from '@/lib/ai'
 import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
 import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
+import { fetchWithRetry } from '@/lib/api/retry'
+import { createRequestLogger } from '@/lib/logger'
 
 // K-Startup API 설정 (공공데이터포털)
 const KSTARTUP_API_URL = 'https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01'
@@ -119,14 +121,18 @@ export async function POST(request: NextRequest) {
 
       const apiUrl = `${KSTARTUP_API_URL}?${params.toString()}`
 
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-      })
-
-      if (!response.ok) {
-        throw new Error(`K-Startup API error: ${response.status}`)
-      }
+      const response = await fetchWithRetry(
+        apiUrl,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        },
+        {
+          maxRetries: 3,
+          baseDelay: 2000,
+          backoff: 'exponential',
+        }
+      )
 
       const result: KStartupResponse = await response.json()
       const data = result.data || []

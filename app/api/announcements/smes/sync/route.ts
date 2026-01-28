@@ -12,6 +12,7 @@ import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
 import { startSync, endSync } from '@/lib/sync/logger'
 import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
 import { createRequestLogger } from '@/lib/logger'
+import { fetchWithRetry } from '@/lib/api/retry'
 
 // 중소벤처24 API 설정
 const SMES_API_URL = 'https://www.smes.go.kr/main/fnct/apiReqst/extPblancInfo'
@@ -115,18 +116,24 @@ export async function POST(request: NextRequest) {
     const endDate = new Date(today)
     endDate.setMonth(endDate.getMonth() + 2)
 
-    // SMES API 호출
+    // SMES API 호출 (재시도 로직 포함)
     const apiUrl = `${SMES_API_URL}?token=${SMES_API_TOKEN}&strDt=${formatDate(startDate)}&endDt=${formatDate(endDate)}`
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-    })
+    const response = await fetchWithRetry(
+      apiUrl,
+      {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      },
+      {
+        maxRetries: 3,
+        baseDelay: 2000,
+        backoff: 'exponential',
+      }
+    )
 
-    if (!response.ok) {
-      log.error('SMES API 호출 실패', { status: response.status, url: apiUrl })
-      throw new Error(`SMES API error: ${response.status}`)
-    }
+    // fetchWithRetry는 이미 !res.ok 체크를 하므로 여기서는 제거
+    log.debug('SMES API 호출 성공', { status: response.status })
 
     const result = await response.json()
 

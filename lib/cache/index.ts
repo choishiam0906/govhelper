@@ -21,8 +21,7 @@ export interface CachedMatchingResult {
 
 // 캐시된 공고 목록 응답 타입
 export interface CachedAnnouncementsResponse {
-  success: boolean
-  data: Array<{
+  announcements: Array<{
     id: string
     title: string
     organization: string
