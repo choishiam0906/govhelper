@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAnnouncementsListCache, setAnnouncementsListCache } from '@/lib/cache'
 
+// 정적 데이터 5분 캐싱 (Next.js 라우트 레벨 캐싱)
+export const revalidate = 300
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -21,8 +24,12 @@ export async function GET(request: NextRequest) {
     // 1. 캐시 조회
     const cachedData = await getAnnouncementsListCache(cacheParams)
     if (cachedData) {
-      const response = NextResponse.json(cachedData)
-      response.headers.set('X-Cache', 'HIT')
+      const response = NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        }
+      })
       return response
     }
 
@@ -31,7 +38,20 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('announcements')
-      .select('*', { count: 'exact' })
+      .select(`
+        id,
+        title,
+        organization,
+        category,
+        support_type,
+        support_amount,
+        application_start,
+        application_end,
+        status,
+        source,
+        quality_score,
+        created_at
+      `, { count: 'exact' })
 
     // Apply filters
     if (search) {
@@ -93,8 +113,13 @@ export async function GET(request: NextRequest) {
     // 3. 캐시 저장 (5분 TTL)
     await setAnnouncementsListCache(cacheParams, responseData)
 
-    const response = NextResponse.json(responseData)
-    response.headers.set('X-Cache', 'MISS')
+    const response = NextResponse.json(responseData, {
+      headers: {
+        'X-Cache': 'MISS',
+        // 공개 읽기 API - 5분 캐싱 (s-maxage=300), stale-while-revalidate로 사용자 경험 개선
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+      }
+    })
     return response
   } catch (error) {
     return NextResponse.json(

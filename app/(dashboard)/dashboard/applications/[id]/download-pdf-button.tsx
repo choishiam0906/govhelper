@@ -4,8 +4,15 @@ import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Download, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
+
+// html2canvas와 jspdf를 동적으로 로드하여 번들 크기 감소
+const loadPDFLibraries = async () => {
+  const [html2canvas, jsPDF] = await Promise.all([
+    import('html2canvas').then(mod => mod.default),
+    import('jspdf').then(mod => mod.jsPDF)
+  ])
+  return { html2canvas, jsPDF }
+}
 
 interface ApplicationSection {
   section: string
@@ -59,6 +66,9 @@ export function DownloadPDFButton({ application }: DownloadPDFButtonProps) {
     setIsGenerating(true)
 
     try {
+      // 라이브러리를 동적으로 로드
+      const { html2canvas, jsPDF } = await loadPDFLibraries()
+
       // 숨겨진 콘텐츠를 일시적으로 표시
       contentRef.current.style.display = 'block'
       contentRef.current.style.position = 'absolute'

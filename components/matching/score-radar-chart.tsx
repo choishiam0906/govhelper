@@ -1,14 +1,19 @@
 'use client'
 
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from 'recharts'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// recharts를 동적으로 로드하여 초기 번들 크기 감소
+const Radar = dynamic(() => import('recharts').then(mod => mod.Radar), { ssr: false })
+const RadarChart = dynamic(() => import('recharts').then(mod => mod.RadarChart), { ssr: false })
+const PolarGrid = dynamic(() => import('recharts').then(mod => mod.PolarGrid), { ssr: false })
+const PolarAngleAxis = dynamic(() => import('recharts').then(mod => mod.PolarAngleAxis), { ssr: false })
+const PolarRadiusAxis = dynamic(() => import('recharts').then(mod => mod.PolarRadiusAxis), { ssr: false })
+const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[280px] w-full" />
+})
+const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false })
 
 interface ScoreRadarChartProps {
   technicalScore: number

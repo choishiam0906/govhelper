@@ -1,13 +1,51 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { SMESAnnouncementList } from './smes-announcement-list'
-import { BizinfoAnnouncementList } from './bizinfo-announcement-list'
-import { KStartupAnnouncementList } from './kstartup-announcement-list'
-import { G2BAnnouncementList } from './g2b-announcement-list'
-import { SemanticSearch } from './semantic-search'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles } from 'lucide-react'
+import { AnnouncementListSkeleton } from '@/components/ui/skeleton'
+
+// 탭 콘텐츠를 동적 로딩으로 변경 (코드 스플리팅)
+const SMESAnnouncementList = dynamic(
+  () => import('./smes-announcement-list').then((mod) => ({ default: mod.SMESAnnouncementList })),
+  {
+    loading: () => <AnnouncementListSkeleton count={5} />,
+    ssr: false,
+  }
+)
+
+const BizinfoAnnouncementList = dynamic(
+  () => import('./bizinfo-announcement-list').then((mod) => ({ default: mod.BizinfoAnnouncementList })),
+  {
+    loading: () => <AnnouncementListSkeleton count={5} />,
+    ssr: false,
+  }
+)
+
+const KStartupAnnouncementList = dynamic(
+  () => import('./kstartup-announcement-list').then((mod) => ({ default: mod.KStartupAnnouncementList })),
+  {
+    loading: () => <AnnouncementListSkeleton count={5} />,
+    ssr: false,
+  }
+)
+
+const G2BAnnouncementList = dynamic(
+  () => import('./g2b-announcement-list').then((mod) => ({ default: mod.G2BAnnouncementList })),
+  {
+    loading: () => <AnnouncementListSkeleton count={5} />,
+    ssr: false,
+  }
+)
+
+const SemanticSearch = dynamic(
+  () => import('./semantic-search').then((mod) => ({ default: mod.SemanticSearch })),
+  {
+    loading: () => <AnnouncementListSkeleton count={5} />,
+    ssr: false,
+  }
+)
 
 interface AnnouncementsTabsProps {
   children: React.ReactNode

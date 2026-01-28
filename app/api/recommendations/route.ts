@@ -8,6 +8,9 @@ import type {
   RecommendationsResponse
 } from '@/lib/recommendations/types'
 
+// 맞춤 추천은 1시간 캐싱 (Next.js 라우트 레벨 캐싱)
+export const revalidate = 3600
+
 /**
  * 맞춤 추천 공고 API
  * Pro/Premium 사용자만 사용 가능
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest) {
       .not('eligibility_criteria', 'is', null)
       .gte('application_end', new Date().toISOString().split('T')[0]) // 마감 전 공고만
       .order('application_end', { ascending: true })
-      .limit(200)
+      .limit(100) // 200 → 100으로 제한 (성능 개선)
 
     if (announcementsError) {
       console.error('Announcements query error:', announcementsError)
@@ -120,6 +123,11 @@ export async function GET(request: NextRequest) {
           location: company.location
         },
         totalMatched: results.length
+      }
+    }, {
+      headers: {
+        // 맞춤 추천 - 1시간 캐싱 (사용자별 다르므로 private)
+        'Cache-Control': 'private, max-age=3600'
       }
     })
 

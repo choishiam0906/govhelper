@@ -1,0 +1,189 @@
+
+> govhelper@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.production.local, .env.local, .env.production
+- Experiments (use with caution):
+  · clientTraceMetadata
+  · optimizePackageImports
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 11.3s
+  Running next.config.js provided runAfterProductionCompile ...
+✓ Completed runAfterProductionCompile in 613ms
+  Running TypeScript ...
+  Collecting page data using 13 workers ...
+⚠ Using edge runtime on a page currently disables static generation for that page
+  Generating static pages using 13 workers (0/128) ...
+  Generating static pages using 13 workers (32/128) 
+Recommendations API error: Error: Dynamic server usage: Route /api/recommendations couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at S (C:\Users\chois\govhelper-main\.next\server\chunks\[root-of-the-server]__80b9d949._.js:6:40134)
+    at p (C:\Users\chois\govhelper-main\.next\server\chunks\_20f14c9e._.js:2:10528)
+    at y (C:\Users\chois\govhelper-main\.next\server\chunks\_20f14c9e._.js:24:70)
+    at v (C:\Users\chois\govhelper-main\.next\server\chunks\[root-of-the-server]__ae044113._.js:2:8980) {
+  description: "Route /api/recommendations couldn't be rendered statically because it used `cookies`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+  Generating static pages using 13 workers (64/128) 
+  Generating static pages using 13 workers (96/128) 
+✓ Generating static pages using 13 workers (128/128) in 1768.9ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /about
+├ ƒ /admin
+├ ƒ /admin/approvals
+├ ƒ /admin/feedback
+├ ƒ /admin/newsletter
+├ ƒ /admin/payments
+├ ƒ /admin/prompts
+├ ƒ /admin/sync
+├ ƒ /admin/users
+├ ƒ /admin/utm
+├ ƒ /api/admin/ab-testing
+├ ƒ /api/admin/approvals
+├ ƒ /api/admin/duplicates
+├ ƒ /api/admin/feedback
+├ ƒ /api/admin/newsletter/send
+├ ƒ /api/admin/payments
+├ ƒ /api/admin/payments/[id]/confirm
+├ ƒ /api/admin/prompts
+├ ƒ /api/admin/prompts/metrics
+├ ƒ /api/admin/quality
+├ ƒ /api/admin/stats
+├ ƒ /api/admin/sync-status
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[id]
+├ ƒ /api/admin/utm
+├ ƒ /api/announcements
+├ ƒ /api/announcements/[id]
+├ ƒ /api/announcements/[id]/changes
+├ ƒ /api/announcements/bizinfo
+├ ƒ /api/announcements/bizinfo/sync
+├ ƒ /api/announcements/g2b
+├ ƒ /api/announcements/g2b/sync
+├ ƒ /api/announcements/kstartup
+├ ƒ /api/announcements/kstartup/sync
+├ ƒ /api/announcements/local/sync
+├ ƒ /api/announcements/parse-attachments
+├ ƒ /api/announcements/parse-eligibility
+├ ƒ /api/announcements/parse-evaluation
+├ ƒ /api/announcements/scrape-attachments
+├ ƒ /api/announcements/search
+├ ƒ /api/announcements/smes
+├ ƒ /api/announcements/smes/sync
+├ ƒ /api/announcements/trends
+├ ƒ /api/applications
+├ ƒ /api/applications/[id]
+├ ƒ /api/applications/[id]/improve
+├ ƒ /api/applications/[id]/improve/stream
+├ ƒ /api/applications/guide
+├ ƒ /api/applications/score
+├ ƒ /api/applications/stream
+├ ƒ /api/business/lookup
+├ ƒ /api/business/unified-lookup
+├ ƒ /api/business/verify
+├ ƒ /api/chat
+├ ƒ /api/companies
+├ ƒ /api/companies/[id]
+├ ƒ /api/company-documents
+├ ƒ /api/company-documents/[id]
+├ ƒ /api/competition/predict
+├ ƒ /api/dashboard/widgets
+├ ƒ /api/embeddings/generate
+├ ƒ /api/feedback
+├ ƒ /api/guest/matching
+├ ƒ /api/guest/matching/[id]
+├ ƒ /api/matching
+├ ƒ /api/matching/[id]
+├ ƒ /api/matching/competition
+├ ƒ /api/matching/stream
+├ ƒ /api/newsletter/confirm
+├ ƒ /api/newsletter/subscribe
+├ ƒ /api/newsletter/unsubscribe
+├ ƒ /api/notifications
+├ ƒ /api/notifications/retargeting
+├ ƒ /api/notifications/retargeting/unsubscribe
+├ ƒ /api/notifications/send
+├ ƒ /api/notifications/send-changes
+├ ƒ /api/notifications/send-recommendations
+├ ƒ /api/notifications/settings
+├ ƒ /api/payments
+├ ƒ /api/payments/confirm
+├ ƒ /api/payments/toss/confirm
+├ ƒ /api/payments/webhook
+├ ƒ /api/push/send-deadline
+├ ƒ /api/push/subscribe
+├ ƒ /api/recommendations
+├ ƒ /api/retargeting/send
+├ ƒ /api/retargeting/unsubscribe
+├ ƒ /api/saved-announcements
+├ ƒ /api/saved-announcements/folders
+├ ƒ /api/saved-announcements/update
+├ ƒ /api/statistics
+├ ƒ /api/statistics/industry
+├ ƒ /api/statistics/insights
+├ ƒ /api/statistics/trends
+├ ƒ /api/subscriptions
+├ ƒ /api/subscriptions/cancel
+├ ƒ /api/templates
+├ ƒ /api/templates/[id]
+├ ƒ /api/tracking
+├ ƒ /api/tracking/[id]
+├ ƒ /api/upload/business-plan
+├ ƒ /auth/callback
+├ ƒ /dashboard
+├ ƒ /dashboard/announcements
+├ ƒ /dashboard/announcements/[id]
+├ ƒ /dashboard/applications
+├ ƒ /dashboard/applications/[id]
+├ ƒ /dashboard/applications/new
+├ ƒ /dashboard/billing
+├ ƒ /dashboard/billing/checkout
+├ ƒ /dashboard/billing/fail
+├ ƒ /dashboard/billing/success
+├ ƒ /dashboard/calendar
+├ ƒ /dashboard/compare
+├ ƒ /dashboard/matching
+├ ƒ /dashboard/matching/[id]
+├ ƒ /dashboard/notifications
+├ ƒ /dashboard/pending-approval
+├ ƒ /dashboard/profile
+├ ƒ /dashboard/saved
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/templates
+├ ƒ /dashboard/tracking
+├ ƒ /dashboard/trends
+├ ○ /faq
+├ ○ /forgot-password
+├ ƒ /government-support
+├ ƒ /government-support/rnd
+├ ƒ /government-support/sme
+├ ƒ /government-support/startup
+├ ○ /login
+├ ○ /newsletter/confirmed
+├ ○ /newsletter/error
+├ ○ /newsletter/unsubscribed
+├ ○ /offline
+├ ƒ /onboarding
+├ ƒ /opengraph-image
+├ ○ /privacy
+├ ○ /register
+├ ○ /reset-password
+├ ○ /robots.txt
+├ ƒ /sitemap.xml
+├ ○ /terms
+├ ○ /try
+├ ƒ /try/result/[id]
+└ ƒ /twitter-image
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

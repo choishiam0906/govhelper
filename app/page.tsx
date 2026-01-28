@@ -18,10 +18,23 @@ import {
   Clock,
   Award,
 } from "lucide-react"
-import { StatsSection, AIExpertiseStats } from "@/components/landing/stats-section"
-import { NewsletterForm } from "@/components/newsletter/newsletter-form"
+import dynamic from "next/dynamic"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import { FUNNEL_EVENTS, trackFunnelEvent } from "@/lib/analytics/events"
+
+// Below-the-fold 컴포넌트를 동적 로딩으로 변경
+const StatsSection = dynamic(
+  () => import("@/components/landing/stats-section").then((mod) => mod.StatsSection),
+  { ssr: false }
+)
+const AIExpertiseStats = dynamic(
+  () => import("@/components/landing/stats-section").then((mod) => mod.AIExpertiseStats),
+  { ssr: false }
+)
+const NewsletterForm = dynamic(
+  () => import("@/components/newsletter/newsletter-form").then((mod) => mod.NewsletterForm),
+  { ssr: false }
+)
 
 export default function Home() {
   useEffect(() => {

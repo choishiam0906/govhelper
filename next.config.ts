@@ -28,7 +28,16 @@ const nextConfig: NextConfig = {
 
   // 실험적 기능
   experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns', 'recharts'],
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'date-fns',
+      'recharts',
+      'framer-motion',
+      'zod',
+      'react-hook-form',
+      '@hookform/resolvers',
+    ],
   },
 
   // 프로덕션 빌드 최적화
