@@ -219,7 +219,7 @@ export default async function DashboardPage() {
   // 빠른 메뉴 위젯
   const quickActionsWidget = (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card className="hover:border-primary transition-colors cursor-pointer">
+      <Card className="hover:border-primary transition-colors cursor-pointer" data-tutorial="search">
         <Link href="/dashboard/announcements">
           <CardHeader>
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
@@ -232,7 +232,7 @@ export default async function DashboardPage() {
           </CardHeader>
         </Link>
       </Card>
-      <Card className="hover:border-primary transition-colors cursor-pointer">
+      <Card className="hover:border-primary transition-colors cursor-pointer" data-tutorial="matching">
         <Link href="/dashboard/matching">
           <CardHeader>
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2">
@@ -245,7 +245,7 @@ export default async function DashboardPage() {
           </CardHeader>
         </Link>
       </Card>
-      <Card className="hover:border-primary transition-colors cursor-pointer">
+      <Card className="hover:border-primary transition-colors cursor-pointer" data-tutorial="application">
         <Link href="/dashboard/applications">
           <CardHeader>
             <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mb-2">

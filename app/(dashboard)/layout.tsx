@@ -6,6 +6,7 @@ import { DashboardHeader } from "@/components/dashboard/header"
 import { FeedbackButton } from "@/components/feedback/feedback-button"
 import { CompareBar } from "@/components/compare/compare-bar"
 import { AIChatbot } from "@/components/chat/ai-chatbot"
+import { TutorialProvider } from "@/components/onboarding"
 
 // 관리자 이메일 목록
 const ADMIN_EMAILS = ['choishiam@gmail.com']
@@ -57,17 +58,19 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <DashboardHeader user={user} />
-      <div className="flex">
-        <DashboardNav userEmail={user.email} />
-        <main className="flex-1 min-w-0 p-6 lg:p-8 overflow-x-auto">
-          {children}
-        </main>
+    <TutorialProvider>
+      <div className="min-h-screen bg-muted/30">
+        <DashboardHeader user={user} />
+        <div className="flex">
+          <DashboardNav userEmail={user.email} />
+          <main className="flex-1 min-w-0 p-6 lg:p-8 overflow-x-auto">
+            {children}
+          </main>
+        </div>
+        <FeedbackButton />
+        <CompareBar />
+        <AIChatbot />
       </div>
-      <FeedbackButton />
-      <CompareBar />
-      <AIChatbot />
-    </div>
+    </TutorialProvider>
   )
 }

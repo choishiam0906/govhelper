@@ -19,6 +19,7 @@ import { Menu, LogOut, User as UserIcon, Settings, CreditCard } from "lucide-rea
 import { MobileNav } from "./mobile-nav"
 import { NotificationCenter } from "@/components/notifications/notification-center"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { TutorialTrigger } from "@/components/onboarding"
 
 interface DashboardHeaderProps {
   user: User
@@ -60,6 +61,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </Link>
 
         <nav className="ml-auto flex items-center gap-2" role="navigation" aria-label="사용자 메뉴">
+          <TutorialTrigger />
           <ThemeToggle />
           <NotificationCenter />
           <DropdownMenu>
