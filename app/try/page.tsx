@@ -2,135 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import {
-  Building2,
-  Users,
-  MapPin,
-  Mail,
-  ArrowRight,
-  ArrowLeft,
-  Loader2,
-  CheckCircle,
-  Sparkles,
-  Search,
-  FileText,
-  Shield,
-  Database,
-  AlertCircle,
-  Briefcase,
-  Calendar,
-  Building
-} from 'lucide-react'
+import { Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { useUTM } from '@/lib/hooks/use-utm'
 import { FUNNEL_EVENTS, trackFunnelEvent } from '@/lib/analytics/events'
-
-// 업종 목록
-const INDUSTRIES = [
-  '정보통신업',
-  '제조업',
-  '도매 및 소매업',
-  '건설업',
-  '전문, 과학 및 기술 서비스업',
-  '교육 서비스업',
-  '금융 및 보험업',
-  '보건업 및 사회복지 서비스업',
-  '숙박 및 음식점업',
-  '운수 및 창고업',
-  '농업, 임업 및 어업',
-  '예술, 스포츠 및 여가관련 서비스업',
-  '부동산업',
-  '사업시설 관리, 사업 지원 및 임대 서비스업',
-  '전기, 가스, 증기 및 공기 조절 공급업',
-  '수도, 하수 및 폐기물 처리, 원료 재생업',
-  '광업',
-  '기타',
-]
-
-// 지역 목록
-const LOCATIONS = [
-  '서울특별시',
-  '부산광역시',
-  '대구광역시',
-  '인천광역시',
-  '광주광역시',
-  '대전광역시',
-  '울산광역시',
-  '세종특별자치시',
-  '경기도',
-  '강원도',
-  '충청북도',
-  '충청남도',
-  '전라북도',
-  '전라남도',
-  '경상북도',
-  '경상남도',
-  '제주특별자치도',
-]
-
-// 인증서 목록
-const CERTIFICATIONS = [
-  '벤처기업인증',
-  '이노비즈인증',
-  '메인비즈인증',
-  '기술혁신형 중소기업',
-  '여성기업인증',
-  '장애인기업인증',
-  '사회적기업인증',
-  '녹색인증',
-]
-
-type Step = 1 | 2 | 3 | 4
-
-interface FormData {
-  businessNumber: string
-  companyName: string
-  industry: string
-  employeeCount: string
-  location: string
-  annualRevenue: string
-  foundedDate: string
-  certifications: string[]
-  email: string
-}
-
-// 통합 조회 결과 타입 (unified-lookup API 응답)
-interface UnifiedLookupResult {
-  success: boolean
-  data?: {
-    businessNumber: string
-    companyName: string
-    companyNameEng: string | null
-    ceoName: string | null
-    address: string | null
-    location: string
-    industryCode: string | null
-    employeeCount: number | null
-    establishedDate: string | null
-    businessType: string | null      // 업태 (대분류)
-    industryName: string | null      // 종목 (세세분류)
-    companySize: string              // 기업규모
-    corporationType: string          // 법인형태
-    homepage: string | null
-    phone: string | null
-    ntsStatus: string | null
-    taxType: string | null
-    stockCode: string | null
-    stockMarket: string
-    sources: string[]
-  }
-  error?: string
-}
+import type { Step, FormData, UnifiedLookupResult } from './types'
+import { INDUSTRIES } from './constants'
+import Step1 from './steps/step1'
+import Step2 from './steps/step2'
+import Step3 from './steps/step3'
+import Step4 from './steps/step4'
 
 export default function TryPage() {
   const router = useRouter()
@@ -473,190 +358,15 @@ export default function TryPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <Building2 className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">사업자번호를 입력해주세요</CardTitle>
-                  <CardDescription>
-                    사업자번호만 입력하면 기업 정보를 자동으로 채워드려요
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* 사업자번호 */}
-                  <div className="space-y-2">
-                    <Label htmlFor="businessNumber">사업자번호</Label>
-                    <div className="relative">
-                      <Input
-                        id="businessNumber"
-                        placeholder="000-00-00000"
-                        value={formData.businessNumber}
-                        onChange={(e) => updateFormData('businessNumber', e.target.value)}
-                        className="text-lg pr-10"
-                      />
-                      {lookingUp && (
-                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      하이픈(-) 없이 숫자만 입력해도 돼요
-                    </p>
-                  </div>
-
-                  {/* 조회 결과 표시 - 기업정보를 찾은 경우 */}
-                  {lookupResult?.success && lookupResult.data && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="font-medium text-green-700">사업자 정보를 찾았어요!</span>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        {/* 회사명 */}
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-green-600" />
-                          <span className="font-medium">{lookupResult.data.companyName}</span>
-                          {lookupResult.data.corporationType && lookupResult.data.corporationType !== '알 수 없음' && (
-                            <Badge variant="outline" className="text-xs">
-                              {lookupResult.data.corporationType}
-                            </Badge>
-                          )}
-                        </div>
-                        {/* 대표자 */}
-                        {lookupResult.data.ceoName && (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">대표: {lookupResult.data.ceoName}</span>
-                          </div>
-                        )}
-                        {/* 업종 */}
-                        {lookupResult.data.businessType && (
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">
-                              {lookupResult.data.businessType}
-                              {lookupResult.data.industryName && lookupResult.data.industryName !== '기타' && (
-                                <span className="text-xs ml-1">({lookupResult.data.industryName})</span>
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {/* 주소 */}
-                        {lookupResult.data.address && (
-                          <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
-                            <span className="text-muted-foreground">{lookupResult.data.address}</span>
-                          </div>
-                        )}
-                        {/* 직원수 */}
-                        {lookupResult.data.employeeCount && (
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">
-                              직원 약 {lookupResult.data.employeeCount}명
-                              {lookupResult.data.companySize && lookupResult.data.companySize !== '알 수 없음' && (
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  {lookupResult.data.companySize}
-                                </Badge>
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {/* 설립일 */}
-                        {lookupResult.data.establishedDate && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">
-                              설립: {lookupResult.data.establishedDate.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1년 $2월 $3일')}
-                            </span>
-                          </div>
-                        )}
-                        {/* 사업자 상태 */}
-                        {lookupResult.data.ntsStatus && (
-                          <div className="flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-green-600" />
-                            <span className="text-muted-foreground">
-                              {lookupResult.data.ntsStatus}
-                              {lookupResult.data.taxType && ` · ${lookupResult.data.taxType}`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      {/* 데이터 소스 */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Database className="h-3 w-3" />
-                        <span>
-                          데이터 소스: {lookupResult.data.sources?.join(', ').toUpperCase() || 'NTS, NPS, DART'}
-                        </span>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* 조회 실패 */}
-                  {lookupResult && !lookupResult.success && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-4 bg-amber-50 border border-amber-200 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5 text-amber-600" />
-                        <span className="text-amber-700">{lookupError}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        기업 정보를 직접 입력해주세요
-                      </p>
-                    </motion.div>
-                  )}
-
-                  <Button
-                    onClick={handleStep1Next}
-                    disabled={lookingUp}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {lookupResult?.success ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        정보 확인하고 계속하기
-                      </>
-                    ) : (
-                      <>
-                        다음 단계로
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">또는</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleSkipBusinessNumber}
-                  >
-                    사업자번호 없이 진행하기
-                  </Button>
-
-                  <div className="flex items-start gap-2 p-4 bg-muted/50 rounded-lg">
-                    <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <p className="text-sm text-muted-foreground">
-                      입력하신 정보는 매칭 분석에만 사용되며, 안전하게 보호돼요.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <Step1
+                formData={formData}
+                lookupResult={lookupResult}
+                lookupError={lookupError}
+                lookingUp={lookingUp}
+                updateFormData={updateFormData}
+                onNext={handleStep1Next}
+                onSkip={handleSkipBusinessNumber}
+              />
             </motion.div>
           )}
 
@@ -668,198 +378,14 @@ export default function TryPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <FileText className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">기업 정보를 확인해주세요</CardTitle>
-                  <CardDescription>
-                    {lookupResult?.success
-                      ? '자동으로 채워진 정보를 확인하고 수정해주세요'
-                      : '더 정확한 매칭을 위해 기업 정보가 필요해요'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* 자동 입력 안내 */}
-                  {lookupResult?.success && (
-                    <div className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-700">
-                          사업자 정보로 자동 입력됨
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          필요시 수정할 수 있어요
-                        </p>
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {lookupResult.data?.sources?.length || 0}개 소스
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* 회사명 */}
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">회사명 *</Label>
-                    <Input
-                      id="companyName"
-                      placeholder="(주)회사명"
-                      value={formData.companyName}
-                      onChange={(e) => updateFormData('companyName', e.target.value)}
-                    />
-                  </div>
-
-                  {/* 업종 */}
-                  <div className="space-y-2">
-                    <Label>
-                      업종 *
-                      {lookupResult?.success && lookupResult.data?.businessType && (
-                        <span className="text-xs text-green-600 ml-1">(자동 입력됨)</span>
-                      )}
-                    </Label>
-                    <Select
-                      value={formData.industry}
-                      onValueChange={(value) => updateFormData('industry', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="업종을 선택해주세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {INDUSTRIES.map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* 직원수 & 소재지 */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="employeeCount">
-                        직원수 *
-                        {lookupResult?.success && lookupResult.data?.employeeCount && (
-                          <span className="text-xs text-green-600 ml-1">(자동)</span>
-                        )}
-                      </Label>
-                      <div className="relative">
-                        <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="employeeCount"
-                          type="number"
-                          placeholder="10"
-                          className="pl-10"
-                          value={formData.employeeCount}
-                          onChange={(e) => updateFormData('employeeCount', e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>
-                        소재지 *
-                        {lookupResult?.success && lookupResult.data?.location && (
-                          <span className="text-xs text-green-600 ml-1">(자동)</span>
-                        )}
-                      </Label>
-                      <Select
-                        value={formData.location}
-                        onValueChange={(value) => updateFormData('location', value)}
-                      >
-                        <SelectTrigger>
-                          <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <SelectValue placeholder="지역 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LOCATIONS.map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* 매출 & 설립일 (선택) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="annualRevenue">연매출 (선택)</Label>
-                      <div className="relative">
-                        <Input
-                          id="annualRevenue"
-                          type="number"
-                          placeholder="10"
-                          className="pr-10"
-                          value={formData.annualRevenue}
-                          onChange={(e) => updateFormData('annualRevenue', e.target.value)}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          억원
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="foundedDate">
-                        설립일 (선택)
-                        {lookupResult?.success && lookupResult.data?.establishedDate && (
-                          <span className="text-xs text-green-600 ml-1">(자동)</span>
-                        )}
-                      </Label>
-                      <Input
-                        id="foundedDate"
-                        type="date"
-                        value={formData.foundedDate}
-                        onChange={(e) => updateFormData('foundedDate', e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 인증서 */}
-                  <div className="space-y-2">
-                    <Label>보유 인증 (선택)</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {CERTIFICATIONS.map((cert) => (
-                        <div key={cert} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={cert}
-                            checked={formData.certifications.includes(cert)}
-                            onCheckedChange={() => toggleCertification(cert)}
-                          />
-                          <label
-                            htmlFor={cert}
-                            className="text-sm cursor-pointer"
-                          >
-                            {cert}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 버튼 */}
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      이전
-                    </Button>
-                    <Button
-                      onClick={handleStep2Next}
-                      className="flex-1"
-                    >
-                      다음
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <Step2
+                formData={formData}
+                lookupResult={lookupResult}
+                updateFormData={updateFormData}
+                toggleCertification={toggleCertification}
+                onNext={handleStep2Next}
+                onPrevious={() => setStep(1)}
+              />
             </motion.div>
           )}
 
@@ -871,65 +397,12 @@ export default function TryPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Card>
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <Mail className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">이메일을 입력해주세요</CardTitle>
-                  <CardDescription>
-                    분석 결과를 이메일로도 보내드려요
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">이메일</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="example@company.com"
-                      value={formData.email}
-                      onChange={(e) => updateFormData('email', e.target.value)}
-                      className="text-lg"
-                    />
-                  </div>
-
-                  {/* 입력 정보 요약 */}
-                  <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-                    <h4 className="font-medium text-sm">입력하신 정보</h4>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>회사명: {formData.companyName}</p>
-                      <p>업종: {formData.industry}</p>
-                      <p>직원수: {formData.employeeCount}명</p>
-                      <p>소재지: {formData.location}</p>
-                      {formData.foundedDate && <p>설립일: {formData.foundedDate}</p>}
-                      {formData.annualRevenue && <p>연매출: {formData.annualRevenue}억원</p>}
-                      {formData.certifications.length > 0 && (
-                        <p>인증: {formData.certifications.join(', ')}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 버튼 */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(2)}
-                      className="flex-1"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      이전
-                    </Button>
-                    <Button
-                      onClick={handleSubmit}
-                      className="flex-1"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI 분석 시작
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <Step3
+                formData={formData}
+                updateFormData={updateFormData}
+                onSubmit={handleSubmit}
+                onPrevious={() => setStep(2)}
+              />
             </motion.div>
           )}
 
@@ -940,35 +413,7 @@ export default function TryPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
             >
-              <Card>
-                <CardContent className="py-16">
-                  <div className="text-center space-y-6">
-                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold mb-2">AI가 분석 중이에요</h2>
-                      <p className="text-muted-foreground">
-                        {formData.companyName}님에게 딱 맞는 지원사업을 찾고 있어요
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span>기업 정보 확인 완료</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>공고 매칭 분석 중...</span>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-50">
-                        <Search className="h-4 w-4" />
-                        <span>최적 지원사업 선정</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <Step4 formData={formData} />
             </motion.div>
           )}
         </AnimatePresence>

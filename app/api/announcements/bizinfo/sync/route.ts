@@ -1,47 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import {
-  syncRateLimiter,
-  checkRateLimit,
-  getClientIP,
-  getRateLimitHeaders,
-  isRateLimitEnabled,
-} from '@/lib/rate-limit'
-import { parseEligibilityCriteria } from '@/lib/ai'
-import { syncWithChangeDetection } from '@/lib/announcements/sync-with-changes'
-import { startSync, endSync } from '@/lib/sync/logger'
-import { detectDuplicate } from '@/lib/announcements/duplicate-detector'
-import { createRequestLogger } from '@/lib/logger'
+import { NextRequest } from 'next/server'
+import { createSyncHandler } from '@/lib/announcements/sync-handler'
 import { fetchWithRetry } from '@/lib/api/retry'
 
 // 기업마당 API 설정
 const BIZINFO_API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do'
 const BIZINFO_API_KEY = process.env.BIZINFO_API_KEY || ''
 
-// Supabase Admin Client 생성 (런타임에 호출)
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
-
-// 실제 기업마당 API 응답 형식
+// 기업마당 API 응답 형식
 interface BizinfoAnnouncement {
-  pblancId: string           // 공고 ID
-  pblancNm: string           // 공고명
-  bsnsSumryCn: string        // 사업개요 (HTML)
-  reqstBeginEndDe: string    // 신청기간 (예: "20260105 ~ 20260123")
-  jrsdInsttNm: string        // 소관기관
-  excInsttNm: string         // 수행기관
-  pldirSportRealmLclasCodeNm: string  // 분야 대분류
-  pldirSportRealmMlsfcCodeNm: string  // 분야 중분류
-  trgetNm: string            // 지원대상
-  pblancUrl: string          // 상세페이지 URL
-  refrncNm: string           // 문의처
-  creatPnttm: string         // 등록일시
-  hashtags: string           // 해시태그
-  totCnt: number             // 전체 건수
+  pblancId: string
+  pblancNm: string
+  bsnsSumryCn: string
+  reqstBeginEndDe: string
+  jrsdInsttNm: string
+  excInsttNm: string
+  pldirSportRealmLclasCodeNm: string
+  pldirSportRealmMlsfcCodeNm: string
+  trgetNm: string
+  pblancUrl: string
+  refrncNm: string
+  creatPnttm: string
+  hashtags: string
+  totCnt: number
 }
 
 interface BizinfoResponse {
@@ -53,14 +33,11 @@ function parseRequestDate(reqstDt: string): { startDate: string | null; endDate:
   const defaultDate = { startDate: null, endDate: null }
 
   if (!reqstDt) return defaultDate
-
-  // "예산 소진시까지" 같은 경우
   if (!reqstDt.includes('~')) return defaultDate
 
   const parts = reqstDt.split('~').map(s => s.trim())
 
   if (parts.length >= 2) {
-    // YYYYMMDD -> YYYY-MM-DD 변환
     const formatDate = (d: string): string | null => {
       const clean = d.replace(/[.\-\/]/g, '')
       if (clean.length >= 8) {
@@ -89,50 +66,17 @@ function stripHtml(html: string): string {
   return html?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim() || ''
 }
 
-export async function POST(request: NextRequest) {
-  const log = createRequestLogger(request, 'bizinfo-sync')
-  log.info('기업마당 동기화 시작')
-
-  // Vercel Cron 요청은 Rate Limiting 제외
-  const isCronRequest = request.headers.get('x-vercel-cron') === '1'
-
-  if (!isCronRequest && isRateLimitEnabled()) {
-    const ip = getClientIP(request)
-    const result = await checkRateLimit(syncRateLimiter, ip)
-
-    if (!result.success) {
-      log.warn('Rate limit 초과', { ip, retryAfter: Math.ceil((result.reset - Date.now()) / 1000) })
-      return NextResponse.json(
-        {
-          success: false,
-          error: '동기화 요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
-          retryAfter: Math.ceil((result.reset - Date.now()) / 1000),
-        },
-        {
-          status: 429,
-          headers: getRateLimitHeaders(result),
-        }
-      )
-    }
-  }
-
-  const startTime = Date.now()
-  const logId = await startSync('bizinfo')
-  log.debug('동기화 로그 생성', { logId })
-
-  try {
+// 공통 핸들러 생성
+const handler = createSyncHandler({
+  source: 'bizinfo',
+  logPrefix: 'bizinfo-sync',
+  fetchAndTransform: async () => {
     // API 키 확인
     if (!BIZINFO_API_KEY) {
-      log.error('기업마당 API 키 미설정')
-      return NextResponse.json(
-        { success: false, error: '기업마당 API 키가 설정되지 않았어요.' },
-        { status: 500 }
-      )
+      throw new Error('기업마당 API 키가 설정되지 않았어요.')
     }
 
-    const supabase = getSupabaseAdmin()
     const todayStr = getTodayStr()
-    log.debug('Supabase 클라이언트 생성 완료')
 
     // 전체 분야 조회 (최대 500건)
     const params = new URLSearchParams({
@@ -156,18 +100,16 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    log.debug('기업마당 API 호출 성공', { status: response.status })
-
     const result: BizinfoResponse = await response.json()
 
     // jsonArray에서 데이터 추출
     const allAnnouncements = result.jsonArray || []
-    log.info('기업마당 API 데이터 조회 완료', { count: allAnnouncements.length })
+    const totalFetched = allAnnouncements.length
 
     // 진행 중인 공고만 필터링
     const activeAnnouncements = allAnnouncements.filter(item => {
       const { endDate } = parseRequestDate(item.reqstBeginEndDe)
-      if (!endDate) return true // 마감일 없으면 포함 (예산 소진시까지 등)
+      if (!endDate) return true // 마감일 없으면 포함
       return endDate >= todayStr
     })
 
@@ -179,15 +121,12 @@ export async function POST(request: NextRequest) {
       return true
     })
 
-    // 데이터 변환 및 중복 감지 (배치용)
-    const announcementsToUpsert = []
-    let skippedDuplicates = 0
-
-    for (const item of uniqueAnnouncements) {
+    // 데이터 변환
+    const announcements = uniqueAnnouncements.map(item => {
       const { startDate, endDate } = parseRequestDate(item.reqstBeginEndDe)
       const cleanContent = stripHtml(item.bsnsSumryCn)
 
-      const announcement = {
+      return {
         source: 'bizinfo',
         source_id: item.pblancId,
         title: item.pblancNm,
@@ -207,165 +146,16 @@ export async function POST(request: NextRequest) {
         status: 'active',
         updated_at: new Date().toISOString()
       }
-
-      // 중복 감지
-      const duplicateResult = await detectDuplicate(
-        announcement.title,
-        announcement.organization,
-        announcement.source,
-        supabase
-      )
-
-      if (duplicateResult.isDuplicate) {
-        log.debug('중복 공고 스킵', {
-          title: announcement.title,
-          similarity: (duplicateResult.similarity * 100).toFixed(1),
-          originalId: duplicateResult.originalId
-        })
-        skippedDuplicates++
-        continue // 중복이면 skip
-      }
-
-      announcementsToUpsert.push(announcement)
-    }
-
-    // 배치 upsert + 변경 감지
-    let syncResult
-    try {
-      log.info('배치 upsert 시작', { count: announcementsToUpsert.length })
-      syncResult = await syncWithChangeDetection(supabase, announcementsToUpsert)
-      log.info('배치 upsert 완료', {
-        upserted: syncResult.upserted,
-        changesDetected: syncResult.changesDetected
-      })
-    } catch (error) {
-      log.error('배치 upsert 실패', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        count: announcementsToUpsert.length
-      })
-      return NextResponse.json(
-        { success: false, error: error instanceof Error ? error.message : 'Sync failed' },
-        { status: 500 }
-      )
-    }
-
-    // 마감된 기업마당 공고 비활성화
-    await supabase
-      .from('announcements')
-      .update({ status: 'expired' })
-      .eq('source', 'bizinfo')
-      .lt('application_end', todayStr)
-
-    // AI 자동 분류: eligibility_criteria가 null인 새 공고들 파싱
-    let aiParsed = 0
-    try {
-      // 파싱되지 않은 최근 공고 조회 (최대 10개, API 비용 및 시간 제한)
-      const { data: unparsedAnnouncements } = await supabase
-        .from('announcements')
-        .select('id, title, content, target_company')
-        .eq('source', 'bizinfo')
-        .eq('status', 'active')
-        .is('eligibility_criteria', null)
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-      if (unparsedAnnouncements && unparsedAnnouncements.length > 0) {
-        for (const ann of unparsedAnnouncements) {
-          try {
-            const criteria = await parseEligibilityCriteria(
-              ann.title,
-              ann.content || '',
-              ann.target_company
-            )
-
-            await supabase
-              .from('announcements')
-              .update({ eligibility_criteria: criteria })
-              .eq('id', ann.id)
-
-            aiParsed++
-
-            // Rate limiting: Gemini API 요청 간 딜레이
-            await new Promise(resolve => setTimeout(resolve, 1000))
-          } catch (parseError) {
-            log.warn('AI 분류 실패', {
-              announcementId: ann.id,
-              error: parseError instanceof Error ? parseError.message : 'Unknown error'
-            })
-          }
-        }
-      }
-    } catch (aiError) {
-      log.error('AI 자동 분류 중 오류', {
-        error: aiError instanceof Error ? aiError.message : 'Unknown error'
-      })
-    }
-
-    log.info('AI 자동 분류 완료', { aiParsed })
-
-    const duration = Date.now() - startTime
-
-    log.info('기업마당 동기화 완료', {
-      duration: `${duration}ms`,
-      fetched: allAnnouncements.length,
-      active: activeAnnouncements.length,
-      unique: uniqueAnnouncements.length,
-      skippedDuplicates,
-      upserted: syncResult.upserted,
-      changesDetected: syncResult.changesDetected,
-      notificationsQueued: syncResult.notificationsQueued,
-      aiParsed
     })
 
-    // 동기화 로그 저장
-    if (logId) {
-      await endSync(logId, {
-        total_fetched: uniqueAnnouncements.length,
-        new_added: syncResult.upserted,
-        updated: syncResult.changesDetected,
-        failed: 0,
-      })
+    return {
+      announcements,
+      totalFetched
     }
-
-    return NextResponse.json({
-      success: true,
-      message: '기업마당 동기화 완료',
-      stats: {
-        fetched: allAnnouncements.length,
-        active: activeAnnouncements.length,
-        unique: uniqueAnnouncements.length,
-        skippedDuplicates,
-        upserted: syncResult.upserted,
-        changesDetected: syncResult.changesDetected,
-        notificationsQueued: syncResult.notificationsQueued,
-        aiParsed,
-        duration: `${duration}ms`,
-        syncedAt: new Date().toISOString()
-      }
-    })
-
-  } catch (error) {
-    log.error('기업마당 동기화 오류', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-
-    // 동기화 실패 로그 저장
-    if (logId) {
-      await endSync(
-        logId,
-        { total_fetched: 0, new_added: 0, updated: 0, failed: 0 },
-        error instanceof Error ? error.message : '동기화 중 오류가 발생했어요.'
-      )
-    }
-
-    return NextResponse.json(
-      { success: false, error: '동기화 중 오류가 발생했어요.' },
-      { status: 500 }
-    )
   }
-}
+})
 
-export async function GET(request: NextRequest) {
-  return POST(request)
-}
+export const POST = handler
+export const GET = (request: NextRequest) => POST(request)
+export const dynamic = 'force-dynamic'
+export const maxDuration = 120
