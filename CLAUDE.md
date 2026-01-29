@@ -155,6 +155,8 @@ npm run lint
 
 ## API 엔드포인트 (주요)
 
+> **API 문서**: Swagger UI → [/api-docs](https://govhelpers.com/api-docs) | OpenAPI JSON → [/api/docs/openapi.json](https://govhelpers.com/api/docs/openapi.json)
+
 ### 공고 (Announcements)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
