@@ -182,6 +182,9 @@ npm run migrate:create    # 새 마이그레이션 파일 생성
 | `POST` | `/api/matching/stream` | AI 매칭 스트리밍 (SSE) |
 | `GET` | `/api/recommendations` | 맞춤 공고 추천 - 하이브리드 (규칙+행동 기반) (Pro/Premium) |
 | `POST` | `/api/announcements/[id]/view` | 공고 조회 이벤트 기록 (fire-and-forget) |
+| `POST` | `/api/matching/[id]/feedback` | 매칭 정확도 피드백 제출 (별점/방향성/결과) |
+| `GET` | `/api/matching/[id]/feedback` | 매칭 피드백 조회 |
+| `GET` | `/api/admin/match-feedback` | 관리자 피드백 통계 |
 
 ### 지원서 (Applications)
 | Method | Endpoint | Description |
@@ -261,6 +264,7 @@ npm run migrate:create    # 새 마이그레이션 파일 생성
 | `search_queries` | 검색어 기록 (자동완성용) |
 | `user_announcement_views` | 공고 조회 이력 (추천 알고리즘용) |
 | `_migrations` | 마이그레이션 실행 이력 추적 |
+| `match_feedback` | 매칭 정확도 피드백 (별점, 방향성, 실제 결과) |
 
 ### eligibility_criteria (공고 자격요건 JSONB)
 ```json

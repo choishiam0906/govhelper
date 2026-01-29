@@ -7,6 +7,7 @@ import { getMatchingCache, setMatchingCache } from '@/lib/cache'
 import { getCompanyContextForMatching, hasCompanyDocuments } from '@/lib/company-documents/rag'
 import { createRequestLogger } from '@/lib/logger'
 import { apiSuccess, apiError, unauthorized, notFound, badRequest } from '@/lib/api/error-handler'
+import { calibrateScore, calculateProfileCompleteness, getFeedbackCalibrationOffset } from '@/lib/ai/score-calibration'
 import { withMetrics } from '@/lib/metrics/with-metrics'
 
 async function handlePost(request: NextRequest) {
@@ -213,7 +214,28 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
         validScore = Math.max(0, Math.min(100, parseInt(numMatch[0], 10)))
       }
     }
-    analysis.overallScore = validScore
+    // 점수 캘리브레이션
+    const profileCompleteness = calculateProfileCompleteness(company)
+    const feedbackOffset = await getFeedbackCalibrationOffset(supabase)
+
+    const calibratedScore = calibrateScore(validScore, {
+      hasBusinessPlan: !!businessPlan,
+      hasRAGContext: !!companyDocumentContext,
+      companyProfileCompleteness: profileCompleteness,
+      eligibilityPassed: analysis.eligibility?.isEligible !== false,
+    })
+
+    // 피드백 오프셋 적용
+    const finalScore = Math.max(0, Math.min(100, calibratedScore + feedbackOffset))
+    analysis.overallScore = finalScore
+
+    log.info('점수 캘리브레이션 적용', {
+      rawScore: validScore,
+      calibratedScore,
+      feedbackOffset,
+      finalScore,
+      profileCompleteness: Math.round(profileCompleteness * 100),
+    })
 
     // 7. Save match result (Service Client로 RLS 우회)
     const serviceClient = await createServiceClient()
@@ -221,7 +243,7 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
       company_id: companyId,
       announcement_id: announcementId,
       business_plan_id: businessPlanId || null,
-      match_score: validScore,
+      match_score: finalScore,
       analysis: analysis,
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

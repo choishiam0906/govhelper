@@ -11,6 +11,7 @@ import { EligibilityCard } from '@/components/matching/eligibility-card'
 import { ScoreRadarChart } from '@/components/matching/score-radar-chart'
 import { ScoreBreakdown } from '@/components/matching/score-breakdown'
 import { MatchAnalysis } from '@/types'
+import { MatchFeedback } from '@/components/matching/match-feedback'
 import { DeleteMatchButton } from './delete-match-button'
 import { DownloadPDFButton } from './download-pdf-button'
 import { getUserPlan, PLAN_INFO } from '@/lib/queries/dashboard'
@@ -212,6 +213,9 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         <AnalysisCard type="weaknesses" items={analysis.weaknesses} />
         <AnalysisCard type="recommendations" items={analysis.recommendations} />
       </div>
+
+      {/* 매칭 정확도 피드백 */}
+      <MatchFeedback matchId={match.id} />
 
       {/* 공고 정보 */}
       {announcement && (
