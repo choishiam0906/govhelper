@@ -26,6 +26,7 @@ interface AnnouncementCardProps {
   isBestAmount: boolean
   isLatestEnd: boolean
   onRemove: (id: string) => void
+  showRemove?: boolean
 }
 
 export function AnnouncementCard({
@@ -34,17 +35,20 @@ export function AnnouncementCard({
   isBestAmount,
   isLatestEnd,
   onRemove,
+  showRemove = true,
 }: AnnouncementCardProps) {
   const daysLeft = getDaysLeft(announcement.application_end)
 
   return (
     <Card className="relative">
-      <button
-        onClick={() => onRemove(announcement.id)}
-        className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors z-10"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {showRemove && (
+        <button
+          onClick={() => onRemove(announcement.id)}
+          className="absolute top-2 right-2 p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors z-10"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
 
       {/* 추천 점수 */}
       <div className="absolute top-2 left-2 z-10">

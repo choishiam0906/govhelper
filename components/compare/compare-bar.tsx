@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { X, GitCompare, Trash2 } from 'lucide-react'
+import { X, GitCompare, Trash2, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCompareStore } from '@/stores/compare-store'
+import { toast } from 'sonner'
 
 export function CompareBar() {
   const { announcements, removeAnnouncement, clearAll } = useCompareStore()
@@ -15,6 +16,13 @@ export function CompareBar() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleShareLink = () => {
+    const ids = announcements.map(a => a.id).join(',')
+    const url = `${window.location.origin}/dashboard/compare?ids=${ids}`
+    navigator.clipboard.writeText(url)
+    toast.success('공유 링크를 복사했어요')
+  }
 
   if (!mounted || announcements.length === 0) {
     return null
@@ -31,6 +39,15 @@ export function CompareBar() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleShareLink}
+              aria-label="비교 공유 링크 복사"
+              disabled={announcements.length < 2}
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
