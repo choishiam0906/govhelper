@@ -55,3 +55,6 @@ supabase/.temp/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Storybook
+storybook-static/

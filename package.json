@@ -17,7 +17,9 @@
     "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server next build",
     "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser next build",
     "lighthouse": "lhci autorun",
-    "lighthouse:collect": "lhci collect --config=lighthouserc.json"
+    "lighthouse:collect": "lhci collect --config=lighthouserc.json",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -83,6 +85,11 @@
     "@lhci/cli": "^0.15.1",
     "@next/bundle-analyzer": "^16.1.5",
     "@playwright/test": "^1.58.0",
+    "@storybook/addon-essentials": "^8.6.15",
+    "@storybook/addon-interactions": "^8.6.15",
+    "@storybook/addon-links": "^8.6.15",
+    "@storybook/blocks": "^8.6.15",
+    "@storybook/nextjs": "^8.6.15",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -102,6 +109,7 @@
     "eslint-config-next": "16.1.1",
     "fast-xml-parser": "^5.3.3",
     "jsdom": "^27.4.0",
+    "storybook": "^8.6.15",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.4.0",
     "typescript": "^5",
