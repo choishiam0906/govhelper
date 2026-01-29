@@ -4,6 +4,7 @@ import { generateApplicationDraft } from '@/lib/ai/claude'
 import { checkUsageLimit } from '@/lib/queries/dashboard'
 import { z } from 'zod'
 import { apiSuccess, apiError, unauthorized, badRequest } from '@/lib/api/error-handler'
+import { withMetrics } from '@/lib/metrics/with-metrics'
 
 // 지원서 생성 스키마
 const createApplicationSchema = z.object({
@@ -11,7 +12,7 @@ const createApplicationSchema = z.object({
 })
 
 // GET: 지원서 목록 조회
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: 새 지원서 생성 (AI 초안 작성)
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -211,3 +212,6 @@ export async function POST(request: NextRequest) {
     return apiError('지원서 생성 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }
+
+export const GET = withMetrics(getHandler)
+export const POST = withMetrics(postHandler)

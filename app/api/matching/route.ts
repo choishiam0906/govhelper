@@ -7,6 +7,7 @@ import { getMatchingCache, setMatchingCache } from '@/lib/cache'
 import { getCompanyContextForMatching, hasCompanyDocuments } from '@/lib/company-documents/rag'
 import { createRequestLogger } from '@/lib/logger'
 import { apiSuccess, apiError, unauthorized, notFound, badRequest } from '@/lib/api/error-handler'
+import { withMetrics } from '@/lib/metrics/with-metrics'
 
 async function handlePost(request: NextRequest) {
   const log = createRequestLogger(request, 'matching')
@@ -277,5 +278,5 @@ ${companyDocumentContext ? `\n${companyDocumentContext}` : ''}
   }
 }
 
-// AI Rate Limit 적용 (분당 10회)
-export const POST = withRateLimit(handlePost, 'ai')
+// AI Rate Limit 적용 (분당 10회) + 메트릭 수집
+export const POST = withMetrics(withRateLimit(handlePost, 'ai'))

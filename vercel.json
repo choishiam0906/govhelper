@@ -59,6 +59,9 @@
     },
     "app/api/announcements/local/sync/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/cron/archive-announcements/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -153,6 +156,10 @@
     {
       "path": "/api/announcements/local/sync",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/archive-announcements",
+      "schedule": "0 6 * * *"
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, LineChart, Mail, RefreshCw, BrainCircuit } from "lucide-react"
+import { LayoutDashboard, CreditCard, Users, ArrowLeft, ClipboardCheck, BarChart3, MessageSquare, LineChart, Mail, RefreshCw, BrainCircuit, Activity } from "lucide-react"
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'choishiam@gmail.com').split(',').map(e => e.trim())
 
@@ -99,6 +99,13 @@ export default async function AdminLayout({
             >
               <BrainCircuit className="w-4 h-4" />
               프롬프트 관리
+            </Link>
+            <Link
+              href="/admin/api-metrics"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Activity className="w-4 h-4" />
+              API 성능
             </Link>
           </nav>
         </aside>

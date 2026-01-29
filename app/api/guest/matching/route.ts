@@ -11,6 +11,7 @@ import {
   getRateLimitHeaders,
   isRateLimitEnabled,
 } from '@/lib/rate-limit'
+import { withMetrics } from '@/lib/metrics/with-metrics'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
 
@@ -114,7 +115,7 @@ ${companyText}
   }
 }
 
-export async function POST(request: NextRequest) {
+async function postHandler(request: NextRequest) {
   // Rate Limit 체크 (남용 방지)
   if (isRateLimitEnabled()) {
     const ip = getClientIP(request)
@@ -327,3 +328,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export const POST = withMetrics(postHandler)

@@ -7,6 +7,7 @@ import type {
   AnnouncementForRecommendation,
   RecommendationsResponse
 } from '@/lib/recommendations/types'
+import { withMetrics } from '@/lib/metrics/with-metrics'
 
 // 맞춤 추천은 1시간 캐싱 (Next.js 라우트 레벨 캐싱)
 export const revalidate = 3600
@@ -15,7 +16,7 @@ export const revalidate = 3600
  * 맞춤 추천 공고 API
  * Pro/Premium 사용자만 사용 가능
  */
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const supabase = await createClient()
 
@@ -139,3 +140,5 @@ export async function GET(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+export const GET = withMetrics(getHandler)

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAnnouncementsListCache, setAnnouncementsListCache } from '@/lib/cache'
 import { apiSuccess, apiError } from '@/lib/api/error-handler'
+import { withMetrics } from '@/lib/metrics/with-metrics'
 
 // 정적 데이터 5분 캐싱 (Next.js 라우트 레벨 캐싱)
 export const revalidate = 300
 
-export async function GET(request: NextRequest) {
+async function getHandler(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
 
@@ -118,3 +119,5 @@ export async function GET(request: NextRequest) {
     return apiError('공고 목록 조회 중 오류가 발생했어요', 'INTERNAL_SERVER_ERROR', 500)
   }
 }
+
+export const GET = withMetrics(getHandler)
