@@ -22,6 +22,7 @@ import {
   Calendar,
   Filter
 } from 'lucide-react'
+import { SearchAutocomplete } from '@/components/search/search-autocomplete'
 
 // 분야 목록
 const categories = [
@@ -115,6 +116,18 @@ export function AnnouncementFilters() {
     updateFilters('search', search)
   }, [search, updateFilters])
 
+  const handleSearchAndRecord = useCallback(() => {
+    updateFilters('search', search)
+    // 검색어 기록 (fire-and-forget)
+    if (search.trim().length >= 2) {
+      fetch('/api/search/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: search.trim(), source: 'filter' })
+      }).catch(() => {})
+    }
+  }, [search, updateFilters])
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch()
@@ -169,17 +182,14 @@ export function AnnouncementFilters() {
     <div className="space-y-4">
       {/* 검색창 */}
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="공고명, 기관명으로 검색"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleSearch} disabled={isPending}>
+        <SearchAutocomplete
+          value={search}
+          onChange={setSearch}
+          onSearch={handleSearchAndRecord}
+          placeholder="공고명, 기관명으로 검색"
+          className="flex-1"
+        />
+        <Button onClick={handleSearchAndRecord} disabled={isPending}>
           검색
         </Button>
       </div>

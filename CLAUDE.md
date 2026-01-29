@@ -162,6 +162,12 @@ npm run lint
 | `GET` | `/api/announcements/[id]` | 공고 상세 |
 | `POST` | `/api/announcements/search` | AI 시맨틱/하이브리드 검색 |
 
+### 검색 (Search)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/search/autocomplete` | 검색어 자동완성 (인기/최근/공고 매칭) |
+| `POST` | `/api/search/record` | 검색어 기록 |
+
 ### AI 매칭 (Matching)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -244,6 +250,7 @@ npm run lint
 | `payments` | 결제 내역 |
 | `guest_leads` | 비회원 리드 |
 | `guest_matches` | 비회원 매칭 결과 |
+| `search_queries` | 검색어 기록 (자동완성용) |
 
 ### eligibility_criteria (공고 자격요건 JSONB)
 ```json

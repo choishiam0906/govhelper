@@ -112,6 +112,15 @@ export function SemanticSearch() {
       if (result.data.length === 0) {
         toast.info('검색 결과가 없어요. 다른 검색어를 시도해보세요.')
       }
+
+      // 검색 성공 후 검색어 기록 (fire-and-forget)
+      if (query.trim().length >= 2) {
+        fetch('/api/search/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query.trim(), source: 'semantic' })
+        }).catch(() => {})
+      }
     } catch (error) {
       console.error('Search error:', error)
       toast.error('검색에 실패했어요')
