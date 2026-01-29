@@ -19,7 +19,10 @@
     "lighthouse": "lhci autorun",
     "lighthouse:collect": "lhci collect --config=lighthouserc.json",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "migrate": "tsx scripts/migrate.ts",
+    "migrate:status": "tsx scripts/migrate.ts --status",
+    "migrate:create": "tsx scripts/migrate.ts --create"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

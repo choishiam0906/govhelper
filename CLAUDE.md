@@ -149,6 +149,11 @@ npm run lighthouse        # Lighthouse CI 실행
 
 # 린트
 npm run lint
+
+# 마이그레이션
+npm run migrate           # 미실행 마이그레이션 순서대로 실행
+npm run migrate:status    # 마이그레이션 상태 확인
+npm run migrate:create    # 새 마이그레이션 파일 생성
 ```
 
 ---
@@ -255,6 +260,7 @@ npm run lint
 | `guest_matches` | 비회원 매칭 결과 |
 | `search_queries` | 검색어 기록 (자동완성용) |
 | `user_announcement_views` | 공고 조회 이력 (추천 알고리즘용) |
+| `_migrations` | 마이그레이션 실행 이력 추적 |
 
 ### eligibility_criteria (공고 자격요건 JSONB)
 ```json
