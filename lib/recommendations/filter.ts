@@ -29,6 +29,7 @@ import {
   hasCertificationMatch,
   nationwideKeywords
 } from './mappings'
+import { BehaviorSignals, calculateBehaviorScore } from './behavior-score'
 
 // 점수 가중치
 const WEIGHTS = {
@@ -112,6 +113,7 @@ function calculateScore(
     businessAge: 0,
     certification: 0,
     bonus: 0,
+    behavior: 0,
     total: 0
   }
 
@@ -311,6 +313,7 @@ function calculateScore(
     breakdown.revenue +
     breakdown.businessAge +
     breakdown.certification +
+    breakdown.behavior +
     breakdown.bonus
 
   // 결과 생성
@@ -341,6 +344,7 @@ export function filterAndScoreAnnouncements(
   options?: {
     minScore?: number    // 최소 점수 (기본: 50)
     limit?: number       // 최대 개수 (기본: 10)
+    behaviorSignals?: BehaviorSignals  // 행동 기반 신호
   }
 ): RecommendationResult[] {
   const minScore = options?.minScore ?? 50
@@ -356,6 +360,19 @@ export function filterAndScoreAnnouncements(
 
     // excluded면 제외 업종/지역에 해당
     if (calculated.excluded) continue
+
+    // 행동 기반 점수 적용
+    if (options?.behaviorSignals) {
+      const behaviorScore = calculateBehaviorScore(
+        { category: announcement.category, organization: announcement.organization, id: announcement.id },
+        options.behaviorSignals
+      )
+      // 이미 상호작용한 공고는 건너뛰기
+      if (behaviorScore < 0) continue
+      calculated.result.scoreBreakdown.behavior = behaviorScore
+      calculated.result.scoreBreakdown.total += behaviorScore
+      calculated.result.score += behaviorScore
+    }
 
     // 최소 점수 미만이면 제외
     if (calculated.result.score < minScore) continue

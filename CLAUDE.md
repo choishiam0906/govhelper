@@ -175,7 +175,8 @@ npm run lint
 |--------|----------|-------------|
 | `POST` | `/api/matching` | AI 매칭 분석 요청 |
 | `POST` | `/api/matching/stream` | AI 매칭 스트리밍 (SSE) |
-| `GET` | `/api/recommendations` | 맞춤 공고 추천 (Pro/Premium) |
+| `GET` | `/api/recommendations` | 맞춤 공고 추천 - 하이브리드 (규칙+행동 기반) (Pro/Premium) |
+| `POST` | `/api/announcements/[id]/view` | 공고 조회 이벤트 기록 (fire-and-forget) |
 
 ### 지원서 (Applications)
 | Method | Endpoint | Description |
@@ -253,6 +254,7 @@ npm run lint
 | `guest_leads` | 비회원 리드 |
 | `guest_matches` | 비회원 매칭 결과 |
 | `search_queries` | 검색어 기록 (자동완성용) |
+| `user_announcement_views` | 공고 조회 이력 (추천 알고리즘용) |
 
 ### eligibility_criteria (공고 자격요건 JSONB)
 ```json

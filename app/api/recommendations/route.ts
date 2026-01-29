@@ -8,6 +8,7 @@ import type {
   RecommendationsResponse
 } from '@/lib/recommendations/types'
 import { withMetrics } from '@/lib/metrics/with-metrics'
+import { collectBehaviorSignals } from '@/lib/recommendations/behavior-score'
 
 // 맞춤 추천은 1시간 캐싱 (Next.js 라우트 레벨 캐싱)
 export const revalidate = 3600
@@ -102,7 +103,10 @@ async function getHandler(request: NextRequest) {
       certifications: company.certifications
     }
 
-    // 6. 필터링 및 점수 계산
+    // 6. 사용자 행동 신호 수집
+    const behaviorSignals = await collectBehaviorSignals(supabase, user.id)
+
+    // 7. 필터링 및 점수 계산
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '10')
     const minScore = parseInt(searchParams.get('minScore') || '50')
@@ -110,10 +114,10 @@ async function getHandler(request: NextRequest) {
     const results = filterAndScoreAnnouncements(
       announcements as AnnouncementForRecommendation[],
       companyInfo,
-      { limit, minScore }
+      { limit, minScore, behaviorSignals }
     )
 
-    // 7. 응답 반환
+    // 8. 응답 반환
     return NextResponse.json<RecommendationsResponse>({
       success: true,
       data: {

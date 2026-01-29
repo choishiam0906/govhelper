@@ -94,6 +94,7 @@ export interface ScoreBreakdown {
   businessAge: number   // 0-10점
   certification: number // 0-10점
   bonus: number         // 가산점 (마감 임박 등)
+  behavior: number      // 0-30점 (행동 기반)
   total: number         // 총점
 }
 
